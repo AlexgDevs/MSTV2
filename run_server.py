@@ -9,6 +9,12 @@ from server import (
 app = FastAPI(description='mstv2 api')
 app.include_router(master_app)
 
+
+@app.get('/')
+async def say_title():
+    return {'status': 'welocome'}
+
+
 async def start_db():
     await db_config.up()
 

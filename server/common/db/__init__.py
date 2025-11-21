@@ -2,17 +2,23 @@ from os import getenv
 
 from dotenv import load_dotenv
 
-from sqlalchemy import select
+from sqlalchemy import (
+    select, 
+    join
+)
+
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
-    async_sessionmaker)
+    async_sessionmaker,
+    AsyncSession)
 
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
-    mapped_column
+    mapped_column,
+    joinedload,
+    selectinload
 )
-
 
 load_dotenv()
 
@@ -56,6 +62,7 @@ class DataBaseConfiguration:
     async def session_begin(self):
         async with self.Session.begin() as session:
             yield session
+
 
 
 db_config = DataBaseConfiguration(
