@@ -1,15 +1,17 @@
-from fastapi import Depends
 from typing import List
+
+from fastapi import Depends
 from sqlalchemy.exc import SQLAlchemyError
 
 from ...common.db import (
+    AsyncSession,
     User,
     db_config,
-    AsyncSession,
-    selectinload,
     joinedload,
-    select
+    select,
+    selectinload
 )
+from ..schemas import CreateUserModel
 
 
 class UserRepository:
@@ -21,16 +23,14 @@ class UserRepository:
         self._session = session
 
     async def get_all(self) -> List[User]:
-        users = await self._session.scalars(
+        result = await self._session.scalars(
             select(User)
         )
-
-        return users
-
+        return list(result.all())
 
     async def get_by_id(
-        self,
-        user_id: int) -> User | None:
+            self,
+            user_id: int) -> User | None:
 
         user = await self._session.scalar(
             select(User)
@@ -39,10 +39,9 @@ class UserRepository:
 
         return user
 
-
     async def get_by_id_detail(
-        self,
-        user_id: int) -> User | None:
+            self,
+            user_id: int) -> User | None:
 
         user = await self._session.scalar(
             select(User)
@@ -57,16 +56,23 @@ class UserRepository:
 
         return user
 
+    async def get_by_name(self, name: str) -> User | None:
+        user = await self._session.scalar(
+            select(User).where(User.name == name)
+        )
+        return user
 
-    async def create_user(self, user_data: dict) -> User | None:
-        try:
-            new_user = User(**user_data)
-            self._session.add(new_user)
-            await self._session.flush()
-            return new_user
-        except SQLAlchemyError:
-            await self._session.rollback()
-            return None
+    async def get_by_email(self, email: str) -> User | None:
+        user = await self._session.scalar(
+            select(User).where(User.email == email)
+        )
+        return user
+
+    async def create_user(self, user_data: CreateUserModel) -> User:
+        new_user = User(**user_data.model_dump())
+        self._session.add(new_user)
+        await self._session.flush()
+        return new_user
 
 
 def get_user_repository(

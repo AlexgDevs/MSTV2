@@ -3,7 +3,7 @@ from os import getenv
 from dotenv import load_dotenv
 
 from sqlalchemy import (
-    select, 
+    select,
     join
 )
 
@@ -41,7 +41,10 @@ class DataBaseConfiguration:
             echo=self.echo
         )
 
-        self.Session = async_sessionmaker(self.engine)
+        self.Session = async_sessionmaker(
+            self.engine,
+            expire_on_commit=False
+        )
 
     async def up(self):
         async with self.engine.begin() as conn:
@@ -64,11 +67,11 @@ class DataBaseConfiguration:
             yield session
 
 
-
 db_config = DataBaseConfiguration(
     getenv('DB_URL'),
     True
 )
+
 
 from .models import (
     User,

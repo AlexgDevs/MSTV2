@@ -1,1 +1,1 @@
-from .routers import user_app
+from .routers import user_app, auth_app
