@@ -3,6 +3,8 @@ from typing import List
 from fastapi import Depends
 from sqlalchemy.exc import SQLAlchemyError
 
+from server.users.schemas.user import PatchUserModel
+
 from ...common.db import (
     AsyncSession,
     User,
@@ -73,6 +75,20 @@ class UserRepository:
         self._session.add(new_user)
         await self._session.flush()
         return new_user
+
+    async def update_user(self, user_id: int, user_data: PatchUserModel) -> User:
+        updating_user = await self._session.merge(
+            User(
+                id=user_id,
+                **user_data.model_dump(
+                    exclude_none=True,
+                    exclude_unset=True)
+            )
+        )
+        await self._session.flush()
+        await self._session.refresh(updating_user)
+        return updating_user
+
 
 
 def get_user_repository(

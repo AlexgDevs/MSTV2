@@ -55,6 +55,13 @@ class CreateUserModel(BaseModel):
     about: str | None = None
 
 
+class PatchUserModel(BaseModel):
+    name: str | None = None
+    password: str | None = None
+    email: str | None = None
+    about: str | None = None
+
+
 class LoginUserModel(BaseModel):
     name: str
     password: str

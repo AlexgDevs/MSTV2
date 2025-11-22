@@ -29,9 +29,9 @@ pwd_context = CryptContext(schemes=['argon2'], deprecated='auto')
 
 
 @auth_app.post('/register',
-            status_code=status.HTTP_201_CREATED,
-            summary='create and adding tokens in coocking sesson',
-            description='endpoint for creating and registered user')
+               status_code=status.HTTP_201_CREATED,
+               summary='create and adding tokens in coocking sesson',
+               description='endpoint for creating and registered user')
 async def registered_user(
     response: Response,
     user_data: CreateUserModel,
@@ -68,9 +68,9 @@ async def registered_user(
 
 
 @auth_app.post('/token',
-            status_code=status.HTTP_201_CREATED,
-            summary='login user',
-            description='endpoint for logined user and creating tokens')
+               status_code=status.HTTP_201_CREATED,
+               summary='login user',
+               description='endpoint for logined user and creating tokens')
 async def token(
     response: Response,
     user_data: LoginUserModel,
@@ -110,8 +110,8 @@ async def token(
 
 
 @auth_app.post('/refresh',
-            summary='refresh access tokend',
-            description='endpoint for creating new access token by refresh')
+               summary='refresh access tokend',
+               description='endpoint for creating new access token by refresh')
 async def refresh_access_token(
         response: Response,
         refresh_token: str = Cookie(None)):
@@ -125,14 +125,14 @@ async def refresh_access_token(
 
 
 @auth_app.get('/check',
-            summary='check auth status')
+              summary='check auth status')
 async def check_auth_status(user=Depends(JWTManager.auth_required)):
     return {"status": "authenticated", "user_id": user.get('id')}
 
 
 @auth_app.delete('/logout',
-            summary='logout account',
-            description='endpoint for deleting cookies')
+                 summary='logout account',
+                 description='endpoint for deleting cookies')
 async def logout(response: Response, is_auth=Depends(JWTManager.auth_required)):
     await CookieManager.delete_cookies(response)
     return {'status': 'cookies deleted'}

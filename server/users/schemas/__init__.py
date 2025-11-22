@@ -2,5 +2,6 @@ from .user import (
     UserResponse,
     CreateUserModel,
     DetailUserResponse,
-    LoginUserModel
+    LoginUserModel,
+    PatchUserModel
 )
