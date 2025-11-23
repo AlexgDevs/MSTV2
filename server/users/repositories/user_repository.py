@@ -28,7 +28,7 @@ class UserRepository:
         result = await self._session.scalars(
             select(User)
         )
-        return list(result.all())
+        return result.all()
 
     async def get_by_id(
             self,
