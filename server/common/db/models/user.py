@@ -21,7 +21,7 @@ class User(Base):
     password: Mapped[str] = mapped_column(String(1024))
     
     email: Mapped[str] = mapped_column(String(512))
-    verified_email: Mapped[bool] = mapped_column(default=False)
+    verified_email: Mapped[bool] = mapped_column(default=True)
     verified_token: Mapped[str] = mapped_column(String(256), nullable=True)
     
     about: Mapped[str] = mapped_column(String(1024))

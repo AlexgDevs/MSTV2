@@ -3,6 +3,7 @@ from typing import List
 from fastapi import Depends
 from sqlalchemy.exc import SQLAlchemyError
 
+from server.common.db.models.service import ServiceEnroll
 from server.users.schemas.user import PatchUserModel
 
 from ...common.db import (

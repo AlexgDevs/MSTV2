@@ -1,0 +1,1 @@
+from .schedule_template import template_app

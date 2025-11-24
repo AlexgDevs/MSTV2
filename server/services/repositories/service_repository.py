@@ -10,7 +10,8 @@ from ...common.db import (
     joinedload,
     select,
     selectinload,
-    Service
+    Service,
+    ServiceEnroll
 )
 
 from ..schemas import CreateServiceModel, PatchServiceModel
@@ -41,6 +42,20 @@ class ServiceRepository:
 
         return service
 
+    async def get_by_service_user_id(
+        self,
+        service_id: int,
+        user_id: int) -> Service | None:
+
+        service = await self._session.scalar(
+            select(Service)
+            .where(
+                Service.id == service_id,
+                Service.user_id == user_id)
+        )
+
+        return service
+
     async def get_detail_by_service_user_id(
         self,
         user_id: int,
@@ -52,7 +67,14 @@ class ServiceRepository:
             .where(
                 Service.id == service_id, 
                 Service.user_id == user_id)
+            .options(
+            selectinload(Service.users_enroll).selectinload(ServiceEnroll.user),
+            selectinload(Service.templates),
+            selectinload(Service.tags),
+            selectinload(Service.dates),
+            selectinload(Service.user)
         )
+    )
 
         return service
 
