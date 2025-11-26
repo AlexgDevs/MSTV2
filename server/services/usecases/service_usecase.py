@@ -67,7 +67,7 @@ class ServiceUseCase:
 
         try:
             updating_service = await self._service_repository.patch_update_service(
-                service.id,
+                service_id,
                 update_service_data
             )
             await self._session.commit()

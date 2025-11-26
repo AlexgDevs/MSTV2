@@ -18,21 +18,21 @@ Days = Literal["monday", "tuesday", "wednesday",
 
 class CreateScheduleTemplateModel(BaseModel):
     day: Days
-    hours_work: Dict[Status, TimeSlot]
+    hours_work: Dict[TimeSlot, Status]
     is_active: bool
     service_id: int
 
 
 class PatchScheduleTemplateModel(BaseModel):
     day: str | None = None 
-    hours_work: Dict[Days, TimeSlot] | None = None
+    hours_work: Dict[TimeSlot, Status] | None = None
     is_active: bool | None = None
     service_id: int | None = None
 
 
 class ScheduleTemplateResponse(BaseModel):
     id: int
-    hours_work: Dict[Days, TimeSlot]
+    hours_work: Dict[TimeSlot, Status]
     is_active: bool
     user_id: int
     service_id: int
@@ -58,7 +58,7 @@ class SimpleScheduleTemplateServiceResponse(BaseModel):
 
 class ScheduleTemplateDetailResponse(BaseModel):
     id: int
-    hours_work: Dict[Days, TimeSlot]
+    hours_work: Dict[TimeSlot, Status]
     is_active: bool
     user_id: int
     service_id: int

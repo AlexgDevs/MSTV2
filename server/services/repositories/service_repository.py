@@ -108,7 +108,6 @@ class ServiceRepository:
 
         await self._session.merge(updating_service)
         await self._session.flush()
-        await self._session.refresh(updating_service)
         return updating_service
 
 

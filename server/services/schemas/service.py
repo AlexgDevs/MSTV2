@@ -43,8 +43,8 @@ class ServiceResponse(BaseModel):
 
 class SimpleServiceTemplateResponse(BaseModel):
     id: int
-    day: str 
-    hours_work: Dict[Days, TimeSlot]
+    day: Days
+    hours_work: Dict[TimeSlot, Status]
     is_active: bool
     user_id: int
 
@@ -55,7 +55,7 @@ class SimpleServiceTemplateResponse(BaseModel):
 class SimpleServiceDateResponse(BaseModel):
     id: int
     date: str
-    slots: Dict[str, str]
+    slots: Dict[TimeSlot, Status]
 
     class Config:
         from_attributes = True
