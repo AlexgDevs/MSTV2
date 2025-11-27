@@ -45,6 +45,18 @@ class ServiceDateRepository:
 
         return dates.all()
 
+    async def get_by_id(
+        self,
+        service_date_id: int 
+    ):
+
+        service_date = await self._session.scalar(
+            select(ServiceDate)
+            .where(ServiceDate.id == service_date_id)
+        )
+
+        return service_date
+
     async def create_date(
         self,
         service_date_data: CreateServiceDate
