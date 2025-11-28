@@ -98,7 +98,7 @@ async def template_by_id_response(
     return template
 
 
-@template_app.get('/{service_id}',
+@template_app.get('/by/{service_id}',
                 response_model=List[ScheduleTemplateResponse],
                 summary='get all templates by user and service',
                 description='endpoint for getting templates by user and service')
