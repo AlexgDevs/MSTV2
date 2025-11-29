@@ -28,7 +28,7 @@ const dayLabels: Record<string, string> = {
     wednesday: 'Среда',
     thursday: 'Четверг',
     friday: 'Пятница',
-    saturday: 'Суббота',
+    saturday: 'Саббота',
     sunday: 'Воскресенье'
 };
 
@@ -37,6 +37,23 @@ const statusBadge: Record<string, string> = {
     booked: 'bg-yellow-100 text-yellow-800',
     break: 'bg-red-100 text-red-700',
     unavailable: 'bg-gray-100 text-gray-600'
+};
+
+const timeSlots = [
+    '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', 
+    '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'
+];
+
+const statusColors = {
+    available: 'bg-green-500 hover:bg-green-600',
+    break: 'bg-red-500 hover:bg-red-600',
+    unavailable: 'bg-gray-300 hover:bg-gray-400'
+};
+
+const statusLabels = {
+    available: 'Доступно',
+    break: 'Перерыв',
+    unavailable: 'Недоступно'
 };
 
 const formatDate = (value: string) => {
@@ -52,20 +69,12 @@ const formatDate = (value: string) => {
     });
 };
 
-
 export const MasterDashboardPage: React.FC = () => {
     const { user, refreshUser } = useAuthStore();
     const services = user?.services ?? [];
     const serviceIds = useMemo(() => services.map(service => service.id), [services]);
 
     const [activeTab, setActiveTab] = useState<TabId>('services');
-    const [isConfirmed, setIsConfirmed] = useState(() => {
-        if (typeof window === 'undefined') {
-            return false;
-        }
-        return localStorage.getItem('master-panel-confirmed') === 'true';
-    });
-
     const [scheduleServiceFilter, setScheduleServiceFilter] = useState<number | 'all'>('all');
     const [bookingsServiceFilter, setBookingsServiceFilter] = useState<number | null>(
         services[0]?.id ?? null
@@ -81,11 +90,15 @@ export const MasterDashboardPage: React.FC = () => {
     const [serviceFormError, setServiceFormError] = useState<string | null>(null);
     const [isServiceSubmitting, setIsServiceSubmitting] = useState(false);
 
-    const [templateFormServiceId, setTemplateFormServiceId] = useState<number | null>(null);
+    // Шаблоны - новые состояния
+    const [templateServiceFilter, setTemplateServiceFilter] = useState<number | 'all'>('all');
+    const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
+    const [editingTemplate, setEditingTemplate] = useState<any>(null);
     const [templateForm, setTemplateForm] = useState({
+        service_id: services[0]?.id || null,
         day: 'monday',
-        hours: '10:00, 11:00, 12:00',
-        isActive: true
+        hours_work: {} as Record<string, 'available' | 'break' | 'unavailable'>,
+        is_active: true
     });
     const [isTemplateSubmitting, setIsTemplateSubmitting] = useState(false);
     const [templateError, setTemplateError] = useState<string | null>(null);
@@ -93,6 +106,9 @@ export const MasterDashboardPage: React.FC = () => {
     useEffect(() => {
         if (services.length && bookingsServiceFilter === null) {
             setBookingsServiceFilter(services[0].id);
+        }
+        if (services.length && templateForm.service_id === null) {
+            setTemplateForm(prev => ({ ...prev, service_id: services[0].id }));
         }
     }, [services, bookingsServiceFilter]);
 
@@ -127,63 +143,39 @@ export const MasterDashboardPage: React.FC = () => {
             );
     }, [schedule, bookingsServiceFilter]);
 
-    const templatesByService = useMemo(() => {
+    // Фильтрация шаблонов по услуге
+    const filteredTemplates = useMemo(() => {
         const templates = user?.templates ?? [];
-        return templates.reduce<Record<number, typeof templates>>((acc, template) => {
-            if (!template.service_id) {
-                return acc;
-            }
+        if (templateServiceFilter === 'all') {
+            return templates;
+        }
+        return templates.filter(template => template.service_id === templateServiceFilter);
+    }, [user?.templates, templateServiceFilter]);
+
+    // Группировка шаблонов по услуге для отображения
+    const templatesByService = useMemo(() => {
+        const templates = filteredTemplates;
+        const grouped = templates.reduce<Record<number, typeof templates>>((acc, template) => {
+            if (!template.service_id) return acc;
             if (!acc[template.service_id]) {
                 acc[template.service_id] = [];
             }
             acc[template.service_id].push(template);
             return acc;
         }, {});
-    }, [user?.templates]);
 
-    useEffect(() => {
-        if (typeof window === 'undefined') {
-            return;
-        }
-
-        if (isConfirmed) {
-            localStorage.setItem('master-panel-confirmed', 'true');
-        } else {
-            localStorage.removeItem('master-panel-confirmed');
-        }
-    }, [isConfirmed]);
+        // Сортируем по названию услуги
+        return Object.fromEntries(
+            Object.entries(grouped).sort(([aId], [bId]) => {
+                const aService = services.find(s => s.id === Number(aId));
+                const bService = services.find(s => s.id === Number(bId));
+                return (aService?.title || '').localeCompare(bService?.title || '');
+            })
+        );
+    }, [filteredTemplates, services]);
 
     if (!user) {
         return null;
-    }
-
-    if (!isConfirmed) {
-        return (
-            <div className="max-w-3xl mx-auto bg-white border border-gray-200 rounded-2xl p-10 text-center space-y-6 shadow-sm">
-                <p className="text-sm uppercase tracking-[0.3em] text-blue-500 font-semibold">
-                    мастер-панель
-                </p>
-                <h1 className="text-3xl font-bold text-gray-900">
-                    Включить режим мастера?
-                </h1>
-                <p className="text-gray-600 text-lg">
-                    После подтверждения на этой странице появятся инструменты для управления услугами,
-                    расписанием и бронированиями ваших клиентов.
-                </p>
-                <div className="flex flex-wrap justify-center gap-4">
-                    <Button onClick={() => setIsConfirmed(true)}>Перейти к панели</Button>
-                    <Button
-                        variant="outline"
-                        onClick={() => setIsConfirmed(false)}
-                    >
-                        Остаться в режиме клиента
-                    </Button>
-                </div>
-                <p className="text-sm text-gray-400">
-                    Решение можно изменить в любой момент — просто вернитесь на эту страницу.
-                </p>
-            </div>
-        );
     }
 
     const handleServiceFormChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -231,25 +223,39 @@ export const MasterDashboardPage: React.FC = () => {
         }
     };
 
-    const parseTemplateHours = (raw: string): Record<string, 'available'> => {
-        const slots = raw
-            .split(',')
-            .map(slot => slot.trim())
-            .filter(Boolean);
-
-        const result: Record<string, 'available'> = {};
-        for (const slot of slots) {
-            result[slot] = 'available';
-        }
-        return result;
+    // Функции для работы с шаблонами
+    const handleTimeSlotClick = (time: string) => {
+        setTemplateForm(prev => {
+            const currentStatus = prev.hours_work[time] || 'unavailable';
+            const nextStatus = 
+                currentStatus === 'unavailable' ? 'available' :
+                currentStatus === 'available' ? 'break' : 'unavailable';
+            
+            return {
+                ...prev,
+                hours_work: {
+                    ...prev.hours_work,
+                    [time]: nextStatus
+                }
+            };
+        });
     };
 
-    const handleCreateTemplate = async (serviceId: number) => {
+    const handleCreateTemplate = async () => {
         setTemplateError(null);
-        const hours_work = parseTemplateHours(templateForm.hours);
 
-        if (Object.keys(hours_work).length === 0) {
-            setTemplateError('Укажите хотя бы один временной слот');
+        if (!templateForm.service_id) {
+            setTemplateError('Выберите услугу');
+            return;
+        }
+
+        // Фильтруем только выбранные слоты (не unavailable)
+        const activeHoursWork = Object.fromEntries(
+            Object.entries(templateForm.hours_work).filter(([, status]) => status !== 'unavailable')
+        );
+
+        if (Object.keys(activeHoursWork).length === 0) {
+            setTemplateError('Выберите хотя бы один временной слот');
             return;
         }
 
@@ -257,12 +263,18 @@ export const MasterDashboardPage: React.FC = () => {
         try {
             await templatesApi.create({
                 day: templateForm.day,
-                hours_work,
-                is_active: templateForm.isActive,
-                service_id: serviceId
+                hours_work: activeHoursWork,
+                is_active: templateForm.is_active,
+                service_id: templateForm.service_id
             });
             await refreshUser();
-            setTemplateFormServiceId(null);
+            setIsCreatingTemplate(false);
+            setTemplateForm({
+                service_id: services[0]?.id || null,
+                day: 'monday',
+                hours_work: {},
+                is_active: true
+            });
         } catch (error) {
             const message =
                 error instanceof Error ? error.message : 'Не удалось создать шаблон';
@@ -270,6 +282,91 @@ export const MasterDashboardPage: React.FC = () => {
         } finally {
             setIsTemplateSubmitting(false);
         }
+    };
+
+    const handleEditTemplate = (template: any) => {
+        setEditingTemplate(template);
+        setTemplateForm({
+            service_id: template.service_id,
+            day: template.day,
+            hours_work: { ...template.hours_work },
+            is_active: template.is_active
+        });
+        setIsCreatingTemplate(true);
+    };
+
+    const handleUpdateTemplate = async () => {
+        if (!editingTemplate) return;
+
+        setTemplateError(null);
+        const activeHoursWork = Object.fromEntries(
+            Object.entries(templateForm.hours_work).filter(([, status]) => status !== 'unavailable')
+        );
+
+        if (Object.keys(activeHoursWork).length === 0) {
+            setTemplateError('Выберите хотя бы один временной слот');
+            return;
+        }
+
+        setIsTemplateSubmitting(true);
+        try {
+            await templatesApi.update(editingTemplate.id, {
+                day: templateForm.day,
+                hours_work: activeHoursWork,
+                is_active: templateForm.is_active,
+                service_id: templateForm.service_id
+            });
+            await refreshUser();
+            setIsCreatingTemplate(false);
+            setEditingTemplate(null);
+            setTemplateForm({
+                service_id: services[0]?.id || null,
+                day: 'monday',
+                hours_work: {},
+                is_active: true
+            });
+        } catch (error) {
+            const message =
+                error instanceof Error ? error.message : 'Не удалось обновить шаблон';
+            setTemplateError(message);
+        } finally {
+            setIsTemplateSubmitting(false);
+        }
+    };
+
+    const handleDeleteTemplate = async (templateId: number) => {
+        if (!confirm('Удалить этот шаблон?')) return;
+        
+        try {
+            await templatesApi.delete(templateId);
+            await refreshUser();
+        } catch (error) {
+            console.error('Ошибка при удалении шаблона:', error);
+        }
+    };
+
+    const handleToggleTemplateStatus = async (template: any) => {
+        try {
+            await templatesApi.update(template.id, {
+                ...template,
+                is_active: !template.is_active
+            });
+            await refreshUser();
+        } catch (error) {
+            console.error('Ошибка при изменении статуса:', error);
+        }
+    };
+
+    const resetTemplateForm = () => {
+        setIsCreatingTemplate(false);
+        setEditingTemplate(null);
+        setTemplateForm({
+            service_id: services[0]?.id || null,
+            day: 'monday',
+            hours_work: {},
+            is_active: true
+        });
+        setTemplateError(null);
     };
 
     const renderServicesTab = () => (
@@ -368,14 +465,9 @@ export const MasterDashboardPage: React.FC = () => {
                     {services.map(service => (
                         <Card key={service.id} className="flex flex-col">
                             <CardHeader>
-                                <div className="flex items-center justify-between gap-2">
-                                    <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
-                                        {service.title}
-                                    </h3>
-                                    <span className="text-sm text-gray-500">
-                                        #{service.id}
-                                    </span>
-                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
+                                    {service.title}
+                                </h3>
                                 <p className="text-sm text-gray-500">
                                     Создано: {formatDate(service.created_at)}
                                 </p>
@@ -506,188 +598,254 @@ export const MasterDashboardPage: React.FC = () => {
 
     const renderTemplatesTab = () => (
         <div className="space-y-6">
-            {services.length === 0 ? (
+            <div className="flex flex-wrap gap-4 justify-between items-center">
+                <div>
+                    <h2 className="text-xl font-semibold text-gray-900">Шаблоны расписания</h2>
+                    <p className="text-gray-500">
+                        Создавайте шаблоны для автоматического заполнения расписания
+                    </p>
+                </div>
+                <div className="flex gap-3">
+                    {services.length > 0 && (
+                        <select
+                            className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm"
+                            value={templateServiceFilter}
+                            onChange={e => setTemplateServiceFilter(
+                                e.target.value === 'all' ? 'all' : Number(e.target.value)
+                            )}
+                        >
+                            <option value="all">Все услуги</option>
+                            {services.map(service => (
+                                <option key={service.id} value={service.id}>
+                                    {service.title}
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                    <Button
+                        onClick={() => setIsCreatingTemplate(true)}
+                        disabled={services.length === 0}
+                    >
+                        + Создать шаблон
+                    </Button>
+                </div>
+            </div>
+
+            {isCreatingTemplate && (
+                <Card>
+                    <CardHeader>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                            {editingTemplate ? 'Редактирование шаблона' : 'Новый шаблон'}
+                        </h3>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700">
+                                    Услуга
+                                </label>
+                                <select
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white"
+                                    value={templateForm.service_id || ''}
+                                    onChange={e => setTemplateForm(prev => ({
+                                        ...prev,
+                                        service_id: Number(e.target.value)
+                                    }))}
+                                >
+                                    <option value="">Выберите услугу</option>
+                                    {services.map(service => (
+                                        <option key={service.id} value={service.id}>
+                                            {service.title}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700">
+                                    День недели
+                                </label>
+                                <select
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white"
+                                    value={templateForm.day}
+                                    onChange={e => setTemplateForm(prev => ({
+                                        ...prev,
+                                        day: e.target.value
+                                    }))}
+                                >
+                                    {Object.entries(dayLabels).map(([value, label]) => (
+                                        <option key={value} value={value}>
+                                            {label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <label className="text-sm font-medium text-gray-700">
+                                Временные слоты (нажмите для изменения статуса)
+                            </label>
+                            <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
+                                {timeSlots.map(time => (
+                                    <button
+                                        key={time}
+                                        type="button"
+                                        onClick={() => handleTimeSlotClick(time)}
+                                        className={`p-3 rounded-lg text-white text-sm font-medium transition-colors ${
+                                            statusColors[templateForm.hours_work[time] || 'unavailable']
+                                        }`}
+                                    >
+                                        {time}
+                                        <div className="text-xs opacity-90 mt-1">
+                                            {statusLabels[templateForm.hours_work[time] || 'unavailable']}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                id="is_active"
+                                checked={templateForm.is_active}
+                                onChange={e => setTemplateForm(prev => ({
+                                    ...prev,
+                                    is_active: e.target.checked
+                                }))}
+                                className="rounded border-gray-300"
+                            />
+                            <label htmlFor="is_active" className="text-sm text-gray-700">
+                                Шаблон активен
+                            </label>
+                        </div>
+
+                        {templateError && (
+                            <p className="text-sm text-red-600">{templateError}</p>
+                        )}
+
+                        <div className="flex justify-end gap-3">
+                            <Button
+                                variant="outline"
+                                onClick={resetTemplateForm}
+                            >
+                                Отмена
+                            </Button>
+                            <Button
+                                onClick={editingTemplate ? handleUpdateTemplate : handleCreateTemplate}
+                                disabled={isTemplateSubmitting}
+                            >
+                                {isTemplateSubmitting ? 'Сохранение...' : 
+                                 editingTemplate ? 'Обновить шаблон' : 'Создать шаблон'}
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {Object.keys(templatesByService).length === 0 ? (
                 <Card>
                     <CardContent>
-                        <p className="text-gray-600">
-                            Создайте услугу, чтобы добавить к ней шаблон расписания.
+                        <p className="text-gray-600 text-center py-8">
+                            {services.length === 0 
+                                ? 'Создайте услугу, чтобы добавить шаблон расписания'
+                                : 'Шаблоны пока не созданы'
+                            }
                         </p>
                     </CardContent>
                 </Card>
             ) : (
-                services.map(service => {
-                    const templates = templatesByService[service.id] ?? [];
-                    const isActiveForm = templateFormServiceId === service.id;
-
-                    return (
-                        <Card key={service.id}>
-                            <CardHeader>
-                                <div className="flex items-center justify-between gap-2">
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-gray-900">
-                                            {service.title}
-                                        </h3>
-                                        <p className="text-sm text-gray-500">
-                                            {templates.length
-                                                ? `${templates.length} шаблон(ов)`
-                                                : 'Шаблонов пока нет'}
-                                        </p>
-                                    </div>
-                                    <Button
-                                        variant={isActiveForm ? 'secondary' : 'outline'}
-                                        size="sm"
-                                        onClick={() =>
-                                            setTemplateFormServiceId(prev =>
-                                                prev === service.id ? null : service.id
-                                            )
-                                        }
-                                    >
-                                        {isActiveForm ? 'Скрыть форму' : 'Добавить шаблон'}
-                                    </Button>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                {isActiveForm && (
-                                    <div className="border border-dashed border-gray-300 rounded-xl p-4 space-y-3">
-                                        <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-medium text-gray-600 uppercase">
-                                                    День недели
-                                                </label>
-                                                <select
-                                                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-                                                    value={templateForm.day}
-                                                    onChange={event =>
-                                                        setTemplateForm(prev => ({
-                                                            ...prev,
-                                                            day: event.target.value
-                                                        }))
-                                                    }
-                                                >
-                                                    {Object.entries(dayLabels).map(([value, label]) => (
-                                                        <option key={value} value={value}>
-                                                            {label}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-medium text-gray-600 uppercase">
-                                                    Слоты (через запятую)
-                                                </label>
-                                                <Input
-                                                    name="hours"
-                                                    value={templateForm.hours}
-                                                    onChange={event =>
-                                                        setTemplateForm(prev => ({
-                                                            ...prev,
-                                                            hours: event.target.value
-                                                        }))
-                                                    }
-                                                    placeholder="Например: 10:00, 11:00, 12:00"
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-medium text-gray-600 uppercase">
-                                                    Статус
-                                                </label>
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setTemplateForm(prev => ({
-                                                            ...prev,
-                                                            isActive: !prev.isActive
-                                                        }))
-                                                    }
-                                                    className={`w-full px-3 py-2 rounded-lg text-xs font-semibold ${
-                                                        templateForm.isActive
-                                                            ? 'bg-green-100 text-green-700'
-                                                            : 'bg-gray-100 text-gray-600'
-                                                    }`}
-                                                >
-                                                    {templateForm.isActive ? 'Активен' : 'Выключен'}
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {templateError && (
-                                            <p className="text-sm text-red-600">{templateError}</p>
-                                        )}
-
-                                        <div className="flex justify-end gap-3">
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => setTemplateFormServiceId(null)}
-                                            >
-                                                Отмена
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                onClick={() => handleCreateTemplate(service.id)}
-                                                disabled={isTemplateSubmitting}
-                                            >
-                                                {isTemplateSubmitting ? 'Создаём...' : 'Создать шаблон'}
-                                            </Button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {templates.length === 0 ? (
-                                    <p className="text-sm text-gray-500">
-                                        Слот-матрицы ещё не созданы. Сформируйте повторяющееся расписание,
-                                        чтобы ускорить генерацию дат.
-                                    </p>
-                                ) : (
-                                    templates.map(template => (
-                                        <div
-                                            key={template.id}
-                                            className="border border-gray-200 rounded-xl p-4 space-y-2"
-                                        >
-                                            <div className="flex flex-wrap gap-3 items-center justify-between">
-                                                <div>
-                                                    <p className="text-sm text-gray-500">
-                                                        {dayLabels[template.day] ?? template.day}
-                                                    </p>
-                                                    <p className="text-xs text-gray-400">
-                                                        ID шаблона: {template.id}
-                                                    </p>
-                                                </div>
-                                                <span
-                                                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                <div className="space-y-6">
+                    {Object.entries(templatesByService).map(([serviceId, templates]) => {
+                        const service = services.find(s => s.id === Number(serviceId));
+                        return (
+                            <div key={serviceId} className="space-y-4">
+                                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                                    {service?.title}
+                                </h3>
+                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                    {templates.map(template => (
+                                        <Card key={template.id} className="relative">
+                                            <CardHeader>
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <h4 className="font-semibold text-gray-900">
+                                                            {dayLabels[template.day] || template.day}
+                                                        </h4>
+                                                        <p className={`text-sm ${
+                                                            template.is_active 
+                                                                ? 'text-green-600' 
+                                                                : 'text-gray-500'
+                                                        }`}>
+                                                            {template.is_active ? 'Активен' : 'Неактивен'}
+                                                        </p>
+                                                    </div>
+                                                    <span className={`px-2 py-1 rounded-full text-xs ${
                                                         template.is_active
                                                             ? 'bg-green-100 text-green-700'
                                                             : 'bg-gray-100 text-gray-500'
-                                                    }`}
-                                                >
-                                                    {template.is_active ? 'Активен' : 'Выключен'}
-                                                </span>
-                                            </div>
-                                            <div className="flex flex-wrap gap-2 text-xs text-gray-600">
-                                                {Object.entries(template.hours_work).map(([time, status]) => (
-                                                    <span
-                                                        key={time}
-                                                        className={`px-3 py-1 rounded-full font-semibold ${
-                                                            status === 'available'
-                                                                ? 'bg-green-50 text-green-700'
-                                                                : status === 'break'
-                                                                    ? 'bg-red-50 text-red-600'
-                                                                    : 'bg-gray-50 text-gray-500'
-                                                        }`}
-                                                    >
-                                                        {time} — {status}
+                                                    }`}>
+                                                        {Object.keys(template.hours_work).length} слотов
                                                     </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </CardContent>
-                        </Card>
-                    );
-                })
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent className="space-y-3">
+                                                <div className="flex flex-wrap gap-1">
+                                                    {Object.entries(template.hours_work)
+                                                        .slice(0, 6)
+                                                        .map(([time, status]) => (
+                                                        <span
+                                                            key={time}
+                                                            className={`px-2 py-1 rounded text-xs ${
+                                                                status === 'available'
+                                                                    ? 'bg-green-100 text-green-700'
+                                                                    : status === 'break'
+                                                                        ? 'bg-red-100 text-red-700'
+                                                                        : 'bg-gray-100 text-gray-600'
+                                                            }`}
+                                                        >
+                                                            {time}
+                                                        </span>
+                                                    ))}
+                                                    {Object.keys(template.hours_work).length > 6 && (
+                                                        <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700">
+                                                            +{Object.keys(template.hours_work).length - 6}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex gap-2 pt-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => handleEditTemplate(template)}
+                                                    >
+                                                        Изменить
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => handleToggleTemplateStatus(template)}
+                                                    >
+                                                        {template.is_active ? 'Выключить' : 'Включить'}
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="text-red-600 border-red-200 hover:bg-red-50"
+                                                        onClick={() => handleDeleteTemplate(template.id)}
+                                                    >
+                                                        Удалить
+                                                    </Button>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             )}
         </div>
     );
@@ -809,9 +967,6 @@ export const MasterDashboardPage: React.FC = () => {
                             отображение данных, но после интеграции API появится полноценное управление.
                         </p>
                     </div>
-                    <Button variant="outline" onClick={() => setIsConfirmed(false)}>
-                        Выйти из режима мастера
-                    </Button>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
                     <div className="bg-blue-50 rounded-xl p-4">
