@@ -156,7 +156,7 @@ class JWTManager:
         if access_token or refresh_token:
             await Exceptions403.alredy_loggined()
 
-        pass
+        # Если токенов нет, функция просто завершается без ошибки
 
     @staticmethod
     async def current_user(request: Request, is_admin: bool = False):

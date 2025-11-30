@@ -84,7 +84,10 @@ class ScheduleTemplateRepository:
 
         updating_template = ScheduleTemplate(
             id=template_id,
-            **updating_template_data
+            **updating_template_data.model_dump(
+                exclude_none=True,
+                exclude_unset=True
+            )
         )
 
         await self._session.merge(updating_template)

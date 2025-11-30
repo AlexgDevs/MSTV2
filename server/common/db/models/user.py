@@ -24,7 +24,7 @@ class User(Base):
     verified_email: Mapped[bool] = mapped_column(default=True)
     verified_token: Mapped[str] = mapped_column(String(256), nullable=True)
     
-    about: Mapped[str] = mapped_column(String(1024))
+    about: Mapped[str] = mapped_column(String(1024), nullable=True)
     joined: Mapped[DateTime] = mapped_column(DateTime, default=datetime.now)
     role: Mapped[Literal['user', 'admin', 'moderator']] = mapped_column(default='user')
     
