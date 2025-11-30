@@ -15,6 +15,8 @@ interface ServiceCardProps {
 }
 
 export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect }) => {
+    const hasPhoto = service.photo && !service.photo.includes('placehold.co');
+
     const coverImage = React.useMemo(() => {
         if (service.photo?.startsWith('http')) {
             return service.photo;
@@ -29,46 +31,72 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect }) =
                 '';
             return `${baseStatic}${service.photo}`;
         }
-        return `https://placehold.co/600x400?text=${encodeURIComponent(service.title)}`;
-    }, [service.photo, service.title]);
+        return null;
+    }, [service.photo]);
 
     const description =
-        service.description.length > 160
-            ? `${service.description.slice(0, 157)}...`
+        service.description.length > 120
+            ? `${service.description.slice(0, 117)}...`
             : service.description;
 
     return (
-        <Card className="overflow-hidden flex flex-col h-full">
-            <div className="relative h-48 bg-gray-100">
-                <img
-                    src={coverImage}
-                    alt={service.title}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                />
-                <span className="absolute top-3 left-3 bg-white/90 text-gray-900 text-sm font-semibold px-3 py-1 rounded-full shadow-sm">
+        <Card className="service-card">
+            {/* Image Section or Title Placeholder */}
+            <div className="service-image">
+                {coverImage ? (
+                    <img
+                        src={coverImage}
+                        alt={service.title}
+                        className="service-image-img"
+                        loading="lazy"
+                    />
+                ) : (
+                    <div className="service-title-placeholder">
+                        <span className="service-title-text">{service.title}</span>
+                    </div>
+                )}
+                <div className="service-price-badge">
+                    <svg className="service-price-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                     {priceFormatter.format(service.price)}
-                </span>
+                </div>
             </div>
 
-            <CardContent className="flex flex-col flex-1 gap-4">
-                <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                        {service.title}
-                    </h3>
-                    <p className="text-sm text-gray-600 line-clamp-3">
+            <CardContent className="service-content">
+                {/* Header - Only show title if we have photo */}
+                {coverImage && (
+                    <div className="service-header">
+                        <h3 className="service-title">
+                            {service.title}
+                        </h3>
+                        <span className="service-id">
+                            #{service.id}
+                        </span>
+                    </div>
+                )}
+
+                {/* Description */}
+                {service.description && (
+                    <p className="service-description">
                         {description}
                     </p>
-                </div>
+                )}
 
-                <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">ID: {service.id}</span>
+                {/* Footer */}
+                <div className="service-footer">
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={() => onSelect?.(service)}
+                        className="service-action-btn"
                     >
-                        Подробнее
+                        <span className="flex items-center gap-1.5">
+                            Подробнее
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </span>
                     </Button>
                 </div>
             </CardContent>

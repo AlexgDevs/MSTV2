@@ -1,10 +1,12 @@
+// HomePage.tsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { ServiceCard } from '../features/services/components/ServiceCard';
 import { useServices } from '../features/services/hooks/useServices';
+import '../assets/styles/HomePage.css'
 
-const ITEMS_PER_BATCH = 6;
+const ITEMS_PER_BATCH = 9;
 
 export const HomePage: React.FC = () => {
     const { services: allServices, isLoading, error, refresh } = useServices();
@@ -57,7 +59,7 @@ export const HomePage: React.FC = () => {
                         handleLoadMore();
                     }
                 },
-                { rootMargin: '200px' }
+                { rootMargin: '100px' }
             );
 
             observerRef.current.observe(node);
@@ -72,105 +74,215 @@ export const HomePage: React.FC = () => {
     const isInitialLoading = isLoading && allServices.length === 0;
 
     return (
-        <div className="space-y-10">
-            <section className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
-                <p className="text-sm uppercase tracking-wider text-blue-600 font-semibold mb-2">
-                    Каталог услуг
-                </p>
-                <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                    Найдите мастера под свою задачу
-                </h1>
-                <p className="text-lg text-gray-600 max-w-3xl mb-6">
-                    Мы собрали проверенных специалистов и их услуги в одной ленте.
-                    Используйте поиск, чтобы быстро найти нужное направление, и
-                    листайте карточки — новые услуги подгружаются по мере просмотра.
-                </p>
+        <div className="homepage">
+            {/* Hero Section */}
+            <section className="hero">
+                <div className="container">
+                    <div className="text-center">
+                        <div className="hero-badge">
+                            <div className="hero-pulse" />
+                            <span className="text-sm font-medium text-[#A0A0A0] tracking-wide">
+                                КАТАЛОГ УСЛУГ
+                            </span>
+                        </div>
 
-                <div className="grid gap-4 md:grid-cols-[1fr_auto]">
-                    <Input
-                        placeholder="Например: массаж, маникюр, барбер"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                    />
-                    <div className="flex gap-3">
-                        <Button
-                            variant="outline"
-                            type="button"
-                            className="w-full md:w-auto"
-                            disabled={isLoading}
-                            onClick={() => refresh()}
-                        >
-                            Обновить
-                        </Button>
-                        <Button
-                            type="button"
-                            className="w-full md:w-auto"
-                            onClick={handleLoadMore}
-                            disabled={!hasMore}
-                        >
-                            Подгрузить ещё
-                        </Button>
+                        <h1 className="hero-title">
+                            <span className="hero-title-gradient">
+                                Найдите идеального
+                            </span>
+                            <br />
+                            <span className="hero-title-accent">
+                                мастера
+                            </span>
+                        </h1>
+
+                        <p className="hero-description mx-auto">
+                            Платформа, где талант встречает возможность. 
+                            Откройте для себя уникальные услуги от проверенных специалистов 
+                            в современном цифровом пространстве.
+                        </p>
+
+                        <div className="search-container">
+                            <div className="search-wrapper">
+                                <div className="search-glow" />
+                                <Input
+                                    placeholder="Поиск услуг: дизайн, разработка, маркетинг..."
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    className="search-input"
+                                />
+                                {search && (
+                                    <button
+                                        onClick={() => setSearch('')}
+                                        className="search-clear"
+                                        aria-label="Очистить поиск"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                <div className="gradient-orb-top" />
+                <div className="gradient-orb-bottom" />
             </section>
 
-            <section className="space-y-6">
-                <div className="flex items-center justify-between">
+            {/* Services Section */}
+            <section className="services-section container">
+                <div className="section-header">
                     <div>
-                        <h2 className="text-2xl font-semibold text-gray-900">
+                        <h2 className="section-title">
                             Доступные услуги
                         </h2>
-                        <p className="text-gray-500">
-                            {filteredServices.length} предложений
-                        </p>
+                        <div className="services-count">
+                            <span className="count-badge">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                                <span>{filteredServices.length} услуг</span>
+                            </span>
+                            <span className="text-[#666]">в каталоге</span>
+                        </div>
+                    </div>
+
+                    <div className="actions">
+                        <button
+                            className="btn-outline"
+                            onClick={refresh}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (
+                                <span className="flex items-center gap-2">
+                                    <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                    Обновление...
+                                </span>
+                            ) : (
+                                'Обновить'
+                            )}
+                        </button>
+                        
+                        {hasMore && (
+                            <button
+                                className="btn-primary"
+                                onClick={handleLoadMore}
+                                disabled={!hasMore}
+                            >
+                                Показать ещё
+                            </button>
+                        )}
                     </div>
                 </div>
 
                 {error && (
-                    <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
-                        <p className="text-red-700 mb-4">
-                            Не удалось загрузить услуги: {error}
-                        </p>
-                        <Button onClick={() => refresh()} disabled={isLoading}>
-                            Попробовать снова
-                        </Button>
+                    <div className="error-state">
+                        <div className="error-content">
+                            <div className="error-icon">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </div>
+                            <div className="error-text">
+                                <p className="error-title">
+                                    Ошибка загрузки
+                                </p>
+                                <p className="error-description">
+                                    {error}
+                                </p>
+                                <button 
+                                    className="btn-outline"
+                                    onClick={() => refresh()} 
+                                    disabled={isLoading}
+                                >
+                                    Попробовать снова
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
 
                 {isInitialLoading && (
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="skeleton-grid">
                         {Array.from({ length: ITEMS_PER_BATCH }).map((_, index) => (
                             <div
                                 key={index}
-                                className="h-80 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse"
+                                className="skeleton-card"
                             />
                         ))}
                     </div>
                 )}
 
                 {!isInitialLoading && visibleServices.length === 0 && !error && (
-                    <div className="text-center py-16 bg-white border border-dashed border-gray-200 rounded-2xl">
-                        <p className="text-lg text-gray-600 mb-3">
-                            Пока что нет услуг, подходящих под ваш запрос
-                        </p>
-                        <p className="text-sm text-gray-500">
-                            Попробуйте изменить поисковую фразу или сбросьте фильтр
-                        </p>
+                    <div className="empty-state">
+                        <div className="relative z-10">
+                            <div className="empty-icon">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <h3 className="empty-title">
+                                Услуги не найдены
+                            </h3>
+                            <p className="empty-description">
+                                {search 
+                                    ? 'Попробуйте изменить запрос или очистить фильтры'
+                                    : 'Каталог услуг пока пуст. Возвращайтесь позже!'
+                                }
+                            </p>
+                            {search && (
+                                <button
+                                    className="btn-outline"
+                                    onClick={() => setSearch('')}
+                                >
+                                    Очистить поиск
+                                </button>
+                            )}
+                        </div>
                     </div>
                 )}
 
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {visibleServices.map(service => (
-                        <ServiceCard key={service.id} service={service} />
+                <div className="services-grid">
+                    {visibleServices.map((service, index) => (
+                        <div
+                            key={service.id}
+                            className="service-item"
+                            style={{ animationDelay: `${index * 50}ms` }}
+                        >
+                            <ServiceCard service={service} />
+                        </div>
                     ))}
                 </div>
 
                 {hasMore && !isInitialLoading && (
                     <div
                         ref={loadMoreRef}
-                        className="flex justify-center py-6 text-sm text-gray-500"
+                        className="load-more"
                     >
-                        Прокрутите ниже, чтобы увидеть больше
+                        <div className="loading-indicator">
+                            <div className="spinner" />
+                            <span className="loading-text">
+                                Загружаем больше возможностей...
+                            </span>
+                        </div>
+                        <p className="loading-hint">
+                            Прокрутите для автоматической загрузки
+                        </p>
+                    </div>
+                )}
+
+                {!hasMore && visibleServices.length > 0 && (
+                    <div className="end-results">
+                        <div className="end-badge">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span className="end-text">
+                                Вы просмотрели все {filteredServices.length} услуг
+                            </span>
+                        </div>
                     </div>
                 )}
             </section>

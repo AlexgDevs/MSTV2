@@ -6,6 +6,8 @@ import { Input } from '../../components/ui/Input';
 import { useMasterSchedule } from '../../features/master/hooks/useMasterData';
 import { servicesApi } from '../../api/services/services.api';
 import { templatesApi } from '../../api/templates/templates.api';
+import { serviceDatesApi } from '../../api/dates/dates.api';
+import { getCurrentWeekDays } from '../../utils/helpers';
 
 type TabId = 'services' | 'schedule' | 'templates' | 'bookings';
 
@@ -33,10 +35,10 @@ const dayLabels: Record<string, string> = {
 };
 
 const statusBadge: Record<string, string> = {
-    available: 'bg-green-100 text-green-700',
-    booked: 'bg-yellow-100 text-yellow-800',
-    break: 'bg-red-100 text-red-700',
-    unavailable: 'bg-gray-100 text-gray-600'
+    available: 'bg-[#4ec9b0]/20 text-[#4ec9b0] border border-[#4ec9b0]/30',
+    booked: 'bg-[#dcdcaa]/20 text-[#dcdcaa] border border-[#dcdcaa]/30',
+    break: 'bg-[#f48771]/20 text-[#f48771] border border-[#f48771]/30',
+    unavailable: 'bg-[#3e3e42] text-[#6a6a6a] border border-[#464647]'
 };
 
 const timeSlots = [
@@ -45,9 +47,9 @@ const timeSlots = [
 ];
 
 const statusColors = {
-    available: 'bg-green-500 hover:bg-green-600',
-    break: 'bg-red-500 hover:bg-red-600',
-    unavailable: 'bg-gray-300 hover:bg-gray-400'
+    available: 'bg-[#4ec9b0] hover:bg-[#4ec9b0]/90 hover:shadow-lg hover:shadow-[#4ec9b0]/30',
+    break: 'bg-[#f48771] hover:bg-[#f48771]/90 hover:shadow-lg hover:shadow-[#f48771]/30',
+    unavailable: 'bg-[#3e3e42] hover:bg-[#464647] border border-[#464647]'
 };
 
 const statusLabels = {
@@ -103,6 +105,17 @@ export const MasterDashboardPage: React.FC = () => {
     const [isTemplateSubmitting, setIsTemplateSubmitting] = useState(false);
     const [templateError, setTemplateError] = useState<string | null>(null);
 
+    // Состояния для создания расписания вручную
+    const [isCreatingSchedule, setIsCreatingSchedule] = useState(false);
+    const [scheduleForm, setScheduleForm] = useState({
+        service_id: services[0]?.id || null,
+        date: '',
+        slots: {} as Record<string, 'available' | 'break' | 'unavailable'>
+    });
+    const [isScheduleSubmitting, setIsScheduleSubmitting] = useState(false);
+    const [scheduleFormError, setScheduleFormError] = useState<string | null>(null);
+    const weekDays = useMemo(() => getCurrentWeekDays(), []);
+
     useEffect(() => {
         if (services.length && bookingsServiceFilter === null) {
             setBookingsServiceFilter(services[0].id);
@@ -110,7 +123,13 @@ export const MasterDashboardPage: React.FC = () => {
         if (services.length && templateForm.service_id === null) {
             setTemplateForm(prev => ({ ...prev, service_id: services[0].id }));
         }
-    }, [services, bookingsServiceFilter]);
+        if (services.length && scheduleForm.service_id === null) {
+            setScheduleForm(prev => ({ ...prev, service_id: services[0].id }));
+        }
+        if (weekDays.length && !scheduleForm.date) {
+            setScheduleForm(prev => ({ ...prev, date: weekDays[0].date }));
+        }
+    }, [services, bookingsServiceFilter, weekDays]);
 
     const {
         schedule,
@@ -369,6 +388,81 @@ export const MasterDashboardPage: React.FC = () => {
         setTemplateError(null);
     };
 
+    // Функции для работы с расписанием вручную
+    const handleScheduleSlotClick = (time: string) => {
+        setScheduleForm(prev => {
+            const currentStatus = prev.slots[time] || 'unavailable';
+            const nextStatus = 
+                currentStatus === 'unavailable' ? 'available' :
+                currentStatus === 'available' ? 'break' :
+                currentStatus === 'break' ? 'unavailable' : 'unavailable';
+            
+            return {
+                ...prev,
+                slots: {
+                    ...prev.slots,
+                    [time]: nextStatus
+                }
+            };
+        });
+    };
+
+    const handleCreateSchedule = async () => {
+        setScheduleFormError(null);
+
+        if (!scheduleForm.service_id) {
+            setScheduleFormError('Выберите услугу');
+            return;
+        }
+
+        if (!scheduleForm.date) {
+            setScheduleFormError('Выберите дату');
+            return;
+        }
+
+        // Фильтруем только выбранные слоты (не unavailable)
+        const activeSlots = Object.fromEntries(
+            Object.entries(scheduleForm.slots).filter(([, status]) => status !== 'unavailable')
+        ) as Record<string, 'available' | 'break'>;
+
+        if (Object.keys(activeSlots).length === 0) {
+            setScheduleFormError('Выберите хотя бы один временной слот');
+            return;
+        }
+
+        setIsScheduleSubmitting(true);
+        try {
+            await serviceDatesApi.create({
+                service_id: scheduleForm.service_id!,
+                date: scheduleForm.date,
+                slots: activeSlots
+            });
+            await refreshSchedule();
+            setIsCreatingSchedule(false);
+            setScheduleForm({
+                service_id: services[0]?.id || null,
+                date: weekDays[0]?.date || '',
+                slots: {}
+            });
+        } catch (error) {
+            const message =
+                error instanceof Error ? error.message : 'Не удалось создать расписание';
+            setScheduleFormError(message);
+        } finally {
+            setIsScheduleSubmitting(false);
+        }
+    };
+
+    const resetScheduleForm = () => {
+        setIsCreatingSchedule(false);
+        setScheduleForm({
+            service_id: services[0]?.id || null,
+            date: weekDays[0]?.date || '',
+            slots: {}
+        });
+        setScheduleFormError(null);
+    };
+
     const renderServicesTab = () => (
         <div className="space-y-6">
             <div className="flex flex-wrap gap-4 justify-between items-center">
@@ -512,10 +606,118 @@ export const MasterDashboardPage: React.FC = () => {
                         ))}
                     </select>
                 </div>
-                <Button variant="outline" onClick={refreshSchedule} disabled={isScheduleLoading}>
-                    {isScheduleLoading ? 'Обновляем...' : 'Обновить'}
-                </Button>
+                <div className="flex gap-3">
+                    <Button
+                        variant={isCreatingSchedule ? 'secondary' : 'outline'}
+                        onClick={() => setIsCreatingSchedule(prev => !prev)}
+                        disabled={services.length === 0}
+                    >
+                        {isCreatingSchedule ? 'Скрыть форму' : 'Создать вручную'}
+                    </Button>
+                    <Button variant="outline" onClick={refreshSchedule} disabled={isScheduleLoading}>
+                        {isScheduleLoading ? 'Обновляем...' : 'Обновить'}
+                    </Button>
+                </div>
             </div>
+
+            {isCreatingSchedule && (
+                <Card>
+                    <CardHeader>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                            Создать расписание вручную
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                            Выберите услугу, дату и настройте временные слоты
+                        </p>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700">
+                                    Услуга
+                                </label>
+                                <select
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white"
+                                    value={scheduleForm.service_id || ''}
+                                    onChange={e => setScheduleForm(prev => ({
+                                        ...prev,
+                                        service_id: Number(e.target.value)
+                                    }))}
+                                >
+                                    <option value="">Выберите услугу</option>
+                                    {services.map(service => (
+                                        <option key={service.id} value={service.id}>
+                                            {service.title}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700">
+                                    День недели
+                                </label>
+                                <select
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white"
+                                    value={scheduleForm.date}
+                                    onChange={e => setScheduleForm(prev => ({
+                                        ...prev,
+                                        date: e.target.value
+                                    }))}
+                                >
+                                    {weekDays.map(day => (
+                                        <option key={day.date} value={day.date}>
+                                            {day.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <label className="text-sm font-medium text-gray-700">
+                                Временные слоты (нажмите для изменения статуса)
+                            </label>
+                            <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
+                                {timeSlots.map(time => (
+                                    <button
+                                        key={time}
+                                        type="button"
+                                        onClick={() => handleScheduleSlotClick(time)}
+                                        className={`p-3 rounded-lg text-white text-sm font-medium transition-colors ${
+                                            statusColors[scheduleForm.slots[time] || 'unavailable']
+                                        }`}
+                                    >
+                                        {time}
+                                        <div className="text-xs opacity-90 mt-1">
+                                            {statusLabels[scheduleForm.slots[time] || 'unavailable']}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {scheduleFormError && (
+                            <p className="text-sm text-red-600">{scheduleFormError}</p>
+                        )}
+
+                        <div className="flex justify-end gap-3">
+                            <Button
+                                variant="outline"
+                                onClick={resetScheduleForm}
+                            >
+                                Отмена
+                            </Button>
+                            <Button
+                                onClick={handleCreateSchedule}
+                                disabled={isScheduleSubmitting}
+                            >
+                                {isScheduleSubmitting ? 'Создание...' : 'Создать расписание'}
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {scheduleError && (
                 <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
@@ -953,37 +1155,37 @@ export const MasterDashboardPage: React.FC = () => {
 
     return (
         <div className="space-y-8">
-            <section className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+            <section className="bg-[#252526] border border-[#3e3e42] rounded-xl p-8 shadow-xl">
                 <div className="flex flex-wrap gap-6 items-center justify-between">
                     <div>
-                        <p className="text-sm text-gray-500 uppercase tracking-[0.3em] mb-2">
+                        <p className="text-xs text-[#858585] uppercase tracking-[0.3em] mb-3 font-medium">
                             Панель мастера
                         </p>
-                        <h1 className="text-3xl font-bold text-gray-900">
+                        <h1 className="text-3xl font-bold bg-gradient-to-r from-[#cccccc] to-[#858585] bg-clip-text text-transparent mb-3">
                             Управляйте услугами и расписанием
                         </h1>
-                        <p className="text-gray-600 max-w-2xl">
+                        <p className="text-[#858585] max-w-2xl">
                             Здесь собраны все рабочие инструменты мастера. Пока подключены только
                             отображение данных, но после интеграции API появится полноценное управление.
                         </p>
                     </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-                    <div className="bg-blue-50 rounded-xl p-4">
-                        <p className="text-sm text-blue-600">Услуги</p>
-                        <p className="text-2xl font-bold text-blue-900">{services.length}</p>
+                    <div className="bg-[#007acc]/20 border border-[#007acc]/30 rounded-lg p-4 backdrop-blur-sm">
+                        <p className="text-sm text-[#569cd6] mb-1">Услуги</p>
+                        <p className="text-2xl font-bold text-[#cccccc]">{services.length}</p>
                     </div>
-                    <div className="bg-green-50 rounded-xl p-4">
-                        <p className="text-sm text-green-600">Шаблоны</p>
-                        <p className="text-2xl font-bold text-green-900">{user.templates.length}</p>
+                    <div className="bg-[#4ec9b0]/20 border border-[#4ec9b0]/30 rounded-lg p-4 backdrop-blur-sm">
+                        <p className="text-sm text-[#4ec9b0] mb-1">Шаблоны</p>
+                        <p className="text-2xl font-bold text-[#cccccc]">{user.templates.length}</p>
                     </div>
-                    <div className="bg-yellow-50 rounded-xl p-4">
-                        <p className="text-sm text-yellow-600">Расписаний</p>
-                        <p className="text-2xl font-bold text-yellow-900">{schedule.length}</p>
+                    <div className="bg-[#dcdcaa]/20 border border-[#dcdcaa]/30 rounded-lg p-4 backdrop-blur-sm">
+                        <p className="text-sm text-[#dcdcaa] mb-1">Расписаний</p>
+                        <p className="text-2xl font-bold text-[#cccccc]">{schedule.length}</p>
                     </div>
-                    <div className="bg-purple-50 rounded-xl p-4">
-                        <p className="text-sm text-purple-600">Бронирований</p>
-                        <p className="text-2xl font-bold text-purple-900">{bookedSlots.length}</p>
+                    <div className="bg-[#569cd6]/20 border border-[#569cd6]/30 rounded-lg p-4 backdrop-blur-sm">
+                        <p className="text-sm text-[#569cd6] mb-1">Бронирований</p>
+                        <p className="text-2xl font-bold text-[#cccccc]">{bookedSlots.length}</p>
                     </div>
                 </div>
             </section>
@@ -993,10 +1195,10 @@ export const MasterDashboardPage: React.FC = () => {
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`px-4 py-2 rounded-full text-sm font-semibold border transition ${
+                        className={`px-4 py-2 rounded-md text-sm font-semibold border transition-all duration-200 ${
                             activeTab === tab.id
-                                ? 'bg-blue-600 text-white border-blue-600'
-                                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                                ? 'bg-[#007acc] text-white border-[#007acc] shadow-lg shadow-[#007acc]/30'
+                                : 'bg-[#252526] text-[#cccccc] border-[#3e3e42] hover:bg-[#2a2d2e] hover:border-[#464647]'
                         }`}
                     >
                         {tab.label}

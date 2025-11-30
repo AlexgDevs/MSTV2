@@ -15,17 +15,27 @@ const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   useEffect(() => {
     const initializeAuth = async () => {
-      await checkAuth();
-      setIsInitialized(true);
+      try {
+        await checkAuth();
+      } catch (error) {
+        // Игнорируем ошибки при проверке - это нормально, если пользователь не авторизован
+        console.log('Auth check failed:', error);
+      } finally {
+        setIsInitialized(true);
+      }
     };
     
     initializeAuth();
-  }, [checkAuth]);
+  }, []); // Убираем checkAuth из зависимостей, чтобы не вызывать повторно
 
-  if (!isInitialized || isLoading) {
+  // Показываем загрузку пока не завершилась инициализация
+  if (!isInitialized) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Загрузка...</div>
+      <div className="min-h-screen bg-[#1e1e1e] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-[#3e3e42] border-t-[#007acc] rounded-full animate-spin"></div>
+          <div className="text-lg text-[#cccccc] font-medium">Загрузка...</div>
+        </div>
       </div>
     );
   }
@@ -75,8 +85,8 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <div className="text-center py-12">
-                  <h2 className="text-2xl font-bold mb-4">Страница услуг</h2>
-                  <p className="text-gray-600">Скоро здесь появится список услуг</p>
+                  <h2 className="text-2xl font-bold mb-4 text-[#cccccc]">Страница услуг</h2>
+                  <p className="text-[#858585]">Скоро здесь появится список услуг</p>
                 </div>
               </Layout>
             </ProtectedRoute>
