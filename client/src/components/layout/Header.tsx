@@ -1,65 +1,91 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/auth.store';
 import { cn } from '../../utils/cn';
+import '../../assets/styles/Header.css';
 
 export const Header: React.FC = () => {
     const { user, isAuthenticated, logout } = useAuthStore();
     const navigate = useNavigate();
     const location = useLocation();
+    
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLButtonElement>(null);
 
     const handleLogout = async () => {
         await logout();
         navigate('/auth/login');
+        setIsDropdownOpen(false);
     };
 
     const isActive = (path: string) => location.pathname === path;
 
+    // Закрытие меню при клике вне его
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                dropdownRef.current &&
+                triggerRef.current &&
+                !dropdownRef.current.contains(event.target as Node) &&
+                !triggerRef.current.contains(event.target as Node)
+            ) {
+                setIsDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
+    // Закрытие меню при нажатии Escape
+    useEffect(() => {
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setIsDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener('keydown', handleEscape);
+        return () => {
+            document.removeEventListener('keydown', handleEscape);
+        };
+    }, []);
+
+    // Закрытие меню при переходе на другую страницу
+    useEffect(() => {
+        setIsDropdownOpen(false);
+    }, [location.pathname]);
+
     return (
-        <header className="sticky top-0 z-50 bg-[#252526] border-b border-[#3e3e42] backdrop-blur-md bg-opacity-95 shadow-lg">
-            <div className="container mx-auto px-6 max-w-7xl">
-                <div className="flex justify-between items-center h-14">
+        <header className="header">
+            <div className="header-container">
+                <div className="header-content">
                     {/* Логотип и навигация */}
-                    <div className="flex items-center gap-8">
-                        <Link
-                            to="/"
-                            className="text-xl font-bold bg-gradient-to-r from-[#007acc] to-[#1a8cd8] bg-clip-text text-transparent hover:from-[#1a8cd8] hover:to-[#007acc] transition-all duration-300"
-                        >
-                            Услуги
+                    <div className="header-left">
+                        <Link to="/" className="header-logo">
+                            Главная
                         </Link>
 
                         {isAuthenticated && (
-                            <nav className="flex items-center gap-1">
+                            <nav className="header-nav">
                                 <Link
                                     to="/services"
-                                    className={cn(
-                                        'px-3 py-2 rounded-md text-sm font-medium transition-all duration-200',
-                                        isActive('/services')
-                                            ? 'bg-[#094771] text-white'
-                                            : 'text-[#cccccc] hover:bg-[#2a2d2e] hover:text-white'
-                                    )}
+                                    className={cn('nav-link', isActive('/services') && 'active')}
                                 >
                                     Услуги
                                 </Link>
                                 <Link
                                     to="/profile"
-                                    className={cn(
-                                        'px-3 py-2 rounded-md text-sm font-medium transition-all duration-200',
-                                        isActive('/profile')
-                                            ? 'bg-[#094771] text-white'
-                                            : 'text-[#cccccc] hover:bg-[#2a2d2e] hover:text-white'
-                                    )}
+                                    className={cn('nav-link', isActive('/profile') && 'active')}
                                 >
                                     Профиль
                                 </Link>
                                 <Link
                                     to="/master"
-                                    className={cn(
-                                        'px-3 py-2 rounded-md text-sm font-medium transition-all duration-200',
-                                        isActive('/master')
-                                            ? 'bg-[#094771] text-white'
-                                            : 'text-[#cccccc] hover:bg-[#2a2d2e] hover:text-white'
-                                    )}
+                                    className={cn('nav-link', isActive('/master') && 'active')}
                                 >
                                     Мастерская
                                 </Link>
@@ -68,47 +94,86 @@ export const Header: React.FC = () => {
                     </div>
 
                     {/* Правая часть */}
-                    <div className="flex items-center gap-3">
+                    <div className="header-right">
                         {isAuthenticated ? (
-                            <>
-                                {/* Информация пользователя */}
-                                <div className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-[#2a2d2e] transition-colors cursor-pointer">
-                                    <div className="text-right">
-                                        <p className="text-sm font-medium text-[#cccccc] leading-tight">
-                                            {user?.name}
-                                        </p>
-                                        <p className="text-xs text-[#858585] leading-tight">
-                                            {user?.role}
-                                        </p>
+                            <div className="user-menu">
+                                <button
+                                    ref={triggerRef}
+                                    className="user-trigger"
+                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    aria-label="Меню пользователя"
+                                    aria-expanded={isDropdownOpen}
+                                >
+                                    <span className="user-avatar">
+                                        {user?.name?.charAt(0).toUpperCase()}
+                                    </span>
+                                </button>
+
+                                <div 
+                                    ref={dropdownRef}
+                                    className={cn('user-dropdown', isDropdownOpen && 'active')}
+                                >
+                                    {/* Информация пользователя */}
+                                    <div className="user-info">
+                                        <div className="user-details">
+                                            <div className="user-info-avatar">
+                                                <span className="user-info-initial">
+                                                    {user?.name?.charAt(0).toUpperCase()}
+                                                </span>
+                                            </div>
+                                            <div className="user-info-text">
+                                                <div className="user-info-name">{user?.name}</div>
+                                                <div className="user-info-role">{user?.role}</div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="w-9 h-9 bg-gradient-to-br from-[#007acc] to-[#1a8cd8] rounded-full flex items-center justify-center shadow-lg">
-                                        <span className="text-white text-sm font-semibold">
-                                            {user?.name?.charAt(0).toUpperCase()}
-                                        </span>
+
+                                    {/* Меню */}
+                                    <div className="menu-items">
+                                        <Link 
+                                            to="/profile" 
+                                            className={cn('menu-item', isActive('/profile') && 'active')}
+                                            onClick={() => setIsDropdownOpen(false)}
+                                        >
+                                            <span className="menu-icon">👤</span>
+                                            <span className="menu-label">Профиль</span>
+                                        </Link>
+                                        <Link 
+                                            to="/master" 
+                                            className={cn('menu-item', isActive('/master') && 'active')}
+                                            onClick={() => setIsDropdownOpen(false)}
+                                        >
+                                            <span className="menu-icon">⚙️</span>
+                                            <span className="menu-label">Мастерская</span>
+                                        </Link>
+                                        <Link 
+                                            to="/settings" 
+                                            className={cn('menu-item', isActive('/settings') && 'active')}
+                                            onClick={() => setIsDropdownOpen(false)}
+                                        >
+                                            <span className="menu-icon">⚙️</span>
+                                            <span className="menu-label">Настройки</span>
+                                        </Link>
+                                        
+                                        <div className="menu-divider" />
+                                        
+                                        <button 
+                                            className="btn-logout"
+                                            onClick={handleLogout}
+                                        >
+                                            <span className="logout-icon">🚪</span>
+                                            <span>Выйти</span>
+                                        </button>
                                     </div>
                                 </div>
-
-                                {/* Кнопка выхода */}
-                                <button
-                                    onClick={handleLogout}
-                                    className="px-4 py-2 rounded-md text-sm font-medium text-[#cccccc] bg-[#2d2d30] border border-[#3e3e42] hover:bg-[#3e3e42] hover:border-[#464647] transition-all duration-200"
-                                >
-                                    Выйти
-                                </button>
-                            </>
+                            </div>
                         ) : (
                             /* Кнопки входа/регистрации */
-                            <div className="flex gap-3">
-                                <Link
-                                    to="/auth/login"
-                                    className="px-4 py-2 rounded-md text-sm font-medium text-white bg-[#007acc] hover:bg-[#1a8cd8] hover:shadow-lg hover:shadow-[#007acc]/30 transition-all duration-200"
-                                >
+                            <div className="auth-buttons">
+                                <Link to="/auth/login" className="btn-login">
                                     Войти
                                 </Link>
-                                <Link
-                                    to="/auth/register"
-                                    className="px-4 py-2 rounded-md text-sm font-medium text-[#cccccc] border border-[#3e3e42] hover:bg-[#2a2d2e] hover:border-[#464647] transition-all duration-200"
-                                >
+                                <Link to="/auth/register" className="btn-register">
                                     Регистрация
                                 </Link>
                             </div>
@@ -116,6 +181,14 @@ export const Header: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Оверлей для закрытия меню */}
+            {isDropdownOpen && (
+                <div 
+                    className="dropdown-overlay active"
+                    onClick={() => setIsDropdownOpen(false)}
+                />
+            )}
         </header>
     );
 };

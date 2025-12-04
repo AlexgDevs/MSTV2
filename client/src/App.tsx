@@ -7,6 +7,7 @@ import { RegisterPage } from './pages/auth/RegisterPage';
 import { HomePage } from './pages/HomePage';
 import { ProfilePage } from './pages/profile/ProfilePage';
 import { MasterDashboardPage } from './pages/master/MasterDashboardPage';
+import { ServiceDetailPage } from './pages/services/ServiceDetailPage';
 
 // Компонент-обертка для инициализации auth
 const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -66,6 +67,9 @@ function App() {
             </PublicRoute>
           } />
           
+
+          <Route path="/services/:serviceId" element={<ServiceDetailPage />} />
+
           <Route path="/auth/register" element={
             <PublicRoute>
               <RegisterPage />

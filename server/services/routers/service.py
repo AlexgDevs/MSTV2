@@ -55,8 +55,7 @@ async def get_detail_service(
     user=Depends(JWTManager.auth_required),
     service_repo: ServiceRepository = Depends(get_service_repository)
 ):
-    service = await service_repo.get_detail_by_service_user_id(
-        int(user.get('id')),
+    service = await service_repo.get_detail_by_service_id(
         service_id
     )
 

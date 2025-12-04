@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuthStore } from '../../stores/auth.store';
-import { Card, CardContent, CardHeader } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
 import { useMasterSchedule } from '../../features/master/hooks/useMasterData';
 import { servicesApi } from '../../api/services/services.api';
 import { templatesApi } from '../../api/templates/templates.api';
 import { serviceDatesApi } from '../../api/dates/dates.api';
+import { enrollsApi } from '../../api/enrolls/enrolls.api';
+import type { EnrollResponse } from '../../api/enrolls/types';
 import { getCurrentWeekDays } from '../../utils/helpers';
+import '../../assets/styles/MasterDashboardPage.css';
 
 type TabId = 'services' | 'schedule' | 'templates' | 'bookings';
 
@@ -30,33 +30,16 @@ const dayLabels: Record<string, string> = {
     wednesday: 'Среда',
     thursday: 'Четверг',
     friday: 'Пятница',
-    saturday: 'Саббота',
+    saturday: 'Суббота',
     sunday: 'Воскресенье'
 };
 
-const statusBadge: Record<string, string> = {
-    available: 'bg-[#4ec9b0]/20 text-[#4ec9b0] border border-[#4ec9b0]/30',
-    booked: 'bg-[#dcdcaa]/20 text-[#dcdcaa] border border-[#dcdcaa]/30',
-    break: 'bg-[#f48771]/20 text-[#f48771] border border-[#f48771]/30',
-    unavailable: 'bg-[#3e3e42] text-[#6a6a6a] border border-[#464647]'
-};
-
 const timeSlots = [
-    '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', 
-    '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'
+    '01:00', '02:00', '03:00', '04:00', '05:00', '06:00',
+    '07:00', '08:00', '09:00', '10:00', '11:00', '12:00',
+    '13:00', '14:00', '15:00', '16:00', '17:00', '18:00',
+    '19:00', '20:00', '21:00', '22:00', '23:00', '00:00'
 ];
-
-const statusColors = {
-    available: 'bg-[#4ec9b0] hover:bg-[#4ec9b0]/90 hover:shadow-lg hover:shadow-[#4ec9b0]/30',
-    break: 'bg-[#f48771] hover:bg-[#f48771]/90 hover:shadow-lg hover:shadow-[#f48771]/30',
-    unavailable: 'bg-[#3e3e42] hover:bg-[#464647] border border-[#464647]'
-};
-
-const statusLabels = {
-    available: 'Доступно',
-    break: 'Перерыв',
-    unavailable: 'Недоступно'
-};
 
 const formatDate = (value: string) => {
     const parsed = new Date(value);
@@ -83,6 +66,7 @@ export const MasterDashboardPage: React.FC = () => {
     );
 
     const [isCreatingService, setIsCreatingService] = useState(false);
+    const [editingService, setEditingService] = useState<number | null>(null);
     const [serviceForm, setServiceForm] = useState({
         title: '',
         description: '',
@@ -144,6 +128,52 @@ export const MasterDashboardPage: React.FC = () => {
         }
         return schedule.filter(date => date.service_id === scheduleServiceFilter);
     }, [schedule, scheduleServiceFilter]);
+
+    // Состояния для записей (enrolls)
+    const [enrolls, setEnrolls] = useState<EnrollResponse[]>([]);
+    const [isLoadingEnrolls, setIsLoadingEnrolls] = useState(false);
+    const [enrollsError, setEnrollsError] = useState<string | null>(null);
+
+    // Загрузка записей для выбранной услуги
+    useEffect(() => {
+        const fetchEnrolls = async () => {
+            if (!bookingsServiceFilter) {
+                setEnrolls([]);
+                return;
+            }
+
+            setIsLoadingEnrolls(true);
+            setEnrollsError(null);
+            try {
+                const response = await enrollsApi.getByService(bookingsServiceFilter);
+                setEnrolls(response.data);
+            } catch (error: any) {
+                setEnrollsError(error?.response?.data?.detail || 'Не удалось загрузить записи');
+                console.error('Error fetching enrolls:', error);
+            } finally {
+                setIsLoadingEnrolls(false);
+            }
+        };
+
+        fetchEnrolls();
+    }, [bookingsServiceFilter]);
+
+    const handleProcessEnroll = async (enrollId: number, action: 'accept' | 'reject') => {
+        try {
+            await enrollsApi.process(enrollId, action);
+            // Обновляем список записей
+            if (bookingsServiceFilter) {
+                const response = await enrollsApi.getByService(bookingsServiceFilter);
+                setEnrolls(response.data);
+            }
+            // Обновляем расписание
+            await refreshSchedule();
+        } catch (error: any) {
+            const message = error?.response?.data?.detail || `Не удалось ${action === 'accept' ? 'принять' : 'отклонить'} запись`;
+            alert(message);
+            console.error('Error processing enroll:', error);
+        }
+    };
 
     const bookedSlots = useMemo(() => {
         if (!bookingsServiceFilter) {
@@ -219,12 +249,23 @@ export const MasterDashboardPage: React.FC = () => {
 
         setIsServiceSubmitting(true);
         try {
-            await servicesApi.create({
-                title: serviceForm.title.trim(),
-                description: serviceForm.description.trim(),
-                price,
-                photo: serviceForm.photo.trim() || ''
-            });
+            if (editingService) {
+                // Редактирование существующей услуги
+                await servicesApi.update(editingService, {
+                    title: serviceForm.title.trim(),
+                    description: serviceForm.description.trim(),
+                    price,
+                    photo: serviceForm.photo.trim() || null
+                });
+            } else {
+                // Создание новой услуги
+                await servicesApi.create({
+                    title: serviceForm.title.trim(),
+                    description: serviceForm.description.trim(),
+                    price,
+                    photo: serviceForm.photo.trim() || ''
+                });
+            }
             await refreshUser();
             setServiceForm({
                 title: '',
@@ -233,13 +274,38 @@ export const MasterDashboardPage: React.FC = () => {
                 photo: ''
             });
             setIsCreatingService(false);
+            setEditingService(null);
         } catch (error) {
             const message =
-                error instanceof Error ? error.message : 'Не удалось создать услугу';
+                error instanceof Error ? error.message : (editingService ? 'Не удалось обновить услугу' : 'Не удалось создать услугу');
             setServiceFormError(message);
         } finally {
             setIsServiceSubmitting(false);
         }
+    };
+
+    const handleEditService = (service: any) => {
+        setEditingService(service.id);
+        setServiceForm({
+            title: service.title,
+            description: service.description,
+            price: service.price.toString(),
+            photo: service.photo || ''
+        });
+        setIsCreatingService(true);
+        setServiceFormError(null);
+    };
+
+    const handleCancelServiceForm = () => {
+        setIsCreatingService(false);
+        setEditingService(null);
+        setServiceForm({
+            title: '',
+            description: '',
+            price: '',
+            photo: ''
+        });
+        setServiceFormError(null);
     };
 
     // Функции для работы с шаблонами
@@ -464,353 +530,412 @@ export const MasterDashboardPage: React.FC = () => {
     };
 
     const renderServicesTab = () => (
-        <div className="space-y-6">
-            <div className="flex flex-wrap gap-4 justify-between items-center">
+        <div className="tab-content">
+            <div className="tab-header">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Ваши услуги</h2>
-                    <p className="text-gray-500">
+                    <h2>Ваши услуги</h2>
+                    <p className="tab-description">
                         {services.length
                             ? 'Редактируйте существующие или добавьте новые'
                             : 'Услуги пока не созданы'}
                     </p>
                 </div>
-                <Button
-                    variant={isCreatingService ? 'secondary' : 'outline'}
+                <button
+                    className={`btn ${isCreatingService ? 'btn-secondary' : 'btn-outline'}`}
                     onClick={() => setIsCreatingService(prev => !prev)}
                 >
                     {isCreatingService ? 'Скрыть форму' : 'Добавить услугу'}
-                </Button>
+                </button>
             </div>
 
             {isCreatingService && (
-                <Card>
-                    <CardHeader>
-                        <h3 className="text-lg font-semibold text-gray-900">
-                            Новая услуга
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                            Заполните основные данные, чтобы клиенты увидели услугу в каталоге.
+                <div className="card">
+                    <div className="card-header">
+                        <h3>{editingService ? 'Редактирование услуги' : 'Новая услуга'}</h3>
+                        <p className="card-description">
+                            {editingService 
+                                ? 'Измените данные услуги и сохраните изменения.'
+                                : 'Заполните основные данные, чтобы клиенты увидели услугу в каталоге.'}
                         </p>
-                    </CardHeader>
-                    <CardContent>
-                        <form className="space-y-4" onSubmit={handleCreateService}>
-                            <Input
-                                label="Название"
-                                name="title"
-                                value={serviceForm.title}
-                                onChange={handleServiceFormChange}
-                                required
-                            />
-                            <Input
-                                label="Краткое описание"
-                                name="description"
-                                value={serviceForm.description}
-                                onChange={handleServiceFormChange}
-                                required
-                            />
-                            <Input
-                                label="Цена, ₽"
-                                name="price"
-                                type="number"
-                                min={0}
-                                value={serviceForm.price}
-                                onChange={handleServiceFormChange}
-                                required
-                            />
-                            <Input
-                                label="URL фото (опционально)"
-                                name="photo"
-                                value={serviceForm.photo}
-                                onChange={handleServiceFormChange}
-                                placeholder="https://..."
-                            />
+                    </div>
+                    
+                    <div className="card-content">
+                        <form className="service-form" onSubmit={handleCreateService}>
+                            <div className="form-group">
+                                <label>Название услуги</label>
+                                <input
+                                    type="text"
+                                    name="title"
+                                    value={serviceForm.title}
+                                    onChange={handleServiceFormChange}
+                                    required
+                                    placeholder="Например: Маникюр"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Краткое описание</label>
+                                <input
+                                    type="text"
+                                    name="description"
+                                    value={serviceForm.description}
+                                    onChange={handleServiceFormChange}
+                                    required
+                                    placeholder="Опишите услугу кратко"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Цена, ₽</label>
+                                <input
+                                    type="number"
+                                    name="price"
+                                    min={0}
+                                    value={serviceForm.price}
+                                    onChange={handleServiceFormChange}
+                                    required
+                                    placeholder="5000"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>URL фото (опционально)</label>
+                                <input
+                                    type="url"
+                                    name="photo"
+                                    value={serviceForm.photo}
+                                    onChange={handleServiceFormChange}
+                                    placeholder="https://example.com/photo.jpg"
+                                />
+                            </div>
 
                             {serviceFormError && (
-                                <p className="text-sm text-red-600">{serviceFormError}</p>
+                                <div className="error-message">
+                                    {serviceFormError}
+                                </div>
                             )}
 
-                            <div className="flex justify-end gap-3">
-                                <Button
+                            <div className="form-actions">
+                                <button
                                     type="button"
-                                    variant="outline"
-                                    onClick={() => setIsCreatingService(false)}
+                                    className="btn btn-outline"
+                                    onClick={handleCancelServiceForm}
                                 >
                                     Отмена
-                                </Button>
-                                <Button type="submit" disabled={isServiceSubmitting}>
-                                    {isServiceSubmitting ? 'Создаём...' : 'Создать услугу'}
-                                </Button>
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isServiceSubmitting}
+                                    className="btn btn-primary"
+                                >
+                                    {isServiceSubmitting ? (
+                                        <>
+                                            <div className="spinner"></div>
+                                            <span>{editingService ? 'Сохраняем...' : 'Создаём...'}</span>
+                                        </>
+                                    ) : (
+                                        editingService ? 'Сохранить изменения' : 'Создать услугу'
+                                    )}
+                                </button>
                             </div>
                         </form>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             )}
 
             {services.length === 0 ? (
-                <Card>
-                    <CardContent>
-                        <p className="text-gray-600">
-                            Чтобы попасть в витрину мастеров, создайте первую услугу.
-                        </p>
-                    </CardContent>
-                </Card>
+                <div className="empty-state">
+                    <div className="empty-state-icon">
+                        <span>+</span>
+                    </div>
+                    <p className="empty-state-title">Услуги пока не созданы</p>
+                    <p className="empty-state-description">
+                        Чтобы попасть в витрину мастеров, создайте первую услугу.
+                    </p>
+                </div>
             ) : (
-                <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="services-grid">
                     {services.map(service => (
-                        <Card key={service.id} className="flex flex-col">
-                            <CardHeader>
-                                <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
-                                    {service.title}
-                                </h3>
-                                <p className="text-sm text-gray-500">
+                        <div key={service.id} className="service-card">
+                            <div className="service-card-header">
+                                <h3 className="service-card-title">{service.title}</h3>
+                                <span className="service-card-date">
                                     Создано: {formatDate(service.created_at)}
-                                </p>
-                            </CardHeader>
-                            <CardContent className="flex flex-col gap-4 flex-1">
-                                <p className="text-2xl font-bold text-gray-900">
-                                    {priceFormatter.format(service.price)}
-                                </p>
-                                <Button
-                                    variant="outline"
-                                    disabled
-                                    title="Редактирование станет доступно после подключения PATCH API"
-                                >
-                                    Редактировать
-                                </Button>
-                            </CardContent>
-                        </Card>
+                                </span>
+                            </div>
+                            <div className="service-card-body">
+                                <div className="service-card-footer">
+                                    <span className="service-card-price">
+                                        {priceFormatter.format(service.price)}
+                                    </span>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => handleEditService(service)}
+                                className="btn btn-outline"
+                            >
+                                Редактировать
+                            </button>
+                        </div>
                     ))}
                 </div>
             )}
         </div>
     );
 
-    const renderScheduleTab = () => (
-        <div className="space-y-4">
-            <div className="flex flex-wrap gap-3 items-center justify-between">
-                <div className="flex flex-wrap gap-3 items-center">
-                    <label className="text-sm text-gray-500">Фильтр по услуге:</label>
-                    <select
-                        className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm"
-                        value={scheduleServiceFilter}
-                        onChange={event => {
-                            const value = event.target.value;
-                            setScheduleServiceFilter(value === 'all' ? 'all' : Number(value));
-                        }}
-                    >
-                        <option value="all">Все услуги</option>
-                        {services.map(service => (
-                            <option key={service.id} value={service.id}>
-                                {service.title}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                <div className="flex gap-3">
-                    <Button
-                        variant={isCreatingSchedule ? 'secondary' : 'outline'}
-                        onClick={() => setIsCreatingSchedule(prev => !prev)}
-                        disabled={services.length === 0}
-                    >
-                        {isCreatingSchedule ? 'Скрыть форму' : 'Создать вручную'}
-                    </Button>
-                    <Button variant="outline" onClick={refreshSchedule} disabled={isScheduleLoading}>
-                        {isScheduleLoading ? 'Обновляем...' : 'Обновить'}
-                    </Button>
-                </div>
-            </div>
+    const renderScheduleTab = () => {
+        // Группируем расписание по услугам
+        const scheduleByService = filteredSchedule.reduce((acc, date) => {
+            const serviceId = date.service_id;
+            if (!acc[serviceId]) {
+                acc[serviceId] = [];
+            }
+            acc[serviceId].push(date);
+            return acc;
+        }, {} as Record<number, typeof filteredSchedule>);
 
-            {isCreatingSchedule && (
-                <Card>
-                    <CardHeader>
-                        <h3 className="text-lg font-semibold text-gray-900">
-                            Создать расписание вручную
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                            Выберите услугу, дату и настройте временные слоты
-                        </p>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">
-                                    Услуга
-                                </label>
-                                <select
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white"
-                                    value={scheduleForm.service_id || ''}
-                                    onChange={e => setScheduleForm(prev => ({
-                                        ...prev,
-                                        service_id: Number(e.target.value)
-                                    }))}
-                                >
-                                    <option value="">Выберите услугу</option>
-                                    {services.map(service => (
-                                        <option key={service.id} value={service.id}>
-                                            {service.title}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">
-                                    День недели
-                                </label>
-                                <select
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white"
-                                    value={scheduleForm.date}
-                                    onChange={e => setScheduleForm(prev => ({
-                                        ...prev,
-                                        date: e.target.value
-                                    }))}
-                                >
-                                    {weekDays.map(day => (
-                                        <option key={day.date} value={day.date}>
-                                            {day.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            <label className="text-sm font-medium text-gray-700">
-                                Временные слоты (нажмите для изменения статуса)
-                            </label>
-                            <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
-                                {timeSlots.map(time => (
-                                    <button
-                                        key={time}
-                                        type="button"
-                                        onClick={() => handleScheduleSlotClick(time)}
-                                        className={`p-3 rounded-lg text-white text-sm font-medium transition-colors ${
-                                            statusColors[scheduleForm.slots[time] || 'unavailable']
-                                        }`}
-                                    >
-                                        {time}
-                                        <div className="text-xs opacity-90 mt-1">
-                                            {statusLabels[scheduleForm.slots[time] || 'unavailable']}
-                                        </div>
-                                    </button>
+        return (
+            <div className="tab-content">
+                <div className="tab-header">
+                    <div>
+                        <h2>Расписание</h2>
+                        <p className="tab-description">Управляйте рабочими днями и временными слотами</p>
+                    </div>
+                    
+                    <div className="schedule-controls">
+                        {services.length > 0 && (
+                            <select
+                                className="select-filter"
+                                value={scheduleServiceFilter}
+                                onChange={event => {
+                                    const value = event.target.value;
+                                    setScheduleServiceFilter(value === 'all' ? 'all' : Number(value));
+                                }}
+                            >
+                                <option value="all">Все услуги</option>
+                                {services.map(service => (
+                                    <option key={service.id} value={service.id}>
+                                        {service.title}
+                                    </option>
                                 ))}
+                            </select>
+                        )}
+                        
+                        <div className="schedule-buttons">
+                            <button
+                                className={`btn ${isCreatingSchedule ? 'btn-secondary' : 'btn-outline'}`}
+                                onClick={() => setIsCreatingSchedule(prev => !prev)}
+                                disabled={services.length === 0}
+                            >
+                                {isCreatingSchedule ? 'Скрыть' : 'Добавить вручную'}
+                            </button>
+                            <button
+                                className="btn btn-outline"
+                                onClick={refreshSchedule}
+                                disabled={isScheduleLoading}
+                            >
+                                {isScheduleLoading ? (
+                                    <>
+                                        <div className="spinner"></div>
+                                        <span>...</span>
+                                    </>
+                                ) : (
+                                    'Обновить'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {isCreatingSchedule && (
+                    <div className="card schedule-create-card">
+                        <div className="card-header">
+                            <h3>Создать расписание вручную</h3>
+                            <p className="card-description">
+                                Выберите услугу, дату и настройте временные слоты
+                            </p>
+                        </div>
+
+                        <div className="card-content">
+                            <div className="schedule-form-grid">
+                                <div className="form-group">
+                                    <label>Услуга</label>
+                                    <select
+                                        value={scheduleForm.service_id || ''}
+                                        onChange={e => setScheduleForm(prev => ({
+                                            ...prev,
+                                            service_id: Number(e.target.value)
+                                        }))}
+                                    >
+                                        <option value="">Выберите услугу</option>
+                                        {services.map(service => (
+                                            <option key={service.id} value={service.id}>
+                                                {service.title}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="form-group">
+                                    <label>День недели</label>
+                                    <select
+                                        value={scheduleForm.date}
+                                        onChange={e => setScheduleForm(prev => ({
+                                            ...prev,
+                                            date: e.target.value
+                                        }))}
+                                    >
+                                        {weekDays.map(day => (
+                                            <option key={day.date} value={day.date}>
+                                                {day.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="time-slots-container">
+                                <label>Временные слоты (нажмите для изменения статуса)</label>
+                                <div className="time-slots-grid">
+                                    {timeSlots.map(time => {
+                                        const status = scheduleForm.slots[time] || 'unavailable';
+                                        return (
+                                            <button
+                                                key={time}
+                                                type="button"
+                                                onClick={() => handleScheduleSlotClick(time)}
+                                                className={`time-slot time-slot-${status}`}
+                                            >
+                                                <span className="time-slot-time">{time}</span>
+                                                <span className="time-slot-status">
+                                                    {status === 'available' ? 'Свободен' :
+                                                     status === 'break' ? 'Перерыв' : 'Недоступен'}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {scheduleFormError && (
+                                <div className="error-message">
+                                    {scheduleFormError}
+                                </div>
+                            )}
+
+                            <div className="form-actions">
+                                <button
+                                    type="button"
+                                    className="btn btn-outline"
+                                    onClick={resetScheduleForm}
+                                >
+                                    Отмена
+                                </button>
+                                <button
+                                    onClick={handleCreateSchedule}
+                                    disabled={isScheduleSubmitting}
+                                    className="btn btn-primary"
+                                >
+                                    {isScheduleSubmitting ? (
+                                        <>
+                                            <div className="spinner"></div>
+                                            <span>Создание...</span>
+                                        </>
+                                    ) : (
+                                        'Создать расписание'
+                                    )}
+                                </button>
                             </div>
                         </div>
+                    </div>
+                )}
 
-                        {scheduleFormError && (
-                            <p className="text-sm text-red-600">{scheduleFormError}</p>
-                        )}
+                {scheduleError && (
+                    <div className="error-alert">
+                        {scheduleError}
+                    </div>
+                )}
 
-                        <div className="flex justify-end gap-3">
-                            <Button
-                                variant="outline"
-                                onClick={resetScheduleForm}
-                            >
-                                Отмена
-                            </Button>
-                            <Button
-                                onClick={handleCreateSchedule}
-                                disabled={isScheduleSubmitting}
-                            >
-                                {isScheduleSubmitting ? 'Создание...' : 'Создать расписание'}
-                            </Button>
+                {!scheduleError && filteredSchedule.length === 0 && (
+                    <div className="empty-state">
+                        <div className="empty-state-icon">
+                            <span>📅</span>
                         </div>
-                    </CardContent>
-                </Card>
-            )}
-
-            {scheduleError && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
-                    {scheduleError}
-                </div>
-            )}
-
-            {!scheduleError && filteredSchedule.length === 0 && (
-                <Card>
-                    <CardContent>
-                        <p className="text-gray-600">
-                            Расписание пока не создано. Создайте шаблон или дату в панели администратора сервиса,
+                        <p className="empty-state-title">Расписание пока не создано</p>
+                        <p className="empty-state-description">
+                            Создайте шаблон или дату в панели администратора сервиса,
                             после чего здесь появятся итоговые слоты.
                         </p>
-                    </CardContent>
-                </Card>
-            )}
+                    </div>
+                )}
 
-            <div className="grid gap-4">
-                {filteredSchedule.map(date => {
-                    const stats = Object.values(date.slots).reduce<Record<string, number>>((acc, status) => {
-                        acc[status] = (acc[status] ?? 0) + 1;
-                        return acc;
-                    }, {});
-
-                    const boundService = services.find(service => service.id === date.service_id);
-
-                    return (
-                        <Card key={`${date.service_id}-${date.date}`}>
-                            <CardHeader>
-                                <div className="flex flex-wrap justify-between gap-3">
-                                    <div>
-                                        <p className="text-sm text-gray-500">
-                                            {boundService ? boundService.title : `Услуга #${date.service_id}`}
-                                        </p>
-                                        <h3 className="text-lg font-semibold text-gray-900">
-                                            {formatDate(date.date)}
-                                        </h3>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        {Object.entries(stats).map(([status, count]) => (
-                                            <span
-                                                key={status}
-                                                className={`px-3 py-1 rounded-full text-xs font-semibold ${statusBadge[status] ?? 'bg-gray-100 text-gray-600'}`}
-                                            >
-                                                {status}: {count}
-                                            </span>
-                                        ))}
-                                    </div>
+                <div className="schedule-container">
+                    {Object.entries(scheduleByService).map(([serviceId, dates]) => {
+                        const service = services.find(s => s.id === Number(serviceId));
+                        return (
+                            <div key={serviceId} className="schedule-service-section">
+                                <h3 className="schedule-service-title">
+                                    {service?.title || `Услуга #${serviceId}`}
+                                </h3>
+                                <div className="schedule-days-grid">
+                                    {dates.map(date => {
+                                        const slots = date.slots;
+                                        const totalSlots = Object.keys(slots).length;
+                                        const availableSlots = Object.values(slots).filter(s => s === 'available').length;
+                                        const bookedSlotsCount = Object.values(slots).filter(s => s === 'booked').length;
+                                        const breakSlots = Object.values(slots).filter(s => s === 'break').length;
+                                        
+                                        return (
+                                            <div key={`${serviceId}-${date.date}`} className="schedule-day-card">
+                                                <div className="schedule-day-header">
+                                                    <div className="schedule-day-info">
+                                                        <h4 className="schedule-day-title">{formatDate(date.date)}</h4>
+                                                        <div className="schedule-stats">
+                                                            <span className="stat-total">{totalSlots} всего</span>
+                                                            <span className="stat-available">{availableSlots} свободно</span>
+                                                            <span className="stat-booked">{bookedSlotsCount} занято</span>
+                                                            {breakSlots > 0 && (
+                                                                <span className="stat-break">{breakSlots} перерыв</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="schedule-slots">
+                                                    {Object.entries(slots).map(([slot, status]) => (
+                                                        <div
+                                                            key={slot}
+                                                            className={`schedule-slot schedule-slot-${status}`}
+                                                        >
+                                                            {slot}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                            </CardHeader>
-                            <CardContent className="space-y-2">
-                                <p className="text-sm text-gray-500">
-                                    Всего слотов: {Object.keys(date.slots).length}
-                                </p>
-                                <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 text-center text-xs text-gray-600">
-                                    {Object.entries(date.slots).map(([slot, status]) => (
-                                        <div
-                                            key={slot}
-                                            className={`rounded-md px-2 py-1 border text-[11px] font-medium ${
-                                                status === 'available'
-                                                    ? 'border-green-200 bg-green-50 text-green-700'
-                                                    : status === 'booked'
-                                                        ? 'border-yellow-200 bg-yellow-50 text-yellow-800'
-                                                        : 'border-gray-200 bg-gray-50 text-gray-500'
-                                            }`}
-                                        >
-                                            <p>{slot}</p>
-                                            <p className="uppercase">{status.slice(0, 3)}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    );
-                })}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     const renderTemplatesTab = () => (
-        <div className="space-y-6">
-            <div className="flex flex-wrap gap-4 justify-between items-center">
+        <div className="tab-content">
+            <div className="tab-header">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Шаблоны расписания</h2>
-                    <p className="text-gray-500">
+                    <h2>Шаблоны расписания</h2>
+                    <p className="tab-description">
                         Создавайте шаблоны для автоматического заполнения расписания
                     </p>
                 </div>
-                <div className="flex gap-3">
+                <div className="template-controls">
                     {services.length > 0 && (
                         <select
-                            className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm"
+                            className="select-filter"
                             value={templateServiceFilter}
                             onChange={e => setTemplateServiceFilter(
                                 e.target.value === 'all' ? 'all' : Number(e.target.value)
@@ -824,30 +949,31 @@ export const MasterDashboardPage: React.FC = () => {
                             ))}
                         </select>
                     )}
-                    <Button
+                    <button
+                        className="btn btn-primary"
                         onClick={() => setIsCreatingTemplate(true)}
                         disabled={services.length === 0}
                     >
-                        + Создать шаблон
-                    </Button>
+                        <span>+</span>
+                        <span>Создать шаблон</span>
+                    </button>
                 </div>
             </div>
 
             {isCreatingTemplate && (
-                <Card>
-                    <CardHeader>
-                        <h3 className="text-lg font-semibold text-gray-900">
-                            {editingTemplate ? 'Редактирование шаблона' : 'Новый шаблон'}
-                        </h3>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">
-                                    Услуга
-                                </label>
+                <div className="card template-create-card">
+                    <div className="card-header">
+                        <h3>{editingTemplate ? 'Редактирование шаблона' : 'Новый шаблон'}</h3>
+                        <p className="card-description">
+                            Настройте дни и время работы для автоматического создания расписания
+                        </p>
+                    </div>
+
+                    <div className="card-content">
+                        <div className="template-form-grid">
+                            <div className="form-group">
+                                <label>Услуга</label>
                                 <select
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white"
                                     value={templateForm.service_id || ''}
                                     onChange={e => setTemplateForm(prev => ({
                                         ...prev,
@@ -863,12 +989,9 @@ export const MasterDashboardPage: React.FC = () => {
                                 </select>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">
-                                    День недели
-                                </label>
+                            <div className="form-group">
+                                <label>День недели</label>
                                 <select
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white"
                                     value={templateForm.day}
                                     onChange={e => setTemplateForm(prev => ({
                                         ...prev,
@@ -884,30 +1007,30 @@ export const MasterDashboardPage: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="space-y-3">
-                            <label className="text-sm font-medium text-gray-700">
-                                Временные слоты (нажмите для изменения статуса)
-                            </label>
-                            <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
-                                {timeSlots.map(time => (
-                                    <button
-                                        key={time}
-                                        type="button"
-                                        onClick={() => handleTimeSlotClick(time)}
-                                        className={`p-3 rounded-lg text-white text-sm font-medium transition-colors ${
-                                            statusColors[templateForm.hours_work[time] || 'unavailable']
-                                        }`}
-                                    >
-                                        {time}
-                                        <div className="text-xs opacity-90 mt-1">
-                                            {statusLabels[templateForm.hours_work[time] || 'unavailable']}
-                                        </div>
-                                    </button>
-                                ))}
+                        <div className="time-slots-container">
+                            <label>Временные слоты (нажмите для изменения статуса)</label>
+                            <div className="time-slots-grid-large">
+                                {timeSlots.map(time => {
+                                    const status = templateForm.hours_work[time] || 'unavailable';
+                                    return (
+                                        <button
+                                            key={time}
+                                            type="button"
+                                            onClick={() => handleTimeSlotClick(time)}
+                                            className={`time-slot time-slot-${status}`}
+                                        >
+                                            <span className="time-slot-time">{time}</span>
+                                            <span className="time-slot-status">
+                                                {status === 'available' ? 'Свободен' :
+                                                 status === 'break' ? 'Перерыв' : 'Недоступен'}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="form-checkbox">
                             <input
                                 type="checkbox"
                                 id="is_active"
@@ -916,132 +1039,116 @@ export const MasterDashboardPage: React.FC = () => {
                                     ...prev,
                                     is_active: e.target.checked
                                 }))}
-                                className="rounded border-gray-300"
                             />
-                            <label htmlFor="is_active" className="text-sm text-gray-700">
-                                Шаблон активен
-                            </label>
+                            <label htmlFor="is_active">Шаблон активен</label>
                         </div>
 
                         {templateError && (
-                            <p className="text-sm text-red-600">{templateError}</p>
+                            <div className="error-message">
+                                {templateError}
+                            </div>
                         )}
 
-                        <div className="flex justify-end gap-3">
-                            <Button
-                                variant="outline"
+                        <div className="form-actions">
+                            <button
+                                type="button"
+                                className="btn btn-outline"
                                 onClick={resetTemplateForm}
                             >
                                 Отмена
-                            </Button>
-                            <Button
+                            </button>
+                            <button
                                 onClick={editingTemplate ? handleUpdateTemplate : handleCreateTemplate}
                                 disabled={isTemplateSubmitting}
+                                className="btn btn-primary"
                             >
-                                {isTemplateSubmitting ? 'Сохранение...' : 
-                                 editingTemplate ? 'Обновить шаблон' : 'Создать шаблон'}
-                            </Button>
+                                {isTemplateSubmitting ? (
+                                    <>
+                                        <div className="spinner"></div>
+                                        <span>Сохранение...</span>
+                                    </>
+                                ) : editingTemplate ? (
+                                    'Обновить шаблон'
+                                ) : (
+                                    'Создать шаблон'
+                                )}
+                            </button>
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             )}
 
             {Object.keys(templatesByService).length === 0 ? (
-                <Card>
-                    <CardContent>
-                        <p className="text-gray-600 text-center py-8">
-                            {services.length === 0 
-                                ? 'Создайте услугу, чтобы добавить шаблон расписания'
-                                : 'Шаблоны пока не созданы'
-                            }
-                        </p>
-                    </CardContent>
-                </Card>
+                <div className="empty-state">
+                    <div className="empty-state-icon">
+                        <span>📋</span>
+                    </div>
+                    <p className="empty-state-title">
+                        {services.length === 0 
+                            ? 'Создайте услугу, чтобы добавить шаблон расписания'
+                            : 'Шаблоны пока не созданы'
+                        }
+                    </p>
+                </div>
             ) : (
-                <div className="space-y-6">
+                <div className="templates-container">
                     {Object.entries(templatesByService).map(([serviceId, templates]) => {
                         const service = services.find(s => s.id === Number(serviceId));
                         return (
-                            <div key={serviceId} className="space-y-4">
-                                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                            <div key={serviceId} className="template-service-section">
+                                <h3 className="template-service-title">
                                     {service?.title}
                                 </h3>
-                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                <div className="templates-grid">
                                     {templates.map(template => (
-                                        <Card key={template.id} className="relative">
-                                            <CardHeader>
-                                                <div className="flex justify-between items-start">
-                                                    <div>
-                                                        <h4 className="font-semibold text-gray-900">
-                                                            {dayLabels[template.day] || template.day}
-                                                        </h4>
-                                                        <p className={`text-sm ${
-                                                            template.is_active 
-                                                                ? 'text-green-600' 
-                                                                : 'text-gray-500'
-                                                        }`}>
-                                                            {template.is_active ? 'Активен' : 'Неактивен'}
-                                                        </p>
-                                                    </div>
-                                                    <span className={`px-2 py-1 rounded-full text-xs ${
-                                                        template.is_active
-                                                            ? 'bg-green-100 text-green-700'
-                                                            : 'bg-gray-100 text-gray-500'
-                                                    }`}>
-                                                        {Object.keys(template.hours_work).length} слотов
+                                        <div key={template.id} className="template-card">
+                                            <div className="template-card-header">
+                                                <div>
+                                                    <h4 className="template-card-title">
+                                                        {dayLabels[template.day] || template.day}
+                                                    </h4>
+                                                    <span className={`template-status ${template.is_active ? 'active' : 'inactive'}`}>
+                                                        {template.is_active ? 'Активен' : 'Неактивен'}
                                                     </span>
                                                 </div>
-                                            </CardHeader>
-                                            <CardContent className="space-y-3">
-                                                <div className="flex flex-wrap gap-1">
-                                                    {Object.entries(template.hours_work)
-                                                        .slice(0, 6)
-                                                        .map(([time, status]) => (
-                                                        <span
-                                                            key={time}
-                                                            className={`px-2 py-1 rounded text-xs ${
-                                                                status === 'available'
-                                                                    ? 'bg-green-100 text-green-700'
-                                                                    : status === 'break'
-                                                                        ? 'bg-red-100 text-red-700'
-                                                                        : 'bg-gray-100 text-gray-600'
-                                                            }`}
-                                                        >
-                                                            {time}
-                                                        </span>
-                                                    ))}
-                                                    {Object.keys(template.hours_work).length > 6 && (
-                                                        <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-700">
-                                                            +{Object.keys(template.hours_work).length - 6}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="flex gap-2 pt-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => handleEditTemplate(template)}
+                                                <span className="template-slots-count">
+                                                    {Object.keys(template.hours_work).length} слотов
+                                                </span>
+                                            </div>
+                                            
+                                            <div className="template-slots-preview">
+                                                {Object.entries(template.hours_work)
+                                                    .map(([time, status]) => (
+                                                    <span
+                                                        key={time}
+                                                        className={`template-slot template-slot-${status}`}
                                                     >
-                                                        Изменить
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => handleToggleTemplateStatus(template)}
-                                                    >
-                                                        {template.is_active ? 'Выключить' : 'Включить'}
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="text-red-600 border-red-200 hover:bg-red-50"
-                                                        onClick={() => handleDeleteTemplate(template.id)}
-                                                    >
-                                                        Удалить
-                                                    </Button>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
+                                                        {time}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                            
+                                            <div className="template-actions">
+                                                <button
+                                                    className="btn btn-sm btn-outline"
+                                                    onClick={() => handleEditTemplate(template)}
+                                                >
+                                                    Изменить
+                                                </button>
+                                                <button
+                                                    className="btn btn-sm btn-outline"
+                                                    onClick={() => handleToggleTemplateStatus(template)}
+                                                >
+                                                    {template.is_active ? 'Выключить' : 'Включить'}
+                                                </button>
+                                                <button
+                                                    className="btn btn-sm btn-danger"
+                                                    onClick={() => handleDeleteTemplate(template.id)}
+                                                >
+                                                    Удалить
+                                                </button>
+                                            </div>
+                                        </div>
                                     ))}
                                 </div>
                             </div>
@@ -1053,12 +1160,16 @@ export const MasterDashboardPage: React.FC = () => {
     );
 
     const renderBookingsTab = () => (
-        <div className="space-y-4">
-            <div className="flex flex-wrap gap-3 items-center justify-between">
-                <div className="flex gap-2 items-center">
-                    <label className="text-sm text-gray-500">Услуга:</label>
+        <div className="tab-content">
+            <div className="tab-header">
+                <div>
+                    <h2>Бронирования</h2>
+                    <p className="tab-description">Просмотр и управление забронированными слотами</p>
+                </div>
+                
+                <div className="bookings-controls">
                     <select
-                        className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm"
+                        className="select-filter"
                         value={bookingsServiceFilter ?? ''}
                         onChange={event => {
                             const value = event.target.value;
@@ -1072,67 +1183,121 @@ export const MasterDashboardPage: React.FC = () => {
                             </option>
                         ))}
                     </select>
+                    
+                    <button
+                        className="btn btn-outline"
+                        onClick={refreshSchedule}
+                        disabled={isScheduleLoading}
+                    >
+                        {isScheduleLoading ? (
+                            <>
+                                <div className="spinner"></div>
+                                <span>...</span>
+                            </>
+                        ) : (
+                            'Обновить слоты'
+                        )}
+                    </button>
                 </div>
-                <Button
-                    variant="outline"
-                    onClick={refreshSchedule}
-                    disabled={isScheduleLoading}
-                >
-                    {isScheduleLoading ? 'Обновляем...' : 'Обновить слоты'}
-                </Button>
             </div>
 
             {bookingsServiceFilter === null || services.length === 0 ? (
-                <Card>
-                    <CardContent>
-                        <p className="text-gray-600">
-                            Создайте услугу и выберите её, чтобы увидеть забронированные слоты.
-                        </p>
-                    </CardContent>
-                </Card>
-            ) : bookedSlots.length === 0 ? (
-                <Card>
-                    <CardContent>
-                        <p className="text-gray-600">
-                            Пока нет забронированных слотов. Как только пользователи начнут оформлять записи,
-                            здесь появится их список. После подключения API добавим кнопки подтверждения и отмены.
-                        </p>
-                    </CardContent>
-                </Card>
+                <div className="empty-state">
+                    <div className="empty-state-icon">
+                        <span>📅</span>
+                    </div>
+                    <p className="empty-state-title">Создайте услугу и выберите её</p>
+                    <p className="empty-state-description">
+                        Чтобы увидеть забронированные слоты, создайте услугу и выберите её в фильтре.
+                    </p>
+                </div>
+            ) : isLoadingEnrolls ? (
+                <div className="empty-state">
+                    <div className="spinner"></div>
+                    <p className="empty-state-title">Загрузка записей...</p>
+                </div>
+            ) : enrollsError ? (
+                <div className="empty-state">
+                    <div className="empty-state-icon">
+                        <span>⚠️</span>
+                    </div>
+                    <p className="empty-state-title">Ошибка загрузки</p>
+                    <p className="empty-state-description">{enrollsError}</p>
+                </div>
+            ) : enrolls.length === 0 ? (
+                <div className="empty-state">
+                    <div className="empty-state-icon">
+                        <span>👥</span>
+                    </div>
+                    <p className="empty-state-title">Пока нет записей</p>
+                    <p className="empty-state-description">
+                        Как только пользователи начнут оформлять записи, здесь появится их список.
+                    </p>
+                </div>
             ) : (
-                <div className="space-y-3">
-                    {bookedSlots.map(booking => {
-                        const service = services.find(item => item.id === booking.serviceId);
+                <div className="bookings-list">
+                    {enrolls.map(enroll => {
+                        const service = services.find(item => item.id === enroll.service_id);
+                        const statusLabels: Record<string, string> = {
+                            pending: 'Ожидает',
+                            confirmed: 'Подтверждено',
+                            completed: 'Завершено',
+                            cancelled: 'Отменено',
+                            expired: 'Истекло'
+                        };
+                        const statusColors: Record<string, string> = {
+                            pending: 'btn-warning',
+                            confirmed: 'btn-success',
+                            completed: 'btn-info',
+                            cancelled: 'btn-danger',
+                            expired: 'btn-secondary'
+                        };
+                        
                         return (
-                            <Card key={`${booking.serviceId}-${booking.date}-${booking.slot}`}>
-                                <CardContent className="flex flex-wrap items-center justify-between gap-4">
-                                    <div>
-                                        <p className="text-sm text-gray-500">
-                                            {service?.title ?? `Услуга #${booking.serviceId}`}
+                            <div key={enroll.id} className="booking-card">
+                                <div className="booking-info">
+                                    <p className="booking-service">
+                                        {service?.title ?? `Услуга #${enroll.service_id}`}
+                                    </p>
+                                    <h3 className="booking-time">
+                                        {enroll.slot_time}
+                                    </h3>
+                                    {enroll.user && (
+                                        <p className="booking-user">
+                                            Клиент: {enroll.user.name}
                                         </p>
-                                        <h3 className="text-lg font-semibold text-gray-900">
-                                            {formatDate(booking.date)} в {booking.slot}
-                                        </h3>
-                                    </div>
-                                    <div className="flex gap-3">
-                                        <Button
-                                            size="sm"
-                                            disabled
-                                            title="Подтверждение брони появится после подключения API"
-                                        >
-                                            Принять
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            disabled
-                                            title="Отмена появится после подключения API"
-                                        >
-                                            Отклонить
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                    )}
+                                    <p className="booking-price">
+                                        {priceFormatter.format(enroll.price)}
+                                    </p>
+                                    <span className={`status-badge ${statusColors[enroll.status] || ''}`}>
+                                        {statusLabels[enroll.status] || enroll.status}
+                                    </span>
+                                </div>
+                                <div className="booking-actions">
+                                    {enroll.status === 'pending' && (
+                                        <>
+                                            <button
+                                                onClick={() => handleProcessEnroll(enroll.id, 'accept')}
+                                                className="btn btn-primary"
+                                            >
+                                                Принять
+                                            </button>
+                                            <button
+                                                onClick={() => handleProcessEnroll(enroll.id, 'reject')}
+                                                className="btn btn-danger"
+                                            >
+                                                Отклонить
+                                            </button>
+                                        </>
+                                    )}
+                                    {enroll.status !== 'pending' && (
+                                        <span className="booking-status-text">
+                                            {statusLabels[enroll.status] || enroll.status}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
                         );
                     })}
                 </div>
@@ -1154,59 +1319,61 @@ export const MasterDashboardPage: React.FC = () => {
     };
 
     return (
-        <div className="space-y-8">
-            <section className="bg-[#252526] border border-[#3e3e42] rounded-xl p-8 shadow-xl">
-                <div className="flex flex-wrap gap-6 items-center justify-between">
-                    <div>
-                        <p className="text-xs text-[#858585] uppercase tracking-[0.3em] mb-3 font-medium">
+        <div className="master-dashboard">
+            <div className="dashboard-container">
+                {/* Header Section */}
+                <div className="dashboard-header">
+                    <div className="header-content">
+                        <div className="header-badge">
                             Панель мастера
-                        </p>
-                        <h1 className="text-3xl font-bold bg-gradient-to-r from-[#cccccc] to-[#858585] bg-clip-text text-transparent mb-3">
+                        </div>
+                        <h1 className="header-title">
                             Управляйте услугами и расписанием
                         </h1>
-                        <p className="text-[#858585] max-w-2xl">
+                        <p className="header-description">
                             Здесь собраны все рабочие инструменты мастера. Пока подключены только
                             отображение данных, но после интеграции API появится полноценное управление.
                         </p>
                     </div>
+                    
+                    <div className="stats-grid">
+                        <div className="stat-card">
+                            <div className="stat-label">Услуги</div>
+                            <div className="stat-value">{services.length}</div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-label">Шаблоны</div>
+                            <div className="stat-value">{user.templates.length}</div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-label">Расписаний</div>
+                            <div className="stat-value">{schedule.length}</div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-label">Бронирований</div>
+                            <div className="stat-value">{bookedSlots.length}</div>
+                        </div>
+                    </div>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-                    <div className="bg-[#007acc]/20 border border-[#007acc]/30 rounded-lg p-4 backdrop-blur-sm">
-                        <p className="text-sm text-[#569cd6] mb-1">Услуги</p>
-                        <p className="text-2xl font-bold text-[#cccccc]">{services.length}</p>
-                    </div>
-                    <div className="bg-[#4ec9b0]/20 border border-[#4ec9b0]/30 rounded-lg p-4 backdrop-blur-sm">
-                        <p className="text-sm text-[#4ec9b0] mb-1">Шаблоны</p>
-                        <p className="text-2xl font-bold text-[#cccccc]">{user.templates.length}</p>
-                    </div>
-                    <div className="bg-[#dcdcaa]/20 border border-[#dcdcaa]/30 rounded-lg p-4 backdrop-blur-sm">
-                        <p className="text-sm text-[#dcdcaa] mb-1">Расписаний</p>
-                        <p className="text-2xl font-bold text-[#cccccc]">{schedule.length}</p>
-                    </div>
-                    <div className="bg-[#569cd6]/20 border border-[#569cd6]/30 rounded-lg p-4 backdrop-blur-sm">
-                        <p className="text-sm text-[#569cd6] mb-1">Бронирований</p>
-                        <p className="text-2xl font-bold text-[#cccccc]">{bookedSlots.length}</p>
-                    </div>
-                </div>
-            </section>
 
-            <div className="flex flex-wrap gap-3">
-                {tabs.map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`px-4 py-2 rounded-md text-sm font-semibold border transition-all duration-200 ${
-                            activeTab === tab.id
-                                ? 'bg-[#007acc] text-white border-[#007acc] shadow-lg shadow-[#007acc]/30'
-                                : 'bg-[#252526] text-[#cccccc] border-[#3e3e42] hover:bg-[#2a2d2e] hover:border-[#464647]'
-                        }`}
-                    >
-                        {tab.label}
-                    </button>
-                ))}
+                {/* Tab Navigation */}
+                <div className="tab-navigation">
+                    {tabs.map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Main Content */}
+                <div className="dashboard-content">
+                    {renderBody()}
+                </div>
             </div>
-
-            {renderBody()}
         </div>
     );
 };

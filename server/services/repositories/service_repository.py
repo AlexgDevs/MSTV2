@@ -56,17 +56,15 @@ class ServiceRepository:
 
         return service
 
-    async def get_detail_by_service_user_id(
+    async def get_detail_by_service_id(
         self,
-        user_id: int,
         service_id: int
     ) -> Service | None:
 
         service = await self._session.scalar(
             select(Service)
             .where(
-                Service.id == service_id, 
-                Service.user_id == user_id)
+                Service.id == service_id)
             .options(
             selectinload(Service.users_enroll).selectinload(ServiceEnroll.user),
             selectinload(Service.templates),
