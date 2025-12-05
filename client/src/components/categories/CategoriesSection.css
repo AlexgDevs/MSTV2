@@ -1,24 +1,48 @@
 .categories-section {
-    padding: 4rem 0;
-    background: #0d0d0d;
-    border-bottom: 1px solid #3e3e42;
+    padding: 5rem 0;
+    background: var(--bg-primary, #0a0a0a);
+    border-bottom: 1px solid var(--border-primary, #2a2a2a);
+    position: relative;
+}
+
+.categories-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        var(--border-accent, #007acc) 20%, 
+        var(--accent-secondary, #1a8cd8) 50%, 
+        var(--border-accent, #007acc) 80%, 
+        transparent 100%);
+    opacity: 0.3;
 }
 
 .categories-header {
     text-align: center;
-    margin-bottom: 3rem;
+    margin-bottom: 3.5rem;
 }
 
 .categories-title {
-    font-size: 2rem;
-    font-weight: 600;
-    color: #ffffff;
-    margin-bottom: 0.75rem;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-primary, #ffffff);
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, var(--text-primary, #ffffff) 0%, var(--text-secondary, #e0e0e0) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .categories-subtitle {
-    color: #858585;
-    font-size: 1rem;
+    color: var(--text-tertiary, #a0a0a0);
+    font-size: 1.125rem;
+    line-height: 1.6;
+    max-width: 600px;
+    margin: 0 auto;
 }
 
 .categories-grid {

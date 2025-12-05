@@ -2,56 +2,69 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CategoryCard } from './CategoryCard';
 import type { Category } from './CategoryCard';
+import { BeautyIcon, TechIcon, EducationIcon, RepairIcon, CreativeIcon, BusinessIcon } from '../icons/Icons';
 import './CategoriesSection.css';
 
-const CATEGORIES: (Category & { size: 'small' | 'medium' | 'large' })[] = [
+const CATEGORIES: (Category & { size: 'small' | 'medium' | 'large'; iconComponent: React.ComponentType<{ className?: string; size?: number }>; backgroundImage: string })[] = [
     {
         id: 'beauty',
         title: 'Красота и здоровье',
         searchQuery: 'красота здоровье парикмахер маникюр массаж косметология',
-        gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        icon: '💅',
-        size: 'large'
+        gradient: '', // Оставляем для обратной совместимости
+        icon: '',
+        iconComponent: BeautyIcon,
+        size: 'large',
+        backgroundImage: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&q=80'
     },
     {
         id: 'it',
         title: 'IT и технологии',
         searchQuery: 'разработка дизайн программирование IT технологии',
-        gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-        icon: '💻',
-        size: 'large'
+        gradient: '',
+        icon: '',
+        iconComponent: TechIcon,
+        size: 'large',
+        backgroundImage: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80'
     },
     {
         id: 'education',
         title: 'Образование и консультации',
         searchQuery: 'образование репетитор консультация обучение',
-        gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-        icon: '📚',
-        size: 'medium'
+        gradient: '',
+        icon: '',
+        iconComponent: EducationIcon,
+        size: 'medium',
+        backgroundImage: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&q=80'
     },
     {
         id: 'repair',
         title: 'Ремонт и обслуживание',
         searchQuery: 'ремонт уборка обслуживание установка',
-        gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-        icon: '🔧',
-        size: 'medium'
+        gradient: '',
+        icon: '',
+        iconComponent: RepairIcon,
+        size: 'medium',
+        backgroundImage: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=800&q=80'
     },
     {
         id: 'creative',
         title: 'Творчество и хобби',
         searchQuery: 'творчество фотография музыка рукоделие',
-        gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-        icon: '🎨',
-        size: 'medium'
+        gradient: '',
+        icon: '',
+        iconComponent: CreativeIcon,
+        size: 'medium',
+        backgroundImage: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800&q=80'
     },
     {
         id: 'business',
         title: 'Бизнес и маркетинг',
         searchQuery: 'бизнес маркетинг консультация SMM копирайтинг',
-        gradient: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
-        icon: '📊',
-        size: 'small'
+        gradient: '',
+        icon: '',
+        iconComponent: BusinessIcon,
+        size: 'small',
+        backgroundImage: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80'
     }
 ];
 
@@ -79,14 +92,17 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({ onCategory
                     <p className="categories-subtitle">Выберите интересующую вас категорию услуг</p>
                 </div>
                 <div className="categories-grid">
-                    {CATEGORIES.map((category) => (
-                        <CategoryCard
-                            key={category.id}
-                            category={category}
-                            size={category.size}
-                            onClick={() => handleCategoryClick(category)}
-                        />
-                    ))}
+                    {CATEGORIES.map((category) => {
+                        const { iconComponent, backgroundImage, ...categoryData } = category;
+                        return (
+                            <CategoryCard
+                                key={category.id}
+                                category={{ ...categoryData, iconComponent, backgroundImage }}
+                                size={category.size}
+                                onClick={() => handleCategoryClick(category)}
+                            />
+                        );
+                    })}
                 </div>
             </div>
         </section>

@@ -5,6 +5,7 @@ import { enrollsApi } from '../../api/enrolls/enrolls.api';
 import type { DetailServiceResponse } from '../../api/services/types';
 import { useAuthStore } from '../../stores/auth.store';
 import { cn } from '../../utils/cn';
+import { CheckIcon, XIcon } from '../../components/icons/Icons';
 import '../../assets/styles/ServiceDetailPage.css';
 
 const priceFormatter = new Intl.NumberFormat('ru-RU', {
@@ -395,7 +396,13 @@ export const ServiceDetailPage: React.FC = () => {
                                                                 !isAvailable && !isBooked && 'service-slot-unavailable'
                                                             )}
                                                         >
-                                                            {time} {isAvailable ? (canBook ? '✓' : '') : isBooked ? '✗' : ''}
+                                                            <span className="slot-time">{time}</span>
+                                                            {isAvailable && canBook && (
+                                                                <CheckIcon size={16} className="slot-status-icon slot-status-available" />
+                                                            )}
+                                                            {isBooked && (
+                                                                <XIcon size={16} className="slot-status-icon slot-status-booked" />
+                                                            )}
                                                         </button>
                                                     );
                                                 })}

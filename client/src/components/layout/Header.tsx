@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/auth.store';
 import { cn } from '../../utils/cn';
+import { UserIcon, SettingsIcon, LogoutIcon } from '../icons/Icons';
 import '../../assets/styles/Header.css';
 
 export const Header: React.FC = () => {
@@ -135,7 +136,9 @@ export const Header: React.FC = () => {
                                             className={cn('menu-item', isActive('/profile') && 'active')}
                                             onClick={() => setIsDropdownOpen(false)}
                                         >
-                                            <span className="menu-icon">👤</span>
+                                            <span className="menu-icon">
+                                                <UserIcon size={20} />
+                                            </span>
                                             <span className="menu-label">Профиль</span>
                                         </Link>
                                         <Link 
@@ -143,7 +146,9 @@ export const Header: React.FC = () => {
                                             className={cn('menu-item', isActive('/master') && 'active')}
                                             onClick={() => setIsDropdownOpen(false)}
                                         >
-                                            <span className="menu-icon">⚙️</span>
+                                            <span className="menu-icon">
+                                                <SettingsIcon size={20} />
+                                            </span>
                                             <span className="menu-label">Мастерская</span>
                                         </Link>
                                         <Link 
@@ -151,7 +156,9 @@ export const Header: React.FC = () => {
                                             className={cn('menu-item', isActive('/settings') && 'active')}
                                             onClick={() => setIsDropdownOpen(false)}
                                         >
-                                            <span className="menu-icon">⚙️</span>
+                                            <span className="menu-icon">
+                                                <SettingsIcon size={20} />
+                                            </span>
                                             <span className="menu-label">Настройки</span>
                                         </Link>
                                         
@@ -161,7 +168,9 @@ export const Header: React.FC = () => {
                                             className="btn-logout"
                                             onClick={handleLogout}
                                         >
-                                            <span className="logout-icon">🚪</span>
+                                            <span className="logout-icon">
+                                                <LogoutIcon size={20} />
+                                            </span>
                                             <span>Выйти</span>
                                         </button>
                                     </div>

@@ -8,6 +8,7 @@ import { enrollsApi } from '../../api/enrolls/enrolls.api';
 import type { EnrollResponse } from '../../api/enrolls/types';
 import { getCurrentWeekDays } from '../../utils/helpers';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { CalendarIcon, WarningIcon } from '../../components/icons/Icons';
 import '../../assets/styles/MasterDashboardPage.css';
 
 type TabId = 'services' | 'schedule' | 'templates' | 'bookings';
@@ -1012,7 +1013,7 @@ export const MasterDashboardPage: React.FC = () => {
                 {!scheduleError && filteredSchedule.length === 0 && (
                     <div className="empty-state">
                         <div className="empty-state-icon">
-                            <span>📅</span>
+                            <CalendarIcon size={48} color="currentColor" />
                         </div>
                         <p className="empty-state-title">Расписание пока не создано</p>
                         <p className="empty-state-description">
@@ -1357,7 +1358,7 @@ export const MasterDashboardPage: React.FC = () => {
             {bookingsServiceFilter === null || services.length === 0 ? (
                 <div className="empty-state">
                     <div className="empty-state-icon">
-                        <span>📅</span>
+                        <CalendarIcon size={48} color="currentColor" />
                     </div>
                     <p className="empty-state-title">Создайте услугу и выберите её</p>
                     <p className="empty-state-description">
@@ -1372,7 +1373,7 @@ export const MasterDashboardPage: React.FC = () => {
             ) : enrollsError ? (
                 <div className="empty-state">
                     <div className="empty-state-icon">
-                        <span>⚠️</span>
+                        <WarningIcon size={48} color="currentColor" />
                     </div>
                     <p className="empty-state-title">Ошибка загрузки</p>
                     <p className="empty-state-description">{enrollsError}</p>

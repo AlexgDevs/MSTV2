@@ -315,6 +315,29 @@
     border: 1px solid;
     background: transparent;
     color: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+}
+
+.slot-time {
+    display: inline-block;
+}
+
+.slot-status-icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.slot-status-available {
+    color: #4ec9b0;
+}
+
+.slot-status-booked {
+    color: #f44747;
 }
 
 .service-slot-available {
