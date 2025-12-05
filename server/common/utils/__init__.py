@@ -12,4 +12,6 @@ from .jwtconfig import (
     CookieManager,
 )
 
-__all__ = ["logger"]
+from .file_processor import process_to_base64
+
+__all__ = ["logger", "process_to_base64"]

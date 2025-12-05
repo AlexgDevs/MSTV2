@@ -14,10 +14,26 @@ const priceFormatter = new Intl.NumberFormat('ru-RU', {
 });
 
 const formatDate = (value: string) => {
+    // Парсим формат dd-mm-YYYY
+    const dateMatch = value.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (dateMatch) {
+        const [, day, month, year] = dateMatch;
+        const parsed = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        if (!Number.isNaN(parsed.getTime())) {
+            return parsed.toLocaleDateString('ru-RU', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+            });
+        }
+    }
+    
+    // Если формат не dd-mm-YYYY, пытаемся стандартный парсинг
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) {
         return value;
     }
+
     return parsed.toLocaleDateString('ru-RU', {
         day: '2-digit',
         month: 'long',
@@ -39,6 +55,7 @@ export const ServiceDetailPage: React.FC = () => {
     
     // Состояния для редактирования
     const [isEditing, setIsEditing] = useState(false);
+    const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
     const [editForm, setEditForm] = useState({
         title: '',
         description: '',
@@ -94,6 +111,7 @@ export const ServiceDetailPage: React.FC = () => {
             price: '',
             photo: ''
         });
+        setEditPhotoFile(null);
         setEditError(null);
     };
 
@@ -124,7 +142,7 @@ export const ServiceDetailPage: React.FC = () => {
                 description: editForm.description.trim(),
                 price: price,
                 photo: editForm.photo.trim() || null
-            });
+            }, editPhotoFile || undefined);
 
             // Обновляем данные услуги
             const response = await servicesApi.getDetail(parseInt(serviceId));
@@ -258,6 +276,35 @@ export const ServiceDetailPage: React.FC = () => {
                     <div className="service-main-content">
                         {/* Заголовок услуги */}
                         <div className="service-header-card">
+                            {/* Фото услуги */}
+                            {service.photo && (() => {
+                                const getImageUrl = () => {
+                                    if (service.photo?.startsWith('http')) {
+                                        return service.photo;
+                                    }
+                                    if (service.photo?.startsWith('data:') || service.photo?.startsWith('blob:')) {
+                                        return service.photo;
+                                    }
+                                    if (service.photo) {
+                                        const baseStatic =
+                                            import.meta.env.VITE_STATIC_URL ||
+                                            import.meta.env.VITE_API_URL?.replace('/api/v1', '') ||
+                                            '';
+                                        return `${baseStatic}${service.photo}`;
+                                    }
+                                    return null;
+                                };
+                                const imageUrl = getImageUrl();
+                                return imageUrl ? (
+                                    <div className="service-detail-photo">
+                                        <img
+                                            src={imageUrl}
+                                            alt={service.title}
+                                            className="service-detail-photo-img"
+                                        />
+                                    </div>
+                                ) : null;
+                            })()}
                             <h1 className="service-title">{service.title}</h1>
                             <p className="service-description">{service.description}</p>
                             <div className="service-price">
@@ -463,15 +510,54 @@ export const ServiceDetailPage: React.FC = () => {
 
                                         <div className="service-edit-field">
                                             <label className="service-edit-label">
-                                                URL фотографии
+                                                Фото услуги (необязательно)
                                             </label>
-                                            <input
-                                                type="text"
-                                                value={editForm.photo}
-                                                onChange={(e) => setEditForm(prev => ({ ...prev, photo: e.target.value }))}
-                                                className="service-edit-input"
-                                                placeholder="Введите URL фотографии (необязательно)"
-                                            />
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            if (file.size > 4 * 1024 * 1024) {
+                                                                setEditError('Размер файла не должен превышать 4 МБ');
+                                                                return;
+                                                            }
+                                                            setEditPhotoFile(file);
+                                                            setEditForm(prev => ({ ...prev, photo: '' }));
+                                                        }
+                                                    }}
+                                                    style={{ marginBottom: '0.5rem' }}
+                                                />
+                                                {editPhotoFile && (
+                                                    <div style={{ fontSize: '0.875rem', color: '#858585' }}>
+                                                        Выбран файл: {editPhotoFile.name}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setEditPhotoFile(null)}
+                                                            style={{ marginLeft: '0.5rem', color: '#f5576c', cursor: 'pointer' }}
+                                                        >
+                                                            Удалить
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                <div style={{ fontSize: '0.75rem', color: '#858585', marginTop: '0.25rem' }}>
+                                                    Или введите URL:
+                                                </div>
+                                                <input
+                                                    type="url"
+                                                    value={editForm.photo}
+                                                    onChange={(e) => {
+                                                        setEditForm(prev => ({ ...prev, photo: e.target.value }));
+                                                        if (e.target.value) {
+                                                            setEditPhotoFile(null);
+                                                        }
+                                                    }}
+                                                    className="service-edit-input"
+                                                    placeholder="https://example.com/photo.jpg"
+                                                    disabled={!!editPhotoFile}
+                                                />
+                                            </div>
                                         </div>
 
                                         {editError && (

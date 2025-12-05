@@ -18,6 +18,7 @@ const statusVariants: Record<string, { class: string; label: string }> = {
 
 export const ProfilePage: React.FC = () => {
     const { user, updateProfile } = useAuthStore();
+    const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -60,12 +61,27 @@ export const ProfilePage: React.FC = () => {
                 about: formData.about.trim() || null
             });
             setFeedback({ type: 'success', message: 'Профиль обновлён' });
+            setIsEditing(false);
+            // Очищаем сообщение через 3 секунды
+            setTimeout(() => setFeedback(null), 3000);
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Не удалось сохранить изменения';
             setFeedback({ type: 'error', message });
         } finally {
             setIsSaving(false);
         }
+    };
+
+    const handleCancel = () => {
+        if (user) {
+            setFormData({
+                name: user.name || '',
+                email: user.email || '',
+                about: user.about || ''
+            });
+        }
+        setIsEditing(false);
+        setFeedback(null);
     };
 
     const serviceTitleMap = useMemo(() => {
@@ -127,60 +143,110 @@ export const ProfilePage: React.FC = () => {
                     {/* Basic Info */}
                     <div className="profile-card">
                         <div className="profile-card-header">
-                            <h2 className="profile-card-title">Основная информация</h2>
-                            <p className="profile-card-subtitle">Эти данные видят клиенты и мастера</p>
+                            <div className="profile-card-header-content">
+                                <div>
+                                    <h2 className="profile-card-title">Основная информация</h2>
+                                    <p className="profile-card-subtitle">Эти данные видят клиенты и мастера</p>
+                                </div>
+                                {!isEditing && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsEditing(true)}
+                                        className="profile-btn-edit"
+                                    >
+                                        Редактировать
+                                    </button>
+                                )}
+                            </div>
                         </div>
                         <div className="profile-card-content">
-                            <form className="profile-form" onSubmit={handleSubmit}>
-                                <div className="form-group">
-                                    <label className="form-label">Имя</label>
-                                    <input
-                                        type="text"
-                                        name="name"
-                                        value={formData.name}
-                                        onChange={handleChange}
-                                        className="form-input"
-                                        required
-                                    />
-                                </div>
-
-                                <div className="form-group">
-                                    <label className="form-label">Email</label>
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        className="form-input"
-                                        required
-                                    />
-                                </div>
-
-                                <div className="form-group">
-                                    <label className="form-label">О себе</label>
-                                    <textarea
-                                        name="about"
-                                        value={formData.about}
-                                        onChange={handleChange}
-                                        className="form-textarea"
-                                        placeholder="Расскажите коротко о себе, специализации и опыте"
-                                    />
-                                </div>
-
-                                {feedback && (
-                                    <div className={`feedback feedback-${feedback.type}`}>
-                                        {feedback.message}
+                            {isEditing ? (
+                                <form className="profile-form" onSubmit={handleSubmit}>
+                                    <div className="form-group">
+                                        <label className="form-label">Имя</label>
+                                        <input
+                                            type="text"
+                                            name="name"
+                                            value={formData.name}
+                                            onChange={handleChange}
+                                            className="form-input"
+                                            required
+                                        />
                                     </div>
-                                )}
 
-                                <button 
-                                    type="submit" 
-                                    className="profile-btn" 
-                                    disabled={isSaving}
-                                >
-                                    {isSaving ? 'Сохраняем...' : 'Сохранить изменения'}
-                                </button>
-                            </form>
+                                    <div className="form-group">
+                                        <label className="form-label">Email</label>
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            value={formData.email}
+                                            onChange={handleChange}
+                                            className="form-input"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label className="form-label">О себе</label>
+                                        <textarea
+                                            name="about"
+                                            value={formData.about}
+                                            onChange={handleChange}
+                                            className="form-textarea"
+                                            placeholder="Расскажите коротко о себе, специализации и опыте"
+                                        />
+                                    </div>
+
+                                    {feedback && (
+                                        <div className={`feedback feedback-${feedback.type}`}>
+                                            {feedback.message}
+                                        </div>
+                                    )}
+
+                                    <div className="profile-form-actions">
+                                        <button
+                                            type="button"
+                                            onClick={handleCancel}
+                                            className="profile-btn-cancel"
+                                            disabled={isSaving}
+                                        >
+                                            Отменить
+                                        </button>
+                                        <button 
+                                            type="submit" 
+                                            className="profile-btn" 
+                                            disabled={isSaving}
+                                        >
+                                            {isSaving ? 'Сохраняем...' : 'Сохранить изменения'}
+                                        </button>
+                                    </div>
+                                </form>
+                            ) : (
+                                <div className="profile-view">
+                                    <div className="profile-view-item">
+                                        <label className="profile-view-label">Имя</label>
+                                        <p className="profile-view-value">{user.name || '—'}</p>
+                                    </div>
+
+                                    <div className="profile-view-item">
+                                        <label className="profile-view-label">Email</label>
+                                        <p className="profile-view-value">{user.email || '—'}</p>
+                                    </div>
+
+                                    <div className="profile-view-item">
+                                        <label className="profile-view-label">О себе</label>
+                                        <p className="profile-view-value">
+                                            {user.about || 'Информация не указана'}
+                                        </p>
+                                    </div>
+
+                                    {feedback && (
+                                        <div className={`feedback feedback-${feedback.type}`}>
+                                            {feedback.message}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 

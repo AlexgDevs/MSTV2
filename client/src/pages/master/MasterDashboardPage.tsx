@@ -7,6 +7,7 @@ import { serviceDatesApi } from '../../api/dates/dates.api';
 import { enrollsApi } from '../../api/enrolls/enrolls.api';
 import type { EnrollResponse } from '../../api/enrolls/types';
 import { getCurrentWeekDays } from '../../utils/helpers';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import '../../assets/styles/MasterDashboardPage.css';
 
 type TabId = 'services' | 'schedule' | 'templates' | 'bookings';
@@ -42,6 +43,21 @@ const timeSlots = [
 ];
 
 const formatDate = (value: string) => {
+    // Парсим формат dd-mm-YYYY
+    const dateMatch = value.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (dateMatch) {
+        const [, day, month, year] = dateMatch;
+        const parsed = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        if (!Number.isNaN(parsed.getTime())) {
+            return parsed.toLocaleDateString('ru-RU', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+            });
+        }
+    }
+    
+    // Если формат не dd-mm-YYYY, пытаемся стандартный парсинг
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) {
         return value;
@@ -73,8 +89,22 @@ export const MasterDashboardPage: React.FC = () => {
         price: '',
         photo: ''
     });
+    const [servicePhotoFile, setServicePhotoFile] = useState<File | null>(null);
     const [serviceFormError, setServiceFormError] = useState<string | null>(null);
     const [isServiceSubmitting, setIsServiceSubmitting] = useState(false);
+
+    // Состояния для модального окна подтверждения
+    const [deleteModal, setDeleteModal] = useState<{
+        isOpen: boolean;
+        type: 'service' | 'template' | null;
+        id: number | null;
+        title: string;
+    }>({
+        isOpen: false,
+        type: null,
+        id: null,
+        title: ''
+    });
 
     // Шаблоны - новые состояния
     const [templateServiceFilter, setTemplateServiceFilter] = useState<number | 'all'>('all');
@@ -256,7 +286,7 @@ export const MasterDashboardPage: React.FC = () => {
                     description: serviceForm.description.trim(),
                     price,
                     photo: serviceForm.photo.trim() || null
-                });
+                }, servicePhotoFile || undefined);
             } else {
                 // Создание новой услуги
                 await servicesApi.create({
@@ -264,7 +294,7 @@ export const MasterDashboardPage: React.FC = () => {
                     description: serviceForm.description.trim(),
                     price,
                     photo: serviceForm.photo.trim() || ''
-                });
+                }, servicePhotoFile || undefined);
             }
             await refreshUser();
             setServiceForm({
@@ -273,6 +303,7 @@ export const MasterDashboardPage: React.FC = () => {
                 price: '',
                 photo: ''
             });
+            setServicePhotoFile(null);
             setIsCreatingService(false);
             setEditingService(null);
         } catch (error) {
@@ -419,15 +450,51 @@ export const MasterDashboardPage: React.FC = () => {
         }
     };
 
-    const handleDeleteTemplate = async (templateId: number) => {
-        if (!confirm('Удалить этот шаблон?')) return;
-        
+    const handleDeleteTemplate = (templateId: number) => {
+        const template = user?.templates?.find(t => t.id === templateId);
+        const dayLabel = template ? dayLabels[template.day] || template.day : 'шаблон';
+        setDeleteModal({
+            isOpen: true,
+            type: 'template',
+            id: templateId,
+            title: `Удалить шаблон "${dayLabel}"?`
+        });
+    };
+
+    const handleDeleteService = (serviceId: number) => {
+        const service = services.find(s => s.id === serviceId);
+        setDeleteModal({
+            isOpen: true,
+            type: 'service',
+            id: serviceId,
+            title: `Удалить услугу "${service?.title || 'услугу'}"?`
+        });
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteModal.id || !deleteModal.type) return;
+
         try {
-            await templatesApi.delete(templateId);
+            if (deleteModal.type === 'service') {
+                await servicesApi.delete(deleteModal.id);
+            } else if (deleteModal.type === 'template') {
+                await templatesApi.delete(deleteModal.id);
+            }
             await refreshUser();
+            setDeleteModal({ isOpen: false, type: null, id: null, title: '' });
         } catch (error) {
-            console.error('Ошибка при удалении шаблона:', error);
+            console.error('Ошибка при удалении:', error);
+            const message = error instanceof Error ? error.message : 'Не удалось удалить';
+            if (deleteModal.type === 'service') {
+                setServiceFormError(message);
+            } else {
+                setTemplateError(message);
+            }
         }
+    };
+
+    const cancelDelete = () => {
+        setDeleteModal({ isOpen: false, type: null, id: null, title: '' });
     };
 
     const handleToggleTemplateStatus = async (template: any) => {
@@ -599,14 +666,54 @@ export const MasterDashboardPage: React.FC = () => {
                             </div>
 
                             <div className="form-group">
-                                <label>URL фото (опционально)</label>
-                                <input
-                                    type="url"
-                                    name="photo"
-                                    value={serviceForm.photo}
-                                    onChange={handleServiceFormChange}
-                                    placeholder="https://example.com/photo.jpg"
-                                />
+                                <label>Фото услуги (опционально)</label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                // Проверяем размер (4 МБ)
+                                                if (file.size > 4 * 1024 * 1024) {
+                                                    setServiceFormError('Размер файла не должен превышать 4 МБ');
+                                                    return;
+                                                }
+                                                setServicePhotoFile(file);
+                                                setServiceForm(prev => ({ ...prev, photo: '' }));
+                                            }
+                                        }}
+                                        style={{ marginBottom: '0.5rem' }}
+                                    />
+                                    {servicePhotoFile && (
+                                        <div style={{ fontSize: '0.875rem', color: '#858585' }}>
+                                            Выбран файл: {servicePhotoFile.name}
+                                            <button
+                                                type="button"
+                                                onClick={() => setServicePhotoFile(null)}
+                                                style={{ marginLeft: '0.5rem', color: '#f5576c', cursor: 'pointer' }}
+                                            >
+                                                Удалить
+                                            </button>
+                                        </div>
+                                    )}
+                                    <div style={{ fontSize: '0.75rem', color: '#858585', marginTop: '0.25rem' }}>
+                                        Или введите URL:
+                                    </div>
+                                    <input
+                                        type="url"
+                                        name="photo"
+                                        value={serviceForm.photo}
+                                        onChange={(e) => {
+                                            handleServiceFormChange(e);
+                                            if (e.target.value) {
+                                                setServicePhotoFile(null);
+                                            }
+                                        }}
+                                        placeholder="https://example.com/photo.jpg"
+                                        disabled={!!servicePhotoFile}
+                                    />
+                                </div>
                             </div>
 
                             {serviceFormError && (
@@ -655,36 +762,82 @@ export const MasterDashboardPage: React.FC = () => {
                 </div>
             ) : (
                 <div className="services-grid">
-                    {services.map(service => (
-                        <div key={service.id} className="service-card">
-                            <div className="service-card-header">
-                                <h3 className="service-card-title">{service.title}</h3>
-                                <span className="service-card-date">
-                                    Создано: {formatDate(service.created_at)}
-                                </span>
-                            </div>
-                            <div className="service-card-body">
-                                <div className="service-card-footer">
-                                    <span className="service-card-price">
-                                        {priceFormatter.format(service.price)}
+                    {services.map(service => {
+                        // Функция для получения URL изображения
+                        const getImageUrl = () => {
+                            if (service.photo?.startsWith('http')) {
+                                return service.photo;
+                            }
+                            if (service.photo?.startsWith('data:') || service.photo?.startsWith('blob:')) {
+                                return service.photo;
+                            }
+                            if (service.photo) {
+                                const baseStatic =
+                                    import.meta.env.VITE_STATIC_URL ||
+                                    import.meta.env.VITE_API_URL?.replace('/api/v1', '') ||
+                                    '';
+                                return `${baseStatic}${service.photo}`;
+                            }
+                            return null;
+                        };
+                        const imageUrl = getImageUrl();
+                        
+                        return (
+                            <div key={service.id} className="service-card">
+                                {imageUrl && (
+                                    <div className="service-card-image">
+                                        <img
+                                            src={imageUrl}
+                                            alt={service.title}
+                                            className="service-card-image-img"
+                                        />
+                                    </div>
+                                )}
+                                <div className="service-card-header">
+                                    <h3 className="service-card-title">{service.title}</h3>
+                                    <span className="service-card-date">
+                                        Создано: {formatDate(service.created_at)}
                                     </span>
                                 </div>
+                                <div className="service-card-body">
+                                    {service.description && (
+                                        <p className="service-card-description">
+                                            {service.description.length > 100 
+                                                ? `${service.description.slice(0, 97)}...` 
+                                                : service.description}
+                                        </p>
+                                    )}
+                                    <div className="service-card-footer">
+                                        <span className="service-card-price">
+                                            {priceFormatter.format(service.price)}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div style={{ padding: '0 20px 20px 20px', display: 'flex', gap: '8px', flexDirection: 'column' }}>
+                                    <button
+                                        onClick={() => handleEditService(service)}
+                                        className="btn btn-outline"
+                                        style={{ width: '100%' }}
+                                    >
+                                        Редактировать
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteService(service.id)}
+                                        className="btn btn-danger"
+                                        style={{ width: '100%' }}
+                                    >
+                                        Удалить
+                                    </button>
+                                </div>
                             </div>
-                            <button
-                                onClick={() => handleEditService(service)}
-                                className="btn btn-outline"
-                            >
-                                Редактировать
-                            </button>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>
     );
 
     const renderScheduleTab = () => {
-        // Группируем расписание по услугам
         const scheduleByService = filteredSchedule.reduce((acc, date) => {
             const serviceId = date.service_id;
             if (!acc[serviceId]) {
@@ -1374,6 +1527,22 @@ export const MasterDashboardPage: React.FC = () => {
                     {renderBody()}
                 </div>
             </div>
+
+            {/* Модальное окно подтверждения удаления */}
+            <ConfirmModal
+                isOpen={deleteModal.isOpen}
+                title={deleteModal.title}
+                message={
+                    deleteModal.type === 'service'
+                        ? 'Вы уверены, что хотите удалить эту услугу? Это действие нельзя отменить. Все связанные шаблоны, расписание и записи также будут удалены.'
+                        : 'Вы уверены, что хотите удалить этот шаблон? Это действие нельзя отменить.'
+                }
+                confirmText="Удалить"
+                cancelText="Отмена"
+                variant="danger"
+                onConfirm={confirmDelete}
+                onCancel={cancelDelete}
+            />
         </div>
     );
 };

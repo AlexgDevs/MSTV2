@@ -11,7 +11,8 @@ from ...common.db import (
     select,
     selectinload,
     Service,
-    ServiceEnroll
+    ServiceEnroll,
+    Tag
 )
 
 from ..schemas import CreateServiceModel, PatchServiceModel
@@ -55,6 +56,17 @@ class ServiceRepository:
         )
 
         return service
+
+    async def get_all_by_category_name(
+        self,
+        category_name: str
+    ) -> List[Service]:
+        services = await self._session.scalars(
+            select(Service)
+            .join(Tag)
+            .where(Tag.name == category_name)
+        )
+        return services.all()
 
     async def get_detail_by_service_id(
         self,
@@ -107,6 +119,26 @@ class ServiceRepository:
         await self._session.merge(updating_service)
         await self._session.flush()
         return updating_service
+
+    async def delete_service(
+        self,
+        service_id: int,
+        user_id: int
+    ) -> bool:
+
+        service = await self._session.scalar(
+            select(Service)
+            .where(
+                Service.id == service_id,
+                Service.user_id == user_id)
+        )
+
+        if not service:
+            return False
+
+        await self._session.delete(service)
+        await self._session.flush()
+        return True
 
 
 def get_service_repository(

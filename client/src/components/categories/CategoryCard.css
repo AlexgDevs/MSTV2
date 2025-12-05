@@ -1,0 +1,128 @@
+.category-card {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.category-card-small {
+    height: 160px;
+}
+
+.category-card-medium {
+    height: 200px;
+}
+
+.category-card-large {
+    height: 240px;
+}
+
+.category-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.category-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.6) 100%);
+    transition: background 0.2s ease;
+}
+
+.category-card:hover .category-overlay {
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.5) 100%);
+}
+
+.category-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 1.5rem;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.category-icon {
+    line-height: 1;
+    opacity: 0.9;
+    transition: transform 0.2s ease;
+}
+
+.category-card-small .category-icon {
+    font-size: 2.5rem;
+}
+
+.category-card-medium .category-icon {
+    font-size: 3rem;
+}
+
+.category-card-large .category-icon {
+    font-size: 4rem;
+}
+
+.category-card:hover .category-icon {
+    transform: scale(1.1);
+}
+
+.category-title {
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.category-card-small .category-title {
+    font-size: 1rem;
+}
+
+.category-card-medium .category-title {
+    font-size: 1.125rem;
+}
+
+.category-card-large .category-title {
+    font-size: 1.25rem;
+}
+
+@media (max-width: 768px) {
+    .category-card-small {
+        height: 140px;
+    }
+    
+    .category-card-medium {
+        height: 160px;
+    }
+    
+    .category-card-large {
+        height: 180px;
+    }
+    
+    .category-card-small .category-icon {
+        font-size: 2rem;
+    }
+    
+    .category-card-medium .category-icon {
+        font-size: 2.5rem;
+    }
+    
+    .category-card-large .category-icon {
+        font-size: 3rem;
+    }
+    
+    .category-card-small .category-title,
+    .category-card-medium .category-title,
+    .category-card-large .category-title {
+        font-size: 0.875rem;
+    }
+}
+

@@ -109,6 +109,23 @@
 }
 
 /* Service Header Card */
+.service-detail-photo {
+    width: 100%;
+    margin-bottom: 24px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #1a1a1a;
+    border: 1px solid #3e3e42;
+}
+
+.service-detail-photo-img {
+    width: 100%;
+    height: auto;
+    max-height: 500px;
+    object-fit: cover;
+    display: block;
+}
+
 .service-header-card {
     background: #1a1a1a;
     border: 1px solid #3e3e42;

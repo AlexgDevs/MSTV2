@@ -78,5 +78,6 @@ from .models import (
     ScheduleTemplate,
     Service,
     ServiceDate,
-    ServiceEnroll
+    ServiceEnroll,
+    Tag
 )

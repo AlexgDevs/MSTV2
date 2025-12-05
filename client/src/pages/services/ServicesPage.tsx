@@ -1,0 +1,302 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Input } from '../../components/ui/Input';
+import { ServiceCard } from '../../features/services/components/ServiceCard';
+import { useServices } from '../../features/services/hooks/useServices';
+import '../../assets/styles/HomePage.css';
+
+const ITEMS_PER_BATCH = 9;
+
+export const ServicesPage: React.FC = () => {
+    const { services: allServices, isLoading, error, refresh } = useServices();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
+    
+    const categoryParam = searchParams.get('category');
+    const categoryName = searchParams.get('name') || '';
+    const initialSearch = searchParams.get('search') || '';
+    
+    const [search, setSearch] = useState(initialSearch || (categoryParam ? categoryParam : ''));
+    const [visibleCount, setVisibleCount] = useState(ITEMS_PER_BATCH);
+
+    // Синхронизация поиска с URL параметрами
+    useEffect(() => {
+        if (categoryParam && !initialSearch) {
+            setSearch(categoryParam);
+        }
+    }, [categoryParam, initialSearch]);
+
+    const filteredServices = useMemo(() => {
+        const query = search.trim().toLowerCase();
+        if (!query) {
+            return allServices;
+        }
+
+        const queryWords = query.split(/\s+/).filter(Boolean);
+        
+        return allServices.filter(service => {
+            const searchableText = [service.title, service.description]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+            
+            return queryWords.some(word => searchableText.includes(word));
+        });
+    }, [allServices, search]);
+
+    useEffect(() => {
+        setVisibleCount(ITEMS_PER_BATCH);
+    }, [filteredServices.length]);
+
+    const hasMore = visibleCount < filteredServices.length;
+    const visibleServices = filteredServices.slice(0, visibleCount);
+
+    const handleLoadMore = useCallback(() => {
+        if (!hasMore) {
+            return;
+        }
+        setVisibleCount(prev =>
+            Math.min(prev + ITEMS_PER_BATCH, filteredServices.length)
+        );
+    }, [filteredServices.length, hasMore]);
+
+    const observerRef = useRef<IntersectionObserver | null>(null);
+    const loadMoreRef = useCallback(
+        (node: HTMLDivElement | null) => {
+            if (observerRef.current) {
+                observerRef.current.disconnect();
+            }
+
+            if (!node || !hasMore || isLoading) {
+                return;
+            }
+
+            observerRef.current = new IntersectionObserver(
+                entries => {
+                    if (entries[0]?.isIntersecting) {
+                        handleLoadMore();
+                    }
+                },
+                { rootMargin: '100px' }
+            );
+
+            observerRef.current.observe(node);
+        },
+        [handleLoadMore, hasMore, isLoading]
+    );
+
+    useEffect(() => {
+        return () => observerRef.current?.disconnect();
+    }, []);
+
+    const handleSearchChange = (value: string) => {
+        setSearch(value);
+        // Обновляем URL параметры
+        const params = new URLSearchParams();
+        if (value.trim()) {
+            params.set('search', value.trim());
+        }
+        // Сохраняем параметры категории, если они были
+        if (categoryParam) {
+            params.set('category', categoryParam);
+        }
+        if (categoryName) {
+            params.set('name', categoryName);
+        }
+        setSearchParams(params, { replace: true });
+    };
+
+    const handleClearCategory = () => {
+        setSearch('');
+        setSearchParams({}, { replace: true });
+    };
+
+    const isInitialLoading = isLoading && allServices.length === 0;
+
+    return (
+        <div className="homepage">
+            <section className="services-section container">
+                <div className="section-header">
+                    <div>
+                        <h2 className="section-title">
+                            {categoryName ? `Услуги: ${categoryName}` : 'Все услуги'}
+                        </h2>
+                        {categoryName && (
+                            <div className="category-filter-badge">
+                                <span>by/{categoryName}</span>
+                                <button 
+                                    onClick={handleClearCategory}
+                                    className="category-filter-clear"
+                                    aria-label="Очистить фильтр категории"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        )}
+                        <div className="services-count">
+                            <span className="count-badge">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                                <span>{filteredServices.length} услуг</span>
+                            </span>
+                            <span className="text-[#666]">в каталоге</span>
+                        </div>
+                    </div>
+
+                    <div className="actions">
+                        <button
+                            className="btn-outline"
+                            onClick={refresh}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (
+                                <span className="flex items-center gap-2">
+                                    <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                    Обновление...
+                                </span>
+                            ) : (
+                                'Обновить'
+                            )}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Search */}
+                <div className="search-container" style={{ maxWidth: '100%', marginBottom: '2rem' }}>
+                    <div className="search-wrapper">
+                        <Input
+                            placeholder="Поиск услуг: дизайн, разработка, маркетинг..."
+                            value={search}
+                            onChange={e => handleSearchChange(e.target.value)}
+                            className="search-input"
+                        />
+                        {search && (
+                            <button
+                                onClick={() => handleSearchChange('')}
+                                className="search-clear"
+                                aria-label="Очистить поиск"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {error && (
+                    <div className="error-state">
+                        <div className="error-content">
+                            <div className="error-icon">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </div>
+                            <div className="error-text">
+                                <p className="error-title">
+                                    Ошибка загрузки
+                                </p>
+                                <p className="error-description">
+                                    {error}
+                                </p>
+                                <button 
+                                    className="btn-outline"
+                                    onClick={() => refresh()} 
+                                    disabled={isLoading}
+                                >
+                                    Попробовать снова
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {isInitialLoading && (
+                    <div className="skeleton-grid">
+                        {Array.from({ length: ITEMS_PER_BATCH }).map((_, index) => (
+                            <div
+                                key={index}
+                                className="skeleton-card"
+                            />
+                        ))}
+                    </div>
+                )}
+
+                {!isInitialLoading && visibleServices.length === 0 && !error && (
+                    <div className="empty-state">
+                        <div className="relative z-10">
+                            <div className="empty-icon">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <h3 className="empty-title">
+                                Услуги не найдены
+                            </h3>
+                            <p className="empty-description">
+                                {search 
+                                    ? 'Попробуйте изменить запрос или очистить фильтры'
+                                    : 'Каталог услуг пока пуст. Возвращайтесь позже!'
+                                }
+                            </p>
+                            {search && (
+                                <button
+                                    className="btn-outline"
+                                    onClick={() => handleSearchChange('')}
+                                >
+                                    Очистить поиск
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                <div className="services-grid">
+                    {visibleServices.map((service, index) => (
+                        <div
+                            key={service.id}
+                            className="service-item"
+                            style={{ animationDelay: `${index * 50}ms` }}
+                        >
+                            <ServiceCard service={service} />
+                        </div>
+                    ))}
+                </div>
+
+                {hasMore && !isInitialLoading && (
+                    <div
+                        ref={loadMoreRef}
+                        className="load-more"
+                    >
+                        <div className="loading-indicator">
+                            <div className="spinner" />
+                            <span className="loading-text">
+                                Загружаем больше возможностей...
+                            </span>
+                        </div>
+                        <p className="loading-hint">
+                            Прокрутите для автоматической загрузки
+                        </p>
+                    </div>
+                )}
+
+                {!hasMore && visibleServices.length > 0 && (
+                    <div className="end-results">
+                        <div className="end-badge">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span className="end-text">
+                                Вы просмотрели все {filteredServices.length} услуг
+                            </span>
+                        </div>
+                    </div>
+                )}
+            </section>
+        </div>
+    );
+};
+

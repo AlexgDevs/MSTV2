@@ -59,12 +59,12 @@ class UserUseCase:
 
         if user_update_data.name:
             existing_user = await self._user_repository.get_by_name(user_update_data.name)
-            if existing_user:
+            if existing_user and existing_user.id != user_id:
                 return {'status': 'failed created user', 'detail': 'User with this name already exists'}
 
         if user_update_data.email:
             existing_email = await self._user_repository.get_by_email(user_update_data.email)
-            if existing_email:
+            if existing_email and existing_email.id != user_id:
                 return {'status': 'failed created user', 'detail': 'User with this email already exists'}
 
         try:

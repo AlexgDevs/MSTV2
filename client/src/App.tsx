@@ -8,6 +8,7 @@ import { HomePage } from './pages/HomePage';
 import { ProfilePage } from './pages/profile/ProfilePage';
 import { MasterDashboardPage } from './pages/master/MasterDashboardPage';
 import { ServiceDetailPage } from './pages/services/ServiceDetailPage';
+import { ServicesPage } from './pages/services/ServicesPage';
 
 // Компонент-обертка для инициализации auth
 const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -88,10 +89,7 @@ function App() {
           <Route path="/services" element={
             <ProtectedRoute>
               <Layout>
-                <div className="text-center py-12">
-                  <h2 className="text-2xl font-bold mb-4 text-[#cccccc]">Страница услуг</h2>
-                  <p className="text-[#858585]">Скоро здесь появится список услуг</p>
-                </div>
+                <ServicesPage />
               </Layout>
             </ProtectedRoute>
           } />
