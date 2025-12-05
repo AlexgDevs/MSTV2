@@ -93,6 +93,13 @@
     border-bottom: 1px solid #3e3e42;
 }
 
+.profile-card-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
 .profile-card-title {
     color: #ffffff;
     font-size: 1.125rem;
@@ -213,6 +220,85 @@
 .profile-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.profile-btn-edit {
+    background: transparent;
+    border: 1px solid #3e3e42;
+    border-radius: 4px;
+    padding: 0.625rem 1.25rem;
+    color: #ffffff;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.profile-btn-edit:hover {
+    background: #2d2d30;
+    border-color: #cccccc;
+}
+
+.profile-btn-cancel {
+    background: transparent;
+    border: 1px solid #3e3e42;
+    border-radius: 4px;
+    padding: 0.625rem 1.25rem;
+    color: #ffffff;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-btn-cancel:hover:not(:disabled) {
+    background: #2d2d30;
+    border-color: #cccccc;
+}
+
+.profile-btn-cancel:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.profile-form-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+}
+
+/* Profile View Mode */
+.profile-view {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.profile-view-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.profile-view-label {
+    color: #858585;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.profile-view-value {
+    color: #ffffff;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    word-wrap: break-word;
 }
 
 /* Bookings */
@@ -344,6 +430,24 @@
         text-align: left;
         flex-direction: row;
         justify-content: space-between;
+    }
+
+    .profile-card-header-content {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .profile-btn-edit {
+        width: 100%;
+    }
+
+    .profile-form-actions {
+        flex-direction: column-reverse;
+    }
+
+    .profile-form-actions .profile-btn,
+    .profile-form-actions .profile-btn-cancel {
+        width: 100%;
     }
 }
 

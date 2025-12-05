@@ -54,7 +54,7 @@ class ScheduleTemplateRepository:
         templates = await self._session.scalars(
             select(ScheduleTemplate)
             .where(
-                ScheduleTemplate.user_id == user_id, 
+                ScheduleTemplate.user_id == user_id,
                 ScheduleTemplate.service_id == service_id)
         )
 
@@ -70,7 +70,6 @@ class ScheduleTemplateRepository:
             user_id=user_id,
             **template_data.model_dump()
         )
-
 
         self._session.add(new_template)
         await self._session.flush()
@@ -93,6 +92,30 @@ class ScheduleTemplateRepository:
         await self._session.merge(updating_template)
         await self._session.flush()
         return updating_template
+
+    async def delete_template(
+        self,
+        template_id: int,
+        user_id: int
+    ) -> bool:
+
+        template = await self._session.scalar(
+            select(ScheduleTemplate)
+            .where(
+                ScheduleTemplate.id == template_id,
+                ScheduleTemplate.user_id == user_id)
+        )
+
+        if not template:
+            return False
+
+        await self._session.delete(template)
+        await self._session.flush()
+        return True
+
+
+schedule_template_repository_exemplar = ScheduleTemplateRepository(
+    db_config.session)
 
 
 def get_schedule_template_repository(

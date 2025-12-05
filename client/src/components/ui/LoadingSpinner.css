@@ -1,0 +1,99 @@
+/* Loading Spinner - Professional Design */
+
+.loading-spinner-fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-overlay, rgba(0, 0, 0, 0.75));
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-modal, 1050);
+    animation: fadeIn 0.2s ease-out;
+}
+
+.loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md, 1rem);
+}
+
+.loading-spinner-sm {
+    gap: var(--spacing-sm, 0.5rem);
+}
+
+.loading-spinner-lg {
+    gap: var(--spacing-lg, 1.5rem);
+}
+
+.spinner-ring {
+    position: relative;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: var(--accent-primary, #007acc);
+    border-right-color: var(--accent-secondary, #1a8cd8);
+    animation: spin 1s linear infinite;
+    box-shadow: 0 0 20px rgba(0, 122, 204, 0.3);
+}
+
+.spinner-ring::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: var(--accent-tertiary, #4a9eff);
+    opacity: 0.5;
+    animation: spin 1.5s linear infinite reverse;
+}
+
+.spinner-ring-inner {
+    position: absolute;
+    inset: 6px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--accent-primary, #007acc) 0%, transparent 70%);
+    opacity: 0.3;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.loading-spinner-sm .spinner-ring {
+    width: 24px;
+    height: 24px;
+    border-width: 2px;
+}
+
+.loading-spinner-md .spinner-ring {
+    width: 48px;
+    height: 48px;
+    border-width: 3px;
+}
+
+.loading-spinner-lg .spinner-ring {
+    width: 64px;
+    height: 64px;
+    border-width: 4px;
+}
+
+.loading-spinner-text {
+    color: var(--text-secondary, #e0e0e0);
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: var(--font-weight-medium, 500);
+    margin: 0;
+    text-align: center;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+

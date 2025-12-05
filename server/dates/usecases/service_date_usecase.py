@@ -18,11 +18,16 @@ from ...common.db import (
     ScheduleTemplate
 )
 
-from ...scheduletemplates.repositories import get_schedule_template_repository, ScheduleTemplateRepository
+from ...scheduletemplates.repositories import (
+    get_schedule_template_repository,
+    ScheduleTemplateRepository,
+    schedule_template_repository_exemplar
+)
 
 from ..repositories import (
     ServiceDateRepository,
-    get_service_date_repository
+    get_service_date_repository,
+    service_date_repository_exemplar
 )
 
 from ..schemas import CreateServiceDate
@@ -30,14 +35,14 @@ from ..schemas import CreateServiceDate
 
 class ServiceDateUseCase:
     def __init__(
-        self,
-        session: AsyncSession,
-        service_date_repository: ServiceDateRepository) -> None:
+            self,
+            session: AsyncSession,
+            service_date_repository: ServiceDateRepository) -> None:
 
         self._session = session
         self._service_date_repo = service_date_repository
 
-    async def  create_service_date(
+    async def create_service_date(
         self,
         user_id: int,
         service_date_data: CreateServiceDate
@@ -61,7 +66,8 @@ class ServiceDateUseCase:
             return new_date
         except SQLAlchemyError as e:
             await self._session.rollback()
-            logger.error('error', f'failed creating service date, detail: {str(e)}')
+            logger.error(
+                'error', f'failed creating service date, detail: {str(e)}')
             return {'status': 'failed creating service date', 'detail': str(e)}
 
 
@@ -71,7 +77,7 @@ class DatesInteractionTemplates:
         session: AsyncSession,
         service_date_repository: ServiceDateRepository,
         schedule_template_repository: ScheduleTemplateRepository
-        ) -> None:
+    ) -> None:
 
         self._session = session
         self._service_date_repository = service_date_repository
@@ -82,7 +88,7 @@ class DatesInteractionTemplates:
         for i in range(7):
             current_date = start_date + timedelta(days=i)
             day_name = current_date.strftime("%A").lower()
-            date_str = current_date.strftime("%Y-%m-%d")
+            date_str = current_date.strftime("%d-%m-%Y")
             week_dates[day_name] = date_str
         return week_dates
 
@@ -104,18 +110,19 @@ class DatesInteractionTemplates:
         for template in templates:
             if not template.is_active:
                 continue
-        
+
             try:
                 new_date = await self._create_date_with_template(
-                        template,
-                        week_dates.get(template.day)
-                    )
+                    template,
+                    week_dates.get(template.day)
+                )
                 await self._session.commit()
                 completed_templates.append(new_date)
             except SQLAlchemyError as e:
                 await self._session.rollback()
                 failed += 1
-                logger('error', f'failed creating date with template, detail: {str(e)}')
+                logger(
+                    'error', f'failed creating date with template, detail: {str(e)}')
                 continue
 
         return {'status': 'created', 'succes': len(completed_templates), 'failed': failed}
@@ -124,7 +131,7 @@ class DatesInteractionTemplates:
         self,
         template: ScheduleTemplate,
         target_date: str
-        ):
+    ):
 
         date_model = CreateServiceDate(
             date=target_date,
@@ -140,12 +147,27 @@ class DatesInteractionTemplates:
             return new_date
         except SQLAlchemyError as e:
             await self._session.rollback()
-            logger.error('error', f'failed creating service date, detail: {str(e)}')
+            logger.error(
+                'error', f'failed creating service date, detail: {str(e)}')
             return None
+
+
+service_date_usecase_exemplar: ServiceDateUseCase = ServiceDateUseCase(
+    db_config.session,
+    service_date_repository_exemplar)
+
+
+dates_interaction_templates_exemplar = DatesInteractionTemplates(
+    db_config.session,
+    service_date_repository_exemplar,
+    schedule_template_repository_exemplar
+)
+
 
 def get_service_date_use_case(
     session: AsyncSession = Depends(db_config.session),
-    service_date_repository: ServiceDateRepository = Depends(get_service_date_repository)
+    service_date_repository: ServiceDateRepository = Depends(
+        get_service_date_repository)
 ) -> ServiceDateUseCase:
     return ServiceDateUseCase(
         session,

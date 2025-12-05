@@ -68,6 +68,7 @@ class ServiceDateRepository:
         await self._session.flush()
         return new_date
 
+service_date_repository_exemplar = ServiceDateRepository(db_config.session)
 
 def get_service_date_repository(
     session: AsyncSession = Depends(db_config.session)

@@ -87,6 +87,26 @@ class ScheduleTemplateUseCase:
             logger.error('error', f'failed updating template, detail: {str(e)}')
             return {'status': 'failed updating template', 'detail': str(e)}
 
+    async def delete_template(
+        self,
+        template_id: int,
+        user_id: int
+    ) -> bool | dict:
+
+        try:
+            deleted = await self._schedule_template_respository.delete_template(
+                template_id,
+                user_id
+            )
+            if not deleted:
+                return {'status': 'failed deleting template', 'detail': 'template not found'}
+            await self._session.commit()
+            return True
+        except SQLAlchemyError as e:
+            await self._session.rollback()
+            logger.error('error', f'failed deleting template: {str(e)}')
+            return {'status': 'failed deleting template', 'detail': str(e)}
+
 
 def get_schedule_template_use_case(
     session: AsyncSession = Depends(db_config.session),

@@ -77,6 +77,26 @@ class ServiceUseCase:
             logger.error('error', f'failed updating service: {str(e)}')
             return {'status': 'failed updating service', 'detail': {str(e)}}
 
+    async def delete_service(
+        self,
+        user_id: int,
+        service_id: int
+    ) -> bool | dict:
+
+        try:
+            deleted = await self._service_repository.delete_service(
+                service_id,
+                user_id
+            )
+            if not deleted:
+                return {'status': 'failed deleting service', 'detail': 'service not found'}
+            await self._session.commit()
+            return True
+        except SQLAlchemyError as e:
+            await self._session.rollback()
+            logger.error('error', f'failed deleting service: {str(e)}')
+            return {'status': 'failed deleting service', 'detail': str(e)}
+
 
 def get_service_usecase(
     session: AsyncSession = Depends(db_config.session),

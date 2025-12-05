@@ -114,3 +114,23 @@ async def template_by_user_id(
     )
 
     return templates
+
+
+@template_app.delete('/{template_id}',
+                    summary='delete template',
+                    description='endpoint for deleting schedule template')
+async def delete_template(
+    template_id: int,
+    user=Depends(JWTManager.auth_required),
+    template_use_case: ScheduleTemplateUseCase = Depends(get_schedule_template_use_case)
+):
+
+    result = await template_use_case.delete_template(
+        template_id,
+        int(user.get('id'))
+    )
+
+    if isinstance(result, dict):
+        await Exceptions400.creating_error(str(result.get('detail')))
+
+    return {'status': 'deleted'}

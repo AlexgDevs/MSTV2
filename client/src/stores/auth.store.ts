@@ -56,7 +56,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
     checkAuth: async () => {
         set({ isLoading: true });
         try {
+            // Проверяем авторизацию - interceptor автоматически обновит токен при необходимости
             await authApi.check();
+            // Если проверка прошла успешно, получаем данные пользователя
             const response = await authApi.getMe();
             set({
                 user: response.data,
@@ -64,6 +66,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
                 isLoading: false
             });
         } catch (error) {
+            // Если проверка не прошла (нет токенов или они невалидны), пользователь не авторизован
             set({
                 user: null,
                 isAuthenticated: false,

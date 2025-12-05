@@ -101,13 +101,21 @@ class CookieManager:
             access_token: str,
             refresh_token: str,):
 
+        # Синхронизируем max_age с реальным сроком жизни токена
+        # ACCESS_EXPIRE в днях, переводим в секунды
+        access_max_age = int(ACCESS_EXPIRE) * 24 * 60 * \
+            60 if ACCESS_EXPIRE else 3600
+        # REFRESH_EXPIRE в днях, переводим в секунды
+        refresh_max_age = int(REFRESH_EXPIRE) * 24 * 60 * \
+            60 if REFRESH_EXPIRE else 604800
+
         response.set_cookie(
             key="access_token",
             value=access_token,
             httponly=True,
             secure=False,
             samesite="lax",
-            max_age=3600,
+            max_age=access_max_age,
             path="/",
         )
 
@@ -117,7 +125,7 @@ class CookieManager:
             httponly=True,
             secure=False,
             samesite="lax",
-            max_age=604800,
+            max_age=refresh_max_age,
             path="/",
         )
 
@@ -126,13 +134,17 @@ class CookieManager:
             response: Response,
             access_token: str):
 
+        # Синхронизируем max_age с реальным сроком жизни токена
+        access_max_age = int(ACCESS_EXPIRE) * 24 * 60 * \
+            60 if ACCESS_EXPIRE else 3600
+
         response.set_cookie(
             key="access_token",
             value=access_token,
             httponly=True,
             secure=False,
             samesite="lax",
-            max_age=3600,
+            max_age=access_max_age,
             path="/",
         )
 
@@ -140,11 +152,16 @@ class CookieManager:
     async def delete_cookies(
             response: Response):
 
+        # Удаляем куки с теми же параметрами, что и при установке
         response.delete_cookie(
-            'access_token', '/'
+            'access_token',
+            path='/',
+            samesite='lax'
         )
         response.delete_cookie(
-            'refresh_token', '/'
+            'refresh_token',
+            path='/',
+            samesite='lax'
         )
 
 

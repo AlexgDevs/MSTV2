@@ -21,7 +21,8 @@ from ...common.db import (
     select,
     selectinload,
     ServiceEnroll,
-    ServiceDate
+    ServiceDate,
+    Service
 )
 
 from ...dates.repositories import (
@@ -180,6 +181,62 @@ class BookingUseCase:
                 update_list.append(await self._mark_status_break(date))
 
         return update_list
+
+    async def change_enroll_status(
+        self,
+        enroll_id: int,
+        service_owner_id: int,
+        action: str
+    ):
+        """
+        Изменяет статус записи (accept/reject).
+        action: 'accept' -> confirmed, 'reject' -> cancelled
+        """
+        enroll = await self._enroll_repository.get_by_id(enroll_id)
+
+        if not enroll:
+            return {'status': 'failed', 'detail': 'enroll not found'}
+
+        # Проверяем, что пользователь является владельцем услуги
+        service = await self._session.scalar(
+            select(Service).where(Service.id == enroll.service_id)
+        )
+
+        if not service:
+            return {'status': 'failed', 'detail': 'service not found'}
+
+        if service.user_id != service_owner_id:
+            return {'status': 'failed', 'detail': 'permission denied'}
+
+        # Проверяем, что статус pending
+        if enroll.status != 'pending':
+            return {'status': 'failed', 'detail': f'enroll status is {enroll.status}, only pending can be changed'}
+
+        # Определяем новый статус
+        if action == 'accept':
+            new_status = 'confirmed'
+        elif action == 'reject':
+            new_status = 'cancelled'
+            # При отклонении освобождаем слот
+            date = await self._service_date_repository.get_by_id(enroll.service_date_id)
+            if date:
+                new_slots = date.slots.copy()
+                new_slots[enroll.slot_time] = 'available'
+                await self._session.merge(ServiceDate(id=enroll.service_date_id, slots=new_slots))
+        else:
+            return {'status': 'failed', 'detail': f'invalid action: {action}. Use "accept" or "reject"'}
+
+        try:
+            await self._session.merge(ServiceEnroll(id=enroll_id, status=new_status))
+            await self._session.commit()
+            # Обновляем объект enroll для возврата
+            updated_enroll = await self._enroll_repository.get_by_id(enroll_id)
+            return updated_enroll
+        except SQLAlchemyError as e:
+            await self._session.rollback()
+            logger.error(
+                'error', f'failed changing enroll status, detail: {str(e)}')
+            return {'status': 'failed', 'detail': str(e)}
 
 
 def get_booking_usecase(

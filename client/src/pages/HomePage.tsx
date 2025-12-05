@@ -1,17 +1,24 @@
 // HomePage.tsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Input } from '../components/ui/Input';
-import { Button } from '../components/ui/Button';
 import { ServiceCard } from '../features/services/components/ServiceCard';
 import { useServices } from '../features/services/hooks/useServices';
+import { CategoriesSection } from '../components/categories/CategoriesSection';
 import '../assets/styles/HomePage.css'
 
 const ITEMS_PER_BATCH = 9;
 
 export const HomePage: React.FC = () => {
+    const navigate = useNavigate();
     const { services: allServices, isLoading, error, refresh } = useServices();
     const [search, setSearch] = useState('');
     const [visibleCount, setVisibleCount] = useState(ITEMS_PER_BATCH);
+
+    const handleCategoryClick = useCallback((searchQuery: string, categoryName: string) => {
+        // Переход на страницу услуг с параметрами категории
+        navigate(`/services?category=${encodeURIComponent(searchQuery)}&name=${encodeURIComponent(categoryName)}`);
+    }, [navigate]);
 
     const filteredServices = useMemo(() => {
         const query = search.trim().toLowerCase();
@@ -19,11 +26,18 @@ export const HomePage: React.FC = () => {
             return allServices;
         }
 
-        return allServices.filter(service =>
-            [service.title, service.description]
+        // Разбиваем запрос на отдельные слова для более гибкого поиска
+        const queryWords = query.split(/\s+/).filter(Boolean);
+        
+        return allServices.filter(service => {
+            const searchableText = [service.title, service.description]
                 .filter(Boolean)
-                .some(field => field.toLowerCase().includes(query))
-        );
+                .join(' ')
+                .toLowerCase();
+            
+            // Проверяем, содержит ли текст хотя бы одно из слов запроса
+            return queryWords.some(word => searchableText.includes(word));
+        });
     }, [allServices, search]);
 
     useEffect(() => {
@@ -130,6 +144,9 @@ export const HomePage: React.FC = () => {
                 <div className="gradient-orb-top" />
                 <div className="gradient-orb-bottom" />
             </section>
+
+            {/* Categories Section */}
+            <CategoriesSection onCategoryClick={handleCategoryClick} />
 
             {/* Services Section */}
             <section className="services-section container">

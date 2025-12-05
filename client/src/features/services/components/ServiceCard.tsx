@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import type { ServiceResponse } from '../../../types/service.types';
@@ -85,11 +86,9 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect }) =
 
                 {/* Footer */}
                 <div className="service-footer">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onSelect?.(service)}
-                        className="service-action-btn"
+                    <Link
+                        to={`/services/${service.id}`}
+                        className="service-action-btn inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     >
                         <span className="flex items-center gap-1.5">
                             Подробнее
@@ -97,7 +96,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect }) =
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
                         </span>
-                    </Button>
+                    </Link>
                 </div>
             </CardContent>
         </Card>

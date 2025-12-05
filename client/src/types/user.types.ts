@@ -13,7 +13,9 @@ export interface SimpleUserScheduleTemplate {
 export interface SimpleUserService {
     id: number;
     title: string;
+    description: string;
     price: number;
+    photo: string | null;
     created_at: string; // Date в JSON приходит как string
 }
 
