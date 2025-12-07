@@ -471,7 +471,7 @@ export const ServiceDetailPage: React.FC = () => {
                         {/* Модальное окно редактирования услуги */}
                         {isEditing && isOwner && (
                             <div className="service-booking-modal">
-                                <div className="service-booking-modal-content" style={{ maxWidth: '600px' }}>
+                                <div className="service-booking-modal-content service-edit-modal-content">
                                     <h3 className="service-booking-modal-title">Редактирование услуги</h3>
                                     
                                     <div className="service-edit-form">
@@ -519,7 +519,7 @@ export const ServiceDetailPage: React.FC = () => {
                                             <label className="service-edit-label">
                                                 Фото услуги (необязательно)
                                             </label>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                            <div className="service-edit-file-section">
                                                 <input
                                                     type="file"
                                                     accept="image/*"
@@ -534,21 +534,21 @@ export const ServiceDetailPage: React.FC = () => {
                                                             setEditForm(prev => ({ ...prev, photo: '' }));
                                                         }
                                                     }}
-                                                    style={{ marginBottom: '0.5rem' }}
+                                                    className="service-edit-file-input"
                                                 />
                                                 {editPhotoFile && (
-                                                    <div style={{ fontSize: '0.875rem', color: '#858585' }}>
+                                                    <div className="service-edit-file-info">
                                                         Выбран файл: {editPhotoFile.name}
                                                         <button
                                                             type="button"
                                                             onClick={() => setEditPhotoFile(null)}
-                                                            style={{ marginLeft: '0.5rem', color: '#f5576c', cursor: 'pointer' }}
+                                                            className="service-edit-file-remove"
                                                         >
                                                             Удалить
                                                         </button>
                                                     </div>
                                                 )}
-                                                <div style={{ fontSize: '0.75rem', color: '#858585', marginTop: '0.25rem' }}>
+                                                <div className="service-edit-file-label">
                                                     Или введите URL:
                                                 </div>
                                                 <input

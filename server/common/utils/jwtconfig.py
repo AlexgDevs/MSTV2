@@ -101,11 +101,9 @@ class CookieManager:
             access_token: str,
             refresh_token: str,):
 
-        # Синхронизируем max_age с реальным сроком жизни токена
-        # ACCESS_EXPIRE в днях, переводим в секунды
         access_max_age = int(ACCESS_EXPIRE) * 24 * 60 * \
             60 if ACCESS_EXPIRE else 3600
-        # REFRESH_EXPIRE в днях, переводим в секунды
+
         refresh_max_age = int(REFRESH_EXPIRE) * 24 * 60 * \
             60 if REFRESH_EXPIRE else 604800
 
@@ -134,7 +132,6 @@ class CookieManager:
             response: Response,
             access_token: str):
 
-        # Синхронизируем max_age с реальным сроком жизни токена
         access_max_age = int(ACCESS_EXPIRE) * 24 * 60 * \
             60 if ACCESS_EXPIRE else 3600
 
@@ -152,7 +149,6 @@ class CookieManager:
     async def delete_cookies(
             response: Response):
 
-        # Удаляем куки с теми же параметрами, что и при установке
         response.delete_cookie(
             'access_token',
             path='/',
@@ -173,7 +169,6 @@ class JWTManager:
         if access_token or refresh_token:
             await Exceptions403.alredy_loggined()
 
-        # Если токенов нет, функция просто завершается без ошибки
 
     @staticmethod
     async def current_user(request: Request, is_admin: bool = False):

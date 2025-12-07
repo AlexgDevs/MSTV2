@@ -76,6 +76,8 @@ async def create_service(
     price: int = Form(...),
     photo: Optional[UploadFile] = File(None),
     photo_url: Optional[str] = Form(None),
+    existing_tags: Optional[str] = Form(None),
+    custom_tags: Optional[str] = Form(None),
     user=Depends(JWTManager.auth_required),
     service_usecase: ServiceUseCase = Depends(get_service_usecase),
     user_repo: UserRepository = Depends(get_user_repository)
@@ -103,15 +105,36 @@ async def create_service(
         photo=photo_data or ''
     )
 
+    # Парсим тэги
+    existing_tags_list = []
+    custom_tags_list = []
+
+    if existing_tags:
+        try:
+            import json
+            existing_tags_list = json.loads(
+                existing_tags) if existing_tags else []
+        except:
+            existing_tags_list = []
+
+    if custom_tags:
+        try:
+            import json
+            custom_tags_list = json.loads(custom_tags) if custom_tags else []
+        except:
+            custom_tags_list = []
+
     exiting = await service_usecase.create_service(
         int(user.get('id')),
-        service_data
+        service_data,
+        existing_tags=existing_tags_list,
+        custom_tags=custom_tags_list
     )
 
     if isinstance(exiting, dict):
         await Exceptions400.creating_error(str(exiting.get('detail')))
 
-    return {'status': 'created'}
+    return {'status': 'created', 'id': exiting.id}
 
 
 @service_app.patch('/{service_id}',

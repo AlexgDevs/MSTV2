@@ -55,6 +55,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({ category, size = 'me
                 />
             )}
             <div className="category-overlay" />
+            <div className="category-background-gradient" style={{ background: 'var(--color-gray-100, #F5F5F5)' }} />
             <div className="category-content">
                 <div className="category-icon">
                     {IconComponent ? (

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Input } from '../../components/ui/Input';
 import { ServiceCard } from '../../features/services/components/ServiceCard';
 import { useServices } from '../../features/services/hooks/useServices';
@@ -10,12 +10,12 @@ const ITEMS_PER_BATCH = 9;
 export const ServicesPage: React.FC = () => {
     const { services: allServices, isLoading, error, refresh } = useServices();
     const [searchParams, setSearchParams] = useSearchParams();
-    const navigate = useNavigate();
     
     const categoryParam = searchParams.get('category');
     const categoryName = searchParams.get('name') || '';
     const initialSearch = searchParams.get('search') || '';
     
+    // Если есть параметр category, используем его как поиск по тэгу
     const [search, setSearch] = useState(initialSearch || (categoryParam ? categoryParam : ''));
     const [visibleCount, setVisibleCount] = useState(ITEMS_PER_BATCH);
 
@@ -32,17 +32,45 @@ export const ServicesPage: React.FC = () => {
             return allServices;
         }
 
-        const queryWords = query.split(/\s+/).filter(Boolean);
+        // Если это поиск по категории (из URL параметра), ищем только по тэгам
+        const isCategorySearch = categoryParam && categoryParam.toLowerCase() === query;
         
         return allServices.filter(service => {
+            // Получаем тэги услуги
+            const serviceTags = (service.tags || [])
+                .map(tag => tag.title.toLowerCase());
+            
+            if (isCategorySearch) {
+                // При поиске по категории ищем ТОЛЬКО по тэгам
+                // Проверяем точное совпадение или что тэг содержит запрос
+                return serviceTags.some(tag => {
+                    // Точное совпадение
+                    if (tag === query) return true;
+                    // Тэг содержит запрос (например, "Красота и здоровье" содержит "красота")
+                    if (tag.includes(query)) return true;
+                    // Запрос содержит тэг (например, "красота и здоровье" содержит "красота")
+                    if (query.includes(tag)) return true;
+                    return false;
+                });
+            }
+            
+            // Обычный поиск - ищем по тэгам и тексту
             const searchableText = [service.title, service.description]
                 .filter(Boolean)
                 .join(' ')
                 .toLowerCase();
             
-            return queryWords.some(word => searchableText.includes(word));
+            // Проверяем совпадение в тэгах
+            const tagMatch = serviceTags.some(tag => 
+                tag === query || tag.includes(query) || query.includes(tag)
+            );
+            
+            // Проверяем совпадение в тексте
+            const textMatch = searchableText.includes(query);
+            
+            return tagMatch || textMatch;
         });
-    }, [allServices, search]);
+    }, [allServices, search, categoryParam]);
 
     useEffect(() => {
         setVisibleCount(ITEMS_PER_BATCH);

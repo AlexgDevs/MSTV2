@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from re import M
 from typing import List, Literal
 
 from sqlalchemy.orm import (
@@ -6,6 +7,7 @@ from sqlalchemy.orm import (
     mapped_column,
     relationship
 )
+from sqlalchemy.ext.associationproxy import association_proxy
 
 from sqlalchemy import (
     String,
@@ -20,7 +22,7 @@ class ServiceEnroll(Base):
     __tablename__ = 'service_enrolls'
     slot_time: Mapped[str]
     status: Mapped[Literal['pending', 'confirmed', 'completed',
-                        'cancelled', 'expired']] = mapped_column(default='pending')
+                           'cancelled', 'expired']] = mapped_column(default='pending')
     price: Mapped[int]
     created_at: Mapped[DateTime] = mapped_column(
         DateTime, default=datetime.now(timezone.utc))
@@ -49,8 +51,6 @@ class Service(Base):
 
     templates: Mapped[List['ScheduleTemplate']] = relationship(
         'ScheduleTemplate', back_populates='service', cascade="all, delete-orphan")
-    tags: Mapped[List['Tag']] = relationship(
-        'Tag', back_populates='service', cascade="all, delete-orphan")
     dates: Mapped[List['ServiceDate']] = relationship(
         'ServiceDate', back_populates='service', cascade="all, delete-orphan")
 
@@ -60,3 +60,8 @@ class Service(Base):
 
     users_enroll: Mapped[List['ServiceEnroll']] = relationship(
         'ServiceEnroll', back_populates='service', cascade="all, delete-orphan")
+
+    tag_connections: Mapped[List['ServiceTagConnection']] = relationship(
+        'ServiceTagConnection', back_populates='service', cascade="all, delete-orphan")
+
+    tags: association_proxy = association_proxy('tag_connections', 'tag')

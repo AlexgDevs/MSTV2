@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/auth.store';
 import { cn } from '../../utils/cn';
-import { UserIcon, SettingsIcon, LogoutIcon } from '../icons/Icons';
 import '../../assets/styles/Header.css';
 
 export const Header: React.FC = () => {
@@ -66,7 +65,11 @@ export const Header: React.FC = () => {
                 <div className="header-content">
                     {/* Логотип и навигация */}
                     <div className="header-left">
-                        <Link to="/" className="header-logo">
+                        <Link to="/" className="header-logo" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                <polyline points="9 22 9 12 15 12 15 22"/>
+                            </svg>
                             Главная
                         </Link>
 
@@ -75,19 +78,35 @@ export const Header: React.FC = () => {
                                 <Link
                                     to="/services"
                                     className={cn('nav-link', isActive('/services') && 'active')}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                                 >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="3" y="3" width="7" height="7"/>
+                                        <rect x="14" y="3" width="7" height="7"/>
+                                        <rect x="14" y="14" width="7" height="7"/>
+                                        <rect x="3" y="14" width="7" height="7"/>
+                                    </svg>
                                     Услуги
                                 </Link>
                                 <Link
                                     to="/profile"
                                     className={cn('nav-link', isActive('/profile') && 'active')}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                                 >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                        <circle cx="12" cy="7" r="4"/>
+                                    </svg>
                                     Профиль
                                 </Link>
                                 <Link
                                     to="/master"
                                     className={cn('nav-link', isActive('/master') && 'active')}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                                 >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                                    </svg>
                                     Мастерская
                                 </Link>
                             </nav>
@@ -137,7 +156,10 @@ export const Header: React.FC = () => {
                                             onClick={() => setIsDropdownOpen(false)}
                                         >
                                             <span className="menu-icon">
-                                                <UserIcon size={20} />
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                                    <circle cx="12" cy="7" r="4"/>
+                                                </svg>
                                             </span>
                                             <span className="menu-label">Профиль</span>
                                         </Link>
@@ -147,7 +169,9 @@ export const Header: React.FC = () => {
                                             onClick={() => setIsDropdownOpen(false)}
                                         >
                                             <span className="menu-icon">
-                                                <SettingsIcon size={20} />
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                                                </svg>
                                             </span>
                                             <span className="menu-label">Мастерская</span>
                                         </Link>
@@ -157,7 +181,10 @@ export const Header: React.FC = () => {
                                             onClick={() => setIsDropdownOpen(false)}
                                         >
                                             <span className="menu-icon">
-                                                <SettingsIcon size={20} />
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <circle cx="12" cy="12" r="3"/>
+                                                    <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
+                                                </svg>
                                             </span>
                                             <span className="menu-label">Настройки</span>
                                         </Link>
@@ -169,7 +196,11 @@ export const Header: React.FC = () => {
                                             onClick={handleLogout}
                                         >
                                             <span className="logout-icon">
-                                                <LogoutIcon size={20} />
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                                    <polyline points="16 17 21 12 16 7"/>
+                                                    <line x1="21" y1="12" x2="9" y2="12"/>
+                                                </svg>
                                             </span>
                                             <span>Выйти</span>
                                         </button>

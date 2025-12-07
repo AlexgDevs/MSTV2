@@ -8,7 +8,8 @@ import { enrollsApi } from '../../api/enrolls/enrolls.api';
 import type { EnrollResponse } from '../../api/enrolls/types';
 import { getCurrentWeekDays } from '../../utils/helpers';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
-import { CalendarIcon, WarningIcon } from '../../components/icons/Icons';
+import { CalendarIcon, WarningIcon, ClipboardIcon, UsersIcon } from '../../components/icons/Icons';
+import { CATEGORIES } from '../../components/categories/CategoriesSection';
 import '../../assets/styles/MasterDashboardPage.css';
 
 type TabId = 'services' | 'schedule' | 'templates' | 'bookings';
@@ -90,6 +91,8 @@ export const MasterDashboardPage: React.FC = () => {
         price: '',
         photo: ''
     });
+    const [selectedTags, setSelectedTags] = useState<string[]>([]); // Выбранные основные категории
+    const [customTags, setCustomTags] = useState<string>(''); // Новые тэги через запятую
     const [servicePhotoFile, setServicePhotoFile] = useState<File | null>(null);
     const [serviceFormError, setServiceFormError] = useState<string | null>(null);
     const [isServiceSubmitting, setIsServiceSubmitting] = useState(false);
@@ -294,7 +297,9 @@ export const MasterDashboardPage: React.FC = () => {
                     title: serviceForm.title.trim(),
                     description: serviceForm.description.trim(),
                     price,
-                    photo: serviceForm.photo.trim() || ''
+                    photo: serviceForm.photo.trim() || '',
+                    existing_tags: selectedTags.length > 0 ? JSON.stringify(selectedTags) : undefined,
+                    custom_tags: customTags.trim() ? JSON.stringify(customTags.split(',').map(t => t.trim()).filter(t => t.length > 0)) : undefined
                 }, servicePhotoFile || undefined);
             }
             await refreshUser();
@@ -305,6 +310,8 @@ export const MasterDashboardPage: React.FC = () => {
                 photo: ''
             });
             setServicePhotoFile(null);
+            setSelectedTags([]);
+            setCustomTags('');
             setIsCreatingService(false);
             setEditingService(null);
         } catch (error) {
@@ -337,6 +344,9 @@ export const MasterDashboardPage: React.FC = () => {
             price: '',
             photo: ''
         });
+        setServicePhotoFile(null);
+        setSelectedTags([]);
+        setCustomTags('');
         setServiceFormError(null);
     };
 
@@ -668,7 +678,7 @@ export const MasterDashboardPage: React.FC = () => {
 
                             <div className="form-group">
                                 <label>Фото услуги (опционально)</label>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <div className="file-upload-section">
                                     <input
                                         type="file"
                                         accept="image/*"
@@ -684,21 +694,20 @@ export const MasterDashboardPage: React.FC = () => {
                                                 setServiceForm(prev => ({ ...prev, photo: '' }));
                                             }
                                         }}
-                                        style={{ marginBottom: '0.5rem' }}
                                     />
                                     {servicePhotoFile && (
-                                        <div style={{ fontSize: '0.875rem', color: '#858585' }}>
+                                        <div className="file-info">
                                             Выбран файл: {servicePhotoFile.name}
                                             <button
                                                 type="button"
                                                 onClick={() => setServicePhotoFile(null)}
-                                                style={{ marginLeft: '0.5rem', color: '#f5576c', cursor: 'pointer' }}
+                                                className="file-remove-btn"
                                             >
                                                 Удалить
                                             </button>
                                         </div>
                                     )}
-                                    <div style={{ fontSize: '0.75rem', color: '#858585', marginTop: '0.25rem' }}>
+                                    <div className="file-url-label">
                                         Или введите URL:
                                     </div>
                                     <input
@@ -714,6 +723,47 @@ export const MasterDashboardPage: React.FC = () => {
                                         placeholder="https://example.com/photo.jpg"
                                         disabled={!!servicePhotoFile}
                                     />
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label>Категории (тэги)</label>
+                                <div className="category-tags-container">
+                                    <div className="category-tags-label">
+                                        Выберите основные категории:
+                                    </div>
+                                    <div className="category-tags-grid">
+                                        {CATEGORIES.map((category) => (
+                                            <label
+                                                key={category.id}
+                                                className={`category-tag-item ${selectedTags.includes(category.title) ? 'selected' : ''}`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedTags.includes(category.title)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setSelectedTags(prev => [...prev, category.title]);
+                                                        } else {
+                                                            setSelectedTags(prev => prev.filter(t => t !== category.title));
+                                                        }
+                                                    }}
+                                                />
+                                                <span>{category.title}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                    <div className="custom-tags-section">
+                                        <div className="custom-tags-label">
+                                            Или добавьте свои тэги (через запятую):
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={customTags}
+                                            onChange={(e) => setCustomTags(e.target.value)}
+                                            placeholder="Например: маникюр, педикюр, наращивание"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
@@ -764,7 +814,7 @@ export const MasterDashboardPage: React.FC = () => {
             ) : (
                 <div className="services-grid">
                     {services.map(service => {
-                        // Функция для получения URL изображения
+                        // Функция для получения URL изображения (идентична ServiceCard)
                         const getImageUrl = () => {
                             if (service.photo?.startsWith('http')) {
                                 return service.photo;
@@ -783,52 +833,92 @@ export const MasterDashboardPage: React.FC = () => {
                         };
                         const imageUrl = getImageUrl();
                         
+                        // Получаем теги для этого сервиса из user.tags
+                        const serviceTags = user?.tags?.filter(tag => tag.service_id === service.id) || [];
+                        
                         return (
                             <div key={service.id} className="service-card">
-                                {imageUrl && (
-                                    <div className="service-card-image">
+                                {/* Image Section or Title Placeholder */}
+                                <div className="service-image">
+                                    {imageUrl ? (
                                         <img
                                             src={imageUrl}
                                             alt={service.title}
-                                            className="service-card-image-img"
+                                            className="service-image-img"
+                                            loading="lazy"
+                                            onError={(e) => {
+                                                // Если изображение не загрузилось, показываем placeholder
+                                                const target = e.target as HTMLImageElement;
+                                                target.style.display = 'none';
+                                                const placeholder = target.nextElementSibling as HTMLElement;
+                                                if (placeholder && placeholder.classList.contains('service-title-placeholder')) {
+                                                    placeholder.style.display = 'flex';
+                                                }
+                                            }}
                                         />
-                                    </div>
-                                )}
-                                <div className="service-card-header">
-                                    <h3 className="service-card-title">{service.title}</h3>
-                                    <span className="service-card-date">
-                                        Создано: {formatDate(service.created_at)}
-                                    </span>
-                                </div>
-                                <div className="service-card-body">
-                                    {service.description && (
-                                        <p className="service-card-description">
-                                            {service.description.length > 100 
-                                                ? `${service.description.slice(0, 97)}...` 
-                                                : service.description}
-                                        </p>
+                                    ) : null}
+                                    {!imageUrl && (
+                                        <div className="service-title-placeholder">
+                                            <span className="service-title-text">{service.title}</span>
+                                        </div>
                                     )}
-                                    <div className="service-card-footer">
-                                        <span className="service-card-price">
-                                            {priceFormatter.format(service.price)}
+                                    <div className="service-price-badge">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <path d="M12 6v6l4 2"/>
+                                        </svg>
+                                        {priceFormatter.format(service.price)}
+                                    </div>
+                                </div>
+
+                                <div className="service-content">
+                                    {/* Header - Title */}
+                                    <div className="service-header">
+                                        <h3 className="service-title">
+                                            {service.title}
+                                        </h3>
+                                        <span className="service-id">
+                                            #{service.id}
                                         </span>
                                     </div>
-                                </div>
-                                <div style={{ padding: '0 20px 20px 20px', display: 'flex', gap: '8px', flexDirection: 'column' }}>
-                                    <button
-                                        onClick={() => handleEditService(service)}
-                                        className="btn btn-outline"
-                                        style={{ width: '100%' }}
-                                    >
-                                        Редактировать
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteService(service.id)}
-                                        className="btn btn-danger"
-                                        style={{ width: '100%' }}
-                                    >
-                                        Удалить
-                                    </button>
+
+                                    {/* Tags */}
+                                    {serviceTags.length > 0 && (
+                                        <div className="service-tags">
+                                            {serviceTags.slice(0, 5).map((tag) => (
+                                                <span
+                                                    key={tag.id}
+                                                    className="service-tag"
+                                                >
+                                                    #{tag.title}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Footer - Action Buttons */}
+                                    <div className="service-footer">
+                                        <button
+                                            onClick={() => handleEditService(service)}
+                                            className="service-action-btn"
+                                        >
+                                            Редактировать
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                            </svg>
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteService(service.id)}
+                                            className="service-action-btn service-action-btn-danger"
+                                        >
+                                            Удалить
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="3 6 5 6 21 6"/>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         );
@@ -1235,7 +1325,7 @@ export const MasterDashboardPage: React.FC = () => {
             {Object.keys(templatesByService).length === 0 ? (
                 <div className="empty-state">
                     <div className="empty-state-icon">
-                        <span>📋</span>
+                        <ClipboardIcon size={28} color="#737373" />
                     </div>
                     <p className="empty-state-title">
                         {services.length === 0 
@@ -1381,7 +1471,7 @@ export const MasterDashboardPage: React.FC = () => {
             ) : enrolls.length === 0 ? (
                 <div className="empty-state">
                     <div className="empty-state-icon">
-                        <span>👥</span>
+                        <UsersIcon size={48} color="currentColor" />
                     </div>
                     <p className="empty-state-title">Пока нет записей</p>
                     <p className="empty-state-description">

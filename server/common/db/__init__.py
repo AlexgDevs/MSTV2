@@ -27,6 +27,13 @@ class Base(DeclarativeBase):
     id: Mapped[int] = mapped_column(primary_key=True)
 
 
+# Базовый класс для промежуточных таблиц M2M без id
+# Используем тот же registry что и Base, чтобы классы видели друг друга
+class AssociationBase(DeclarativeBase):
+    registry = Base.registry
+    metadata = Base.metadata
+
+
 class DataBaseConfiguration:
     def __init__(
         self,
@@ -72,8 +79,8 @@ db_config = DataBaseConfiguration(
     True
 )
 
-
 from .models import (
+    ServiceTagConnection,
     User,
     ScheduleTemplate,
     Service,

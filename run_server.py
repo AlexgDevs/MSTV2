@@ -11,9 +11,9 @@ app = FastAPI(description='mstv2 api')
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite dev server
+    allow_origins=["http://localhost:5173"], 
     allow_credentials=True,
-    allow_methods=["*"],  # Разрешить все методы включая OPTIONS
+    allow_methods=["*"],  
     allow_headers=["*"],
 )
 

@@ -5,6 +5,7 @@ from .services import service_app
 from .scheduletemplates import template_app
 from .dates import service_date_app
 from .enrolls import enroll_app
+from .tags import tag_app
 
 master_app = APIRouter(prefix='/api/v1', tags=['MASTER'])
 master_app.include_router(user_app)
@@ -13,3 +14,4 @@ master_app.include_router(service_app)
 master_app.include_router(template_app)
 master_app.include_router(service_date_app)
 master_app.include_router(enroll_app)
+master_app.include_router(tag_app)

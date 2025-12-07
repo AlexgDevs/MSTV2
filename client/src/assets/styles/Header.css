@@ -1,208 +1,130 @@
-/* Header.css */
+/* Header.css - Minimalist Light Design */
 
-/* Основной стиль для хедера */
 .header {
     position: sticky;
     top: 0;
     z-index: 1000;
-    background: linear-gradient(180deg, #151515 0%, #1a1a1a 100%);
-    border-bottom: 1px solid #2d2d30;
-    box-shadow: 0 1px 20px rgba(0, 0, 0, 0.4);
+    background: var(--color-white, #FFFFFF);
+    border-bottom: 1px solid var(--color-gray-200, #E5E5E5);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
 
 .header-container {
-    max-width: 1400px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 0 24px;
+    padding: 0 var(--spacing-lg, 1.5rem);
 }
 
 .header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 56px;
+    height: 64px;
 }
 
 /* Логотип и навигация */
 .header-left {
     display: flex;
     align-items: center;
-    gap: 32px;
+    gap: var(--spacing-2xl, 3rem);
 }
 
 .header-logo {
-    font-size: 20px;
-    font-weight: 700;
-    background: linear-gradient(90deg, #007acc 0%, #1a8cd8 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--color-black, #0A0A0A);
     text-decoration: none;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.header-logo::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    width: 0;
-    height: 2px;
-    background: linear-gradient(90deg, #007acc 0%, #1a8cd8 100%);
-    transition: width 0.3s ease;
-}
-
-.header-logo:hover::after {
-    width: 100%;
+    transition: color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    letter-spacing: -0.01em;
 }
 
 .header-logo:hover {
-    background: linear-gradient(90deg, #1a8cd8 0%, #007acc 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--color-gray-700, #404040);
 }
 
 /* Навигация */
 .header-nav {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--spacing-xs, 0.25rem);
 }
 
 .nav-link {
-    padding: 8px 16px;
-    font-size: 14px;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
     font-weight: 500;
-    color: #cccccc;
+    color: var(--color-gray-600, #525252);
     text-decoration: none;
-    border-radius: 6px;
-    border: 1px solid transparent;
-    transition: all 0.2s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.nav-link::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(0, 122, 204, 0.1), transparent);
-    transition: left 0.5s ease;
-}
-
-.nav-link:hover::before {
-    left: 100%;
+    border-radius: var(--radius-md, 0.5rem);
+    border: none;
+    background: transparent;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
 }
 
 .nav-link:hover {
-    background: rgba(42, 45, 46, 0.6);
-    border-color: #3e3e42;
-    color: #ffffff;
+    background: var(--color-gray-100, #F5F5F5);
+    color: var(--color-black, #0A0A0A);
 }
 
 .nav-link.active {
-    background: linear-gradient(135deg, #094771 0%, #007acc 100%);
-    border-color: #007acc;
-    color: #ffffff;
-    box-shadow: 0 2px 8px rgba(0, 122, 204, 0.3);
-}
-
-.nav-link.active::before {
-    display: none;
+    background: var(--color-gray-100, #F5F5F5);
+    color: var(--color-black, #0A0A0A);
+    font-weight: 600;
 }
 
 /* Правая часть хедера */
 .header-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--spacing-md, 1rem);
 }
 
 /* Кнопки входа/регистрации */
 .auth-buttons {
     display: flex;
-    gap: 8px;
+    gap: var(--spacing-sm, 0.5rem);
 }
 
 .btn-login {
-    padding: 8px 16px;
-    font-size: 14px;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
     font-weight: 500;
-    color: #ffffff;
-    background: linear-gradient(135deg, #007acc 0%, #1a8cd8 100%);
-    border: 1px solid #007acc;
-    border-radius: 6px;
+    color: var(--color-white, #FFFFFF);
+    background: var(--color-black, #0A0A0A);
+    border: none;
+    border-radius: var(--radius-md, 0.5rem);
     text-decoration: none;
     cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.btn-login::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-    transition: left 0.5s ease;
-}
-
-.btn-login:hover::before {
-    left: 100%;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
 }
 
 .btn-login:hover {
-    background: linear-gradient(135deg, #1a8cd8 0%, #007acc 100%);
-    border-color: #1a8cd8;
-    box-shadow: 0 4px 12px rgba(0, 122, 204, 0.3);
+    background: var(--color-gray-800, #262626);
     transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .btn-register {
-    padding: 8px 16px;
-    font-size: 14px;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
     font-weight: 500;
-    color: #cccccc;
-    background: linear-gradient(135deg, rgba(26, 26, 26, 0.8) 0%, rgba(26, 26, 26, 0.6) 100%);
-    border: 1px solid #3e3e42;
-    border-radius: 6px;
+    color: var(--color-gray-700, #404040);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md, 0.5rem);
     text-decoration: none;
     cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.btn-register::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
-    transition: left 0.5s ease;
-}
-
-.btn-register:hover::before {
-    left: 100%;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
 }
 
 .btn-register:hover {
-    background: linear-gradient(135deg, rgba(42, 45, 46, 0.8) 0%, rgba(42, 45, 46, 0.6) 100%);
-    border-color: #464647;
-    color: #ffffff;
+    background: var(--color-gray-100, #F5F5F5);
+    color: var(--color-black, #0A0A0A);
 }
 
 /* Выпадающее меню пользователя */
@@ -216,81 +138,41 @@
     justify-content: center;
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, #007acc 0%, #1a8cd8 100%);
-    border: 2px solid #2d2d30;
+    background: var(--color-gray-100, #F5F5F5);
+    border: none;
     border-radius: 50%;
     cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 122, 204, 0.4);
-}
-
-.user-trigger::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
-    animation: shine 3s infinite linear;
-}
-
-@keyframes shine {
-    0% {
-        transform: translateX(-100%);
-    }
-    100% {
-        transform: translateX(100%);
-    }
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
 }
 
 .user-trigger:hover {
-    border-color: #007acc;
+    background: var(--color-gray-200, #E5E5E5);
     transform: scale(1.05);
-    box-shadow: 0 4px 16px rgba(0, 122, 204, 0.6);
 }
 
 .user-avatar {
-    font-size: 18px;
+    font-size: 1rem;
     font-weight: 600;
-    color: #ffffff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    color: var(--color-black, #0A0A0A);
 }
 
 /* Выпадающее меню */
 .user-dropdown {
     position: absolute;
-    top: 100%;
+    top: calc(100% + var(--spacing-sm, 0.5rem));
     right: 0;
-    margin-top: 8px;
     min-width: 240px;
-    background: linear-gradient(135deg, #151515 0%, #1a1a1a 100%);
-    border: 1px solid #2d2d30;
-    border-radius: 8px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    background: var(--color-white, #FFFFFF);
+    border: 1px solid var(--color-gray-200, #E5E5E5);
+    border-radius: var(--radius-lg, 0.75rem);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-10px);
-    transition: all 0.3s ease;
+    transform: translateY(-8px);
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1001;
     overflow: hidden;
-}
-
-.user-dropdown::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, 
-        transparent 0%, 
-        #007acc 20%, 
-        #1a8cd8 50%, 
-        #007acc 80%, 
-        transparent 100%);
 }
 
 .user-dropdown.active {
@@ -301,32 +183,30 @@
 
 /* Информация пользователя в меню */
 .user-info {
-    padding: 20px;
-    border-bottom: 1px solid #2d2d30;
-    background: rgba(26, 26, 26, 0.5);
+    padding: var(--spacing-lg, 1.5rem);
+    border-bottom: 1px solid var(--color-gray-200, #E5E5E5);
 }
 
 .user-details {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--spacing-md, 1rem);
 }
 
 .user-info-avatar {
     width: 48px;
     height: 48px;
-    background: linear-gradient(135deg, #007acc 0%, #1a8cd8 100%);
+    background: var(--color-gray-100, #F5F5F5);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 8px rgba(0, 122, 204, 0.4);
 }
 
 .user-info-initial {
-    font-size: 20px;
+    font-size: 1.125rem;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--color-black, #0A0A0A);
 }
 
 .user-info-text {
@@ -334,62 +214,47 @@
 }
 
 .user-info-name {
-    font-size: 16px;
+    font-size: 0.9375rem;
     font-weight: 600;
-    color: #ffffff;
-    margin-bottom: 4px;
+    color: var(--color-black, #0A0A0A);
+    margin-bottom: 0.25rem;
 }
 
 .user-info-role {
-    font-size: 13px;
-    color: #858585;
+    font-size: 0.8125rem;
+    color: var(--color-gray-600, #525252);
 }
 
 /* Меню навигации */
 .menu-items {
-    padding: 8px 0;
+    padding: var(--spacing-sm, 0.5rem) 0;
 }
 
 .menu-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 20px;
-    color: #cccccc;
+    gap: var(--spacing-md, 1rem);
+    padding: 0.75rem var(--spacing-lg, 1.5rem);
+    color: var(--color-gray-700, #404040);
     text-decoration: none;
-    transition: all 0.2s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.menu-item::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    background: transparent;
     width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(0, 122, 204, 0.1), transparent);
-    transition: left 0.5s ease;
-}
-
-.menu-item:hover::before {
-    left: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
 }
 
 .menu-item:hover {
-    background: rgba(42, 45, 46, 0.6);
-    color: #ffffff;
+    background: var(--color-gray-100, #F5F5F5);
+    color: var(--color-black, #0A0A0A);
 }
 
 .menu-item.active {
-    background: rgba(0, 122, 204, 0.1);
-    color: #ffffff;
-    border-left: 3px solid #007acc;
-}
-
-.menu-item.active::before {
-    display: none;
+    background: var(--color-gray-100, #F5F5F5);
+    color: var(--color-black, #0A0A0A);
+    font-weight: 600;
 }
 
 .menu-icon {
@@ -398,63 +263,55 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
     flex-shrink: 0;
+    color: var(--color-gray-600, #525252);
+}
+
+.menu-item:hover .menu-icon,
+.menu-item.active .menu-icon {
+    color: var(--color-black, #0A0A0A);
 }
 
 .menu-icon svg {
     width: 100%;
     height: 100%;
+    stroke: currentColor;
+    fill: none;
 }
 
 .menu-label {
     flex: 1;
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 500;
 }
 
 .menu-divider {
     height: 1px;
-    background: #2d2d30;
-    margin: 8px 0;
+    background: var(--color-gray-200, #E5E5E5);
+    margin: var(--spacing-sm, 0.5rem) 0;
 }
 
 /* Кнопка выхода */
 .btn-logout {
     width: 100%;
-    padding: 12px 20px;
-    font-size: 14px;
+    padding: 0.75rem var(--spacing-lg, 1.5rem);
+    font-size: 0.875rem;
     font-weight: 500;
-    color: #f48771;
+    color: var(--color-gray-700, #404040);
     background: transparent;
     border: none;
-    border-top: 1px solid #2d2d30;
+    border-top: 1px solid var(--color-gray-200, #E5E5E5);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
-    gap: 12px;
-    position: relative;
-    overflow: hidden;
-}
-
-.btn-logout::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(244, 135, 113, 0.1), transparent);
-    transition: left 0.5s ease;
-}
-
-.btn-logout:hover::before {
-    left: 100%;
+    gap: var(--spacing-md, 1rem);
+    font-family: inherit;
 }
 
 .btn-logout:hover {
-    background: rgba(244, 135, 113, 0.1);
+    background: var(--color-gray-100, #F5F5F5);
+    color: var(--color-black, #0A0A0A);
 }
 
 .logout-icon {
@@ -463,13 +320,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
     flex-shrink: 0;
+    color: var(--color-gray-600, #525252);
+}
+
+.btn-logout:hover .logout-icon {
+    color: var(--color-black, #0A0A0A);
 }
 
 .logout-icon svg {
     width: 100%;
     height: 100%;
+    stroke: currentColor;
+    fill: none;
 }
 
 /* Оверлей для закрытия меню */
@@ -481,6 +344,7 @@
     bottom: 0;
     z-index: 999;
     display: none;
+    background: transparent;
 }
 
 .dropdown-overlay.active {
@@ -490,34 +354,34 @@
 /* Адаптивность */
 @media (max-width: 768px) {
     .header-container {
-        padding: 0 16px;
+        padding: 0 var(--spacing-md, 1rem);
     }
     
     .header-content {
-        height: 48px;
+        height: 56px;
     }
     
     .header-left {
-        gap: 16px;
+        gap: var(--spacing-lg, 1.5rem);
     }
     
     .header-logo {
-        font-size: 18px;
+        font-size: 1rem;
     }
     
     .header-nav {
-        gap: 2px;
+        gap: var(--spacing-xs, 0.25rem);
     }
     
     .nav-link {
-        padding: 6px 12px;
-        font-size: 13px;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8125rem;
     }
     
     .btn-login,
     .btn-register {
-        padding: 6px 12px;
-        font-size: 13px;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8125rem;
     }
     
     .user-trigger {
@@ -526,12 +390,12 @@
     }
     
     .user-avatar {
-        font-size: 16px;
+        font-size: 0.875rem;
     }
     
     .user-dropdown {
         min-width: 280px;
-        right: -16px;
+        right: -1rem;
     }
 }
 
@@ -542,43 +406,6 @@
     
     .auth-buttons {
         flex-direction: column;
-        gap: 4px;
+        gap: var(--spacing-xs, 0.25rem);
     }
-}
-
-/* Анимации */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.header {
-    animation: fadeIn 0.3s ease-out;
-}
-
-/* Эффекты при скролле */
-.header.scrolled {
-    background: linear-gradient(180deg, rgba(21, 21, 21, 0.95) 0%, rgba(26, 26, 26, 0.9) 100%);
-    border-bottom: 1px solid #007acc;
-    box-shadow: 0 2px 20px rgba(0, 122, 204, 0.2);
-}
-
-/* Подсветка активной страницы */
-.nav-link.active::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 4px;
-    height: 4px;
-    background: #ffffff;
-    border-radius: 50%;
-    box-shadow: 0 0 8px #ffffff;
 }

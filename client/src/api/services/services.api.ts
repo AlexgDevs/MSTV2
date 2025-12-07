@@ -10,7 +10,7 @@ export const servicesApi = {
     getAll: () => API.get<ServiceResponse[]>('/services'),
     getDetail: (serviceId: number) =>
         API.get<DetailServiceResponse>(`/services/detail/${serviceId}`),
-    create: (data: CreateServiceModel, photoFile?: File) => {
+    create: (data: CreateServiceModel & { existing_tags?: string; custom_tags?: string }, photoFile?: File) => {
         const formData = new FormData();
         formData.append('title', data.title);
         formData.append('description', data.description);
@@ -20,6 +20,14 @@ export const servicesApi = {
             formData.append('photo', photoFile);
         } else if (data.photo) {
             formData.append('photo_url', data.photo);
+        }
+        
+        if (data.existing_tags) {
+            formData.append('existing_tags', data.existing_tags);
+        }
+        
+        if (data.custom_tags) {
+            formData.append('custom_tags', data.custom_tags);
         }
         
         return API.post('/services', formData, {
