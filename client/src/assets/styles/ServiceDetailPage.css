@@ -1,39 +1,38 @@
-/* ServiceDetailPage.css - Cursor Style */
+/* ServiceDetailPage.css - Minimalist Light Theme */
 
 .service-detail-page {
     min-height: 100vh;
-    background: #0d0d0d;
-    color: #ffffff;
+    background: #FAFAFA;
+    color: #0A0A0A;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 .service-detail-container {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 24px;
+    padding: 2rem 1.5rem;
 }
 
 /* Back Button */
 .service-back-button {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    margin-bottom: 24px;
-    background: #1a1a1a;
-    border: 1px solid #3e3e42;
-    border-radius: 4px;
-    color: #cccccc;
-    font-size: 14px;
-    font-weight: 500;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    margin-bottom: 1.5rem;
+    background: transparent;
+    border: 1px solid #E5E5E5;
+    border-radius: 0.5rem;
+    color: #0A0A0A;
+    font-size: 0.875rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .service-back-button:hover {
-    background: #2d2d30;
-    border-color: #3e3e42;
-    color: #ffffff;
+    background: #F5F5F5;
+    border-color: #0A0A0A;
 }
 
 .service-back-button svg {
@@ -45,7 +44,7 @@
 .service-detail-layout {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 1.5rem;
 }
 
 @media (min-width: 1024px) {
@@ -67,12 +66,13 @@
 }
 
 .service-edit-panel {
-    background: #1a1a1a;
-    border: 1px solid #3e3e42;
-    border-radius: 6px;
-    padding: 16px;
+    background: #FFFFFF;
+    border: none;
+    border-radius: 0.75rem;
+    padding: 1rem;
     position: sticky;
-    top: 24px;
+    top: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .service-edit-button {
@@ -80,21 +80,22 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background: rgba(0, 122, 204, 0.1);
-    border: 1px solid #007acc;
-    border-radius: 4px;
-    color: #007acc;
-    font-size: 14px;
-    font-weight: 500;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: #0A0A0A;
+    border: none;
+    border-radius: 0.5rem;
+    color: #FFFFFF;
+    font-size: 0.875rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .service-edit-button:hover {
-    background: rgba(0, 122, 204, 0.2);
-    border-color: #1a8cd8;
+    background: #262626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .service-edit-button svg {
@@ -111,11 +112,11 @@
 /* Service Header Card */
 .service-detail-photo {
     width: 100%;
-    margin-bottom: 24px;
-    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    border-radius: 0.75rem;
     overflow: hidden;
-    background: #1a1a1a;
-    border: 1px solid #3e3e42;
+    background: #F5F5F5;
+    border: none;
 }
 
 .service-detail-photo-img {
@@ -127,197 +128,190 @@
 }
 
 .service-header-card {
-    background: #1a1a1a;
-    border: 1px solid #3e3e42;
-    border-radius: 6px;
-    padding: 24px;
-    margin-bottom: 24px;
-    position: relative;
-    overflow: hidden;
-}
-
-.service-header-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, 
-        transparent 0%, 
-        #3e3e42 20%, 
-        #007acc 50%, 
-        #3e3e42 80%, 
-        transparent 100%);
+    background: #FFFFFF;
+    border: none;
+    border-radius: 0.75rem;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .service-title {
-    font-size: 32px;
+    font-size: 2rem;
     font-weight: 700;
-    color: #ffffff;
-    margin-bottom: 12px;
+    color: #0A0A0A;
+    margin: 0 0 0.75rem;
     line-height: 1.2;
+    letter-spacing: -0.02em;
 }
 
 .service-description {
-    color: #858585;
-    font-size: 16px;
+    color: #404040;
+    font-size: 1rem;
     line-height: 1.6;
-    margin-bottom: 16px;
+    margin: 0 0 1rem;
+    font-weight: 400;
 }
 
 .service-price {
-    font-size: 24px;
+    font-size: 1.5rem;
     font-weight: 700;
-    color: #007acc;
+    color: #0A0A0A;
+    margin: 0;
 }
 
 /* Author Card */
 .service-author-card {
-    background: #1a1a1a;
-    border: 1px solid #3e3e42;
-    border-radius: 6px;
-    padding: 24px;
-    margin-bottom: 24px;
+    background: #FFFFFF;
+    border: none;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .service-section-title {
-    font-size: 20px;
-    font-weight: 600;
-    color: #ffffff;
-    margin-bottom: 16px;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #0A0A0A;
+    margin: 0 0 1rem;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.5rem;
+    letter-spacing: -0.01em;
 }
 
 .service-section-title svg {
     width: 20px;
     height: 20px;
-    color: #007acc;
+    color: #0A0A0A;
 }
 
 .service-author-info {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 1rem;
 }
 
 .service-author-avatar {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: rgba(0, 122, 204, 0.2);
+    background: #F5F5F5;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: 18px;
-    font-weight: 600;
-    color: #007acc;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #0A0A0A;
 }
 
 .service-author-details h3 {
-    font-size: 18px;
+    font-size: 1rem;
     font-weight: 600;
-    color: #ffffff;
-    margin-bottom: 4px;
+    color: #0A0A0A;
+    margin: 0 0 0.25rem;
 }
 
 .service-author-role {
-    font-size: 14px;
-    color: #858585;
+    font-size: 0.875rem;
+    color: #737373;
+    margin: 0;
 }
 
 .service-author-about {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid #3e3e42;
-    font-size: 14px;
-    color: #858585;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #F5F5F5;
+    font-size: 0.875rem;
+    color: #404040;
     line-height: 1.6;
 }
 
 /* Tags Card */
 .service-tags-card {
-    background: #1a1a1a;
-    border: 1px solid #3e3e42;
-    border-radius: 6px;
-    padding: 24px;
-    margin-bottom: 24px;
+    background: #FFFFFF;
+    border: none;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .service-tags-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 0.5rem;
 }
 
 .service-tag {
     display: inline-flex;
     align-items: center;
-    padding: 6px 12px;
-    background: rgba(0, 122, 204, 0.2);
-    border: 1px solid rgba(0, 122, 204, 0.3);
-    border-radius: 4px;
-    font-size: 14px;
+    padding: 0.375rem 0.75rem;
+    background: #F5F5F5;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
     font-weight: 500;
-    color: #007acc;
+    color: #404040;
 }
 
 /* Schedule Card */
 .service-schedule-card {
-    background: #1a1a1a;
-    border: 1px solid #3e3e42;
-    border-radius: 6px;
-    padding: 24px;
-    margin-bottom: 24px;
+    background: #FFFFFF;
+    border: none;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .service-schedule-empty {
-    color: #858585;
-    font-size: 14px;
+    color: #737373;
+    font-size: 0.875rem;
+    margin: 0;
 }
 
 .service-schedule-list {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 1rem;
 }
 
 .service-date-card {
-    border: 1px solid #3e3e42;
-    border-radius: 6px;
-    padding: 16px;
-    background: rgba(26, 26, 26, 0.5);
+    border: none;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background: #F5F5F5;
 }
 
 .service-date-title {
-    font-size: 18px;
+    font-size: 1rem;
     font-weight: 600;
-    color: #ffffff;
-    margin-bottom: 12px;
+    color: #0A0A0A;
+    margin: 0 0 0.75rem;
 }
 
 .service-slots-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 0.5rem;
 }
 
 .service-slot-button {
-    padding: 8px 12px;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s ease;
-    border: 1px solid;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
     background: transparent;
     color: inherit;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.375rem;
     position: relative;
 }
 
@@ -333,163 +327,174 @@
 }
 
 .slot-status-available {
-    color: #4ec9b0;
+    color: #16A34A;
 }
 
 .slot-status-booked {
-    color: #f44747;
+    color: #DC2626;
 }
 
 .service-slot-available {
-    background: rgba(78, 201, 176, 0.2);
-    color: #4ec9b0;
-    border-color: rgba(78, 201, 176, 0.3);
+    background: #F0FDF4;
+    color: #16A34A;
 }
 
 .service-slot-available:hover:not(:disabled) {
-    background: rgba(78, 201, 176, 0.3);
-    border-color: rgba(78, 201, 176, 0.5);
+    background: #DCFCE7;
+    transform: translateY(-1px);
 }
 
 .service-slot-available:disabled {
-    background: rgba(78, 201, 176, 0.1);
-    color: rgba(78, 201, 176, 0.5);
-    border-color: rgba(78, 201, 176, 0.2);
+    background: #F0FDF4;
+    color: #86EFAC;
     cursor: not-allowed;
+    opacity: 0.6;
 }
 
 .service-slot-booked {
-    background: rgba(244, 71, 71, 0.2);
-    color: #f44747;
-    border-color: rgba(244, 71, 71, 0.3);
+    background: #FEF2F2;
+    color: #DC2626;
     cursor: not-allowed;
 }
 
 .service-slot-unavailable {
-    background: #3e3e42;
-    color: #858585;
-    border-color: #3e3e42;
+    background: #F5F5F5;
+    color: #737373;
     cursor: not-allowed;
 }
 
 .service-owner-notice {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid #3e3e42;
-    font-size: 14px;
-    color: #858585;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #F5F5F5;
+    font-size: 0.875rem;
+    color: #737373;
     font-style: italic;
+    margin-bottom: 0;
 }
 
 /* Booking Modal */
 .service-booking-modal {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 50;
-    padding: 16px;
+    padding: 1rem;
 }
 
 .service-booking-modal-content {
-    background: #1a1a1a;
-    border: 1px solid #3e3e42;
-    border-radius: 6px;
-    padding: 24px;
+    background: #FFFFFF;
+    border: none;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
     max-width: 448px;
     width: 100%;
-    box-shadow: 0 20px 25px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.service-edit-modal-content {
+    max-width: 600px;
 }
 
 .service-booking-modal-title {
-    font-size: 20px;
-    font-weight: 600;
-    color: #ffffff;
-    margin-bottom: 16px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0A0A0A;
+    margin: 0 0 1rem;
+    letter-spacing: -0.01em;
 }
 
 .service-booking-info {
-    margin-bottom: 16px;
+    margin-bottom: 1rem;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0.5rem;
 }
 
 .service-booking-info-item {
-    color: #cccccc;
-    font-size: 14px;
+    color: #404040;
+    font-size: 0.875rem;
+    margin: 0;
 }
 
 .service-booking-info-label {
-    color: #858585;
+    color: #737373;
+    font-weight: 600;
 }
 
 .service-booking-success {
-    margin-bottom: 16px;
-    padding: 16px;
-    background: rgba(78, 201, 176, 0.2);
-    border: 1px solid rgba(78, 201, 176, 0.3);
-    border-radius: 4px;
-    color: #4ec9b0;
-    font-size: 14px;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background: #F0FDF4;
+    border: 1px solid #86EFAC;
+    border-radius: 0.5rem;
+    color: #16A34A;
+    font-size: 0.875rem;
+    font-weight: 500;
 }
 
 .service-booking-error {
-    margin-bottom: 16px;
-    padding: 16px;
-    background: rgba(244, 71, 71, 0.2);
-    border: 1px solid rgba(244, 71, 71, 0.3);
-    border-radius: 4px;
-    color: #f44747;
-    font-size: 14px;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    border-radius: 0.5rem;
+    color: #DC2626;
+    font-size: 0.875rem;
+    font-weight: 500;
 }
 
 .service-booking-actions {
     display: flex;
-    gap: 12px;
+    gap: 0.75rem;
 }
 
 .service-booking-confirm {
     flex: 1;
-    padding: 10px 16px;
-    background: #007acc;
-    border: 1px solid #007acc;
-    border-radius: 4px;
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 500;
+    padding: 0.625rem 1rem;
+    background: #0A0A0A;
+    border: none;
+    border-radius: 0.5rem;
+    color: #FFFFFF;
+    font-size: 0.875rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .service-booking-confirm:hover:not(:disabled) {
-    background: #0066aa;
-    border-color: #0066aa;
+    background: #262626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .service-booking-confirm:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    transform: none;
 }
 
 .service-booking-cancel {
     flex: 1;
-    padding: 10px 16px;
-    background: #3e3e42;
-    border: 1px solid #3e3e42;
-    border-radius: 4px;
-    color: #cccccc;
-    font-size: 14px;
-    font-weight: 500;
+    padding: 0.625rem 1rem;
+    background: transparent;
+    border: 1px solid #E5E5E5;
+    border-radius: 0.5rem;
+    color: #0A0A0A;
+    font-size: 0.875rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .service-booking-cancel:hover:not(:disabled) {
-    background: #4e4e52;
-    border-color: #4e4e52;
+    background: #F5F5F5;
+    border-color: #0A0A0A;
 }
 
 .service-booking-cancel:disabled {
@@ -501,44 +506,66 @@
 .service-edit-form {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 1rem;
 }
 
 .service-edit-field {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0.5rem;
 }
 
 .service-edit-label {
-    font-size: 14px;
-    font-weight: 500;
-    color: #cccccc;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #404040;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .service-edit-input,
 .service-edit-textarea {
     width: 100%;
-    padding: 10px 12px;
-    background: #1a1a1a;
-    border: 1px solid #3e3e42;
-    border-radius: 4px;
-    color: #ffffff;
-    font-size: 14px;
+    padding: 0.75rem 1rem;
+    background: #FFFFFF;
+    border: 1px solid #E5E5E5;
+    border-radius: 0.5rem;
+    color: #0A0A0A;
+    font-size: 0.875rem;
     font-family: inherit;
-    transition: all 0.15s ease;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box;
 }
 
 .service-edit-input:focus,
 .service-edit-textarea:focus {
     outline: none;
-    border-color: #007acc;
-    box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+    border-color: #0A0A0A;
+    box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.05);
+    background: #FFFFFF;
+    color: #0A0A0A;
 }
 
 .service-edit-input::placeholder,
 .service-edit-textarea::placeholder {
-    color: #858585;
+    color: #A3A3A3;
+}
+
+.service-edit-input:focus::placeholder,
+.service-edit-textarea:focus::placeholder {
+    color: #A3A3A3;
+}
+
+.service-edit-input:-webkit-autofill,
+.service-edit-input:-webkit-autofill:hover,
+.service-edit-input:-webkit-autofill:focus,
+.service-edit-textarea:-webkit-autofill,
+.service-edit-textarea:-webkit-autofill:hover,
+.service-edit-textarea:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 30px #FFFFFF inset !important;
+    -webkit-text-fill-color: #0A0A0A !important;
+    box-shadow: 0 0 0 30px #FFFFFF inset !important;
+    background-color: #FFFFFF !important;
 }
 
 .service-edit-textarea {
@@ -546,10 +573,58 @@
     min-height: 100px;
 }
 
+.service-edit-file-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.service-edit-file-input {
+    padding: 0.5rem;
+    font-size: 0.8125rem;
+    cursor: pointer;
+}
+
+.service-edit-file-input:focus {
+    outline: none;
+    border-color: #0A0A0A;
+    box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.05);
+}
+
+.service-edit-file-info {
+    font-size: 0.875rem;
+    color: #737373;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.service-edit-file-remove {
+    margin-left: 0.5rem;
+    color: #DC2626;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    background: none;
+    border: none;
+    padding: 0;
+    transition: color 200ms;
+}
+
+.service-edit-file-remove:hover {
+    color: #B91C1C;
+}
+
+.service-edit-file-label {
+    font-size: 0.75rem;
+    color: #737373;
+    margin-top: 0.25rem;
+}
+
 /* Loading State */
 .service-loading {
     min-height: 100vh;
-    background: #0d0d0d;
+    background: #FAFAFA;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -559,14 +634,14 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
+    gap: 1rem;
 }
 
 .service-loading-spinner {
     width: 48px;
     height: 48px;
-    border: 4px solid #3e3e42;
-    border-top: 4px solid #007acc;
+    border: 4px solid #E5E5E5;
+    border-top: 4px solid #0A0A0A;
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -577,19 +652,19 @@
 }
 
 .service-loading-text {
-    font-size: 18px;
+    font-size: 1rem;
     font-weight: 500;
-    color: #cccccc;
+    color: #737373;
 }
 
 /* Error State */
 .service-error {
     min-height: 100vh;
-    background: #0d0d0d;
+    background: #FAFAFA;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 16px;
+    padding: 1rem;
 }
 
 .service-error-content {
@@ -598,30 +673,32 @@
 }
 
 .service-error-card {
-    background: #2d2d30;
-    border: 1px solid rgba(244, 71, 71, 0.5);
-    border-radius: 6px;
-    padding: 24px;
-    margin-bottom: 16px;
+    background: #FFFFFF;
+    border: none;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .service-error-header {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 0.75rem;
 }
 
 .service-error-icon {
     width: 24px;
     height: 24px;
-    color: #f44747;
+    color: #DC2626;
     flex-shrink: 0;
 }
 
 .service-error-title {
-    font-size: 18px;
-    font-weight: 500;
-    color: #f44747;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #DC2626;
+    margin: 0;
 }
 
 .service-error-button {
@@ -629,46 +706,45 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background: #1a1a1a;
-    border: 1px solid #3e3e42;
-    border-radius: 4px;
-    color: #cccccc;
-    font-size: 14px;
-    font-weight: 500;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: transparent;
+    border: 1px solid #E5E5E5;
+    border-radius: 0.5rem;
+    color: #0A0A0A;
+    font-size: 0.875rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .service-error-button:hover {
-    background: #2d2d30;
-    border-color: #3e3e42;
+    background: #F5F5F5;
+    border-color: #0A0A0A;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
     .service-detail-container {
-        padding: 16px;
+        padding: 1rem;
     }
 
     .service-title {
-        font-size: 24px;
+        font-size: 1.75rem;
     }
 
     .service-header-card,
     .service-author-card,
     .service-tags-card,
     .service-schedule-card {
-        padding: 16px;
+        padding: 1.25rem;
     }
 
     .service-section-title {
-        font-size: 18px;
+        font-size: 1rem;
     }
 
     .service-booking-modal-content {
-        padding: 20px;
+        padding: 1.25rem;
     }
 }
-

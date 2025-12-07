@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/auth.store';
-import { Card, CardHeader, CardContent } from '../../components/ui/Card';
-import { Input } from '../../components/ui/Input';
-import { Button } from '../../components/ui/Button';
+import '../../assets/styles/AuthPage.css';
 
 export const LoginPage: React.FC = () => {
     const [formData, setFormData] = useState({
@@ -26,8 +24,8 @@ export const LoginPage: React.FC = () => {
     // Показываем загрузку пока проверяется авторизация
     if (isAuthLoading || isAuthenticated) {
         return (
-            <div className="min-h-screen bg-[#1e1e1e] flex items-center justify-center">
-                <div className="text-lg text-[#cccccc] animate-pulse">Загрузка...</div>
+            <div className="auth-loading">
+                <div className="auth-loading-text">Загрузка...</div>
             </div>
         );
     }
@@ -61,70 +59,75 @@ export const LoginPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#1e1e1e] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-md w-full space-y-6">
+        <div className="auth-page">
+            <div className="auth-container">
                 {/* Заголовок */}
-                <div className="text-center">
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-[#007acc] to-[#1a8cd8] bg-clip-text text-transparent mb-2">
-                        Вход в систему
-                    </h1>
-                    <p className="text-sm text-[#858585]">
+                <div className="auth-header">
+                    <h1 className="auth-title">Вход в систему</h1>
+                    <p className="auth-subtitle">
                         Нет аккаунта?{' '}
-                        <Link
-                            to="/auth/register"
-                            className="font-medium text-[#007acc] hover:text-[#1a8cd8] transition-colors"
-                        >
+                        <Link to="/auth/register" className="auth-link">
                             Зарегистрируйтесь
                         </Link>
                     </p>
                 </div>
 
                 {/* Форма */}
-                <Card className="w-full">
-                    <CardHeader>
-                        <h3 className="text-lg font-semibold text-[#cccccc]">Данные для входа</h3>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="auth-card">
+                    <div className="auth-card-header">
+                        <h3>Данные для входа</h3>
+                    </div>
+                    <div className="auth-card-content">
+                        <form onSubmit={handleSubmit} className="auth-form">
                             {error && (
-                                <div className="bg-[#f48771]/10 border border-[#f48771]/50 rounded-lg p-4">
-                                    <p className="text-sm text-[#f48771] flex items-center gap-2">
-                                        <span>⚠</span>
-                                        {error}
-                                    </p>
+                                <div className="auth-error">
+                                    <span className="auth-error-icon">⚠</span>
+                                    <p className="auth-error-text">{error}</p>
                                 </div>
                             )}
 
-                            <Input
-                                label="Имя пользователя"
-                                name="name"
-                                type="text"
-                                value={formData.name}
-                                onChange={handleChange}
-                                required
-                                placeholder="Введите ваше имя"
-                            />
+                            <div className="auth-form-group">
+                                <label htmlFor="name" className="auth-form-label">
+                                    Имя пользователя
+                                </label>
+                                <input
+                                    id="name"
+                                    name="name"
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="Введите ваше имя"
+                                    className="auth-form-input"
+                                />
+                            </div>
 
-                            <Input
-                                label="Пароль"
-                                name="password"
-                                type="password"
-                                value={formData.password}
-                                onChange={handleChange}
-                                required
-                                placeholder="Введите пароль"
-                            />
+                            <div className="auth-form-group">
+                                <label htmlFor="password" className="auth-form-label">
+                                    Пароль
+                                </label>
+                                <input
+                                    id="password"
+                                    name="password"
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="Введите пароль"
+                                    className="auth-form-input"
+                                />
+                            </div>
 
-                            <Button
+                            <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full"
+                                className="auth-form-button"
                             >
                                 {isLoading ? 'Вход...' : 'Войти'}
-                            </Button>
+                            </button>
                         </form>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             </div>
         </div>
     );

@@ -180,8 +180,7 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({ onCategory
         <section className="categories-section">
             <div className="container">
                 <div className="categories-header">
-                    <h2 className="categories-title">Популярные категории</h2>
-                    <p className="categories-subtitle">Выберите интересующую вас категорию услуг</p>
+                    <h2 className="categories-title">Категории</h2>
                 </div>
                 <div 
                     className={`categories-scroll-wrapper ${canScrollLeft ? 'has-scroll-left' : ''} ${canScrollRight ? 'has-scroll-right' : ''}`}

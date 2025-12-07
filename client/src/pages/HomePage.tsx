@@ -102,34 +102,19 @@ export const HomePage: React.FC = () => {
             <section className="hero">
                 <div className="container">
                     <div className="text-center">
-                        <div className="hero-badge">
-                            <div className="hero-pulse" />
-                            <span className="text-sm font-medium text-[#A0A0A0] tracking-wide">
-                                КАТАЛОГ УСЛУГ
-                            </span>
-                        </div>
-
                         <h1 className="hero-title">
-                            <span className="hero-title-gradient">
-                                Найдите идеального
-                            </span>
-                            <br />
-                            <span className="hero-title-accent">
-                                мастера
-                            </span>
+                            Найдите нужную услугу
                         </h1>
 
-                        <p className="hero-description mx-auto">
-                            Платформа, где талант встречает возможность. 
-                            Откройте для себя уникальные услуги от проверенных специалистов 
-                            в современном цифровом пространстве.
+                        <p className="hero-description">
+                            Каталог услуг от проверенных специалистов
                         </p>
 
                         <div className="search-container">
                             <div className="search-wrapper">
                                 <div className="search-glow" />
                                 <Input
-                                    placeholder="Поиск услуг: дизайн, разработка, маркетинг..."
+                                    placeholder="Поиск по услугам и категориям..."
                                     value={search}
                                     onChange={e => setSearch(e.target.value)}
                                     className="search-input"
@@ -162,17 +147,11 @@ export const HomePage: React.FC = () => {
                 <div className="section-header">
                     <div>
                         <h2 className="section-title">
-                            Доступные услуги
+                            Услуги
                         </h2>
-                        <div className="services-count">
-                            <span className="count-badge">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                </svg>
-                                <span>{filteredServices.length} услуг</span>
-                            </span>
-                            <span className="text-[#666]">в каталоге</span>
-                        </div>
+                        <p className="section-subtitle">
+                            {filteredServices.length} {filteredServices.length === 1 ? 'услуга' : filteredServices.length < 5 ? 'услуги' : 'услуг'}
+                        </p>
                     </div>
 
                     <div className="actions">
@@ -250,12 +229,12 @@ export const HomePage: React.FC = () => {
                                 </svg>
                             </div>
                             <h3 className="empty-title">
-                                Услуги не найдены
+                                Ничего не найдено
                             </h3>
                             <p className="empty-description">
                                 {search 
-                                    ? 'Попробуйте изменить запрос или очистить фильтры'
-                                    : 'Каталог услуг пока пуст. Возвращайтесь позже!'
+                                    ? 'Попробуйте другой запрос'
+                                    : 'Каталог пуст'
                                 }
                             </p>
                             {search && (
@@ -290,12 +269,9 @@ export const HomePage: React.FC = () => {
                         <div className="loading-indicator">
                             <div className="spinner" />
                             <span className="loading-text">
-                                Загружаем больше возможностей...
+                                Загрузка...
                             </span>
                         </div>
-                        <p className="loading-hint">
-                            Прокрутите для автоматической загрузки
-                        </p>
                     </div>
                 )}
 
@@ -306,7 +282,7 @@ export const HomePage: React.FC = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
                             <span className="end-text">
-                                Вы просмотрели все {filteredServices.length} услуг
+                                Показано {filteredServices.length} {filteredServices.length === 1 ? 'услуга' : filteredServices.length < 5 ? 'услуги' : 'услуг'}
                             </span>
                         </div>
                     </div>

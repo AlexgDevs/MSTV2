@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '../../../components/ui/Card';
-import { Button } from '../../../components/ui/Button';
 import type { ServiceResponse } from '../../../types/service.types';
 
 const priceFormatter = new Intl.NumberFormat('ru-RU', {
@@ -15,9 +14,8 @@ interface ServiceCardProps {
     onSelect?: (service: ServiceResponse) => void;
 }
 
-export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect }) => {
+export const ServiceCard: React.FC<ServiceCardProps> = ({ service }) => {
     const navigate = useNavigate();
-    const hasPhoto = service.photo && !service.photo.includes('placehold.co');
     
     // Получаем до 5 тэгов
     const displayTags = (service.tags || []).slice(0, 5);
@@ -45,11 +43,6 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect }) =
         return null;
     }, [service.photo]);
 
-    const description =
-        service.description.length > 120
-            ? `${service.description.slice(0, 117)}...`
-            : service.description;
-
     return (
         <Card className="service-card">
             {/* Image Section or Title Placeholder */}
@@ -67,32 +60,24 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect }) =
                     </div>
                 )}
                 <div className="service-price-badge">
-                    <svg className="service-price-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
                     </svg>
                     {priceFormatter.format(service.price)}
                 </div>
             </div>
 
             <CardContent className="service-content">
-                {/* Header - Only show title if we have photo */}
-                {coverImage && (
-                    <div className="service-header">
-                        <h3 className="service-title">
-                            {service.title}
-                        </h3>
-                        <span className="service-id">
-                            #{service.id}
-                        </span>
-                    </div>
-                )}
-
-                {/* Description */}
-                {service.description && (
-                    <p className="service-description">
-                        {description}
-                    </p>
-                )}
+                {/* Header - Title */}
+                <div className="service-header">
+                    <h3 className="service-title">
+                        {service.title}
+                    </h3>
+                    <span className="service-id">
+                        #{service.id}
+                    </span>
+                </div>
 
                 {/* Tags */}
                 {displayTags.length > 0 && (
@@ -114,14 +99,12 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect }) =
                 <div className="service-footer">
                     <Link
                         to={`/services/${service.id}`}
-                        className="service-action-btn inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        className="service-action-btn"
                     >
-                        <span className="flex items-center gap-1.5">
-                            Подробнее
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                        </span>
+                        Подробнее
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
                     </Link>
                 </div>
             </CardContent>
