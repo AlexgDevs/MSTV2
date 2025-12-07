@@ -25,18 +25,27 @@ export const HomePage: React.FC = () => {
         if (!query) {
             return allServices;
         }
-
-        // Разбиваем запрос на отдельные слова для более гибкого поиска
-        const queryWords = query.split(/\s+/).filter(Boolean);
         
         return allServices.filter(service => {
+            // Получаем тэги услуги
+            const serviceTags = (service.tags || [])
+                .map(tag => tag.title.toLowerCase());
+            
+            // Поиск по названию и описанию
             const searchableText = [service.title, service.description]
                 .filter(Boolean)
                 .join(' ')
                 .toLowerCase();
             
-            // Проверяем, содержит ли текст хотя бы одно из слов запроса
-            return queryWords.some(word => searchableText.includes(word));
+            // Проверяем совпадение в тэгах (точное или частичное)
+            const tagMatch = serviceTags.some(tag => 
+                tag === query || tag.includes(query) || query.includes(tag)
+            );
+            
+            // Проверяем совпадение в тексте
+            const textMatch = searchableText.includes(query);
+            
+            return tagMatch || textMatch;
         });
     }, [allServices, search]);
 

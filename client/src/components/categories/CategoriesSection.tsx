@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CategoryCard } from './CategoryCard';
 import type { Category } from './CategoryCard';
 import { BeautyIcon, TechIcon, EducationIcon, RepairIcon, CreativeIcon, BusinessIcon } from '../icons/Icons';
 import './CategoriesSection.css';
 
-const CATEGORIES: (Category & { size: 'small' | 'medium' | 'large'; iconComponent: React.ComponentType<{ className?: string; size?: number }>; backgroundImage: string })[] = [
+export const CATEGORIES: (Category & { size: 'small' | 'medium' | 'large'; iconComponent: React.ComponentType<{ className?: string; size?: number }>; backgroundImage: string })[] = [
     {
         id: 'beauty',
         title: 'Красота и здоровье',
@@ -74,13 +74,105 @@ interface CategoriesSectionProps {
 
 export const CategoriesSection: React.FC<CategoriesSectionProps> = ({ onCategoryClick }) => {
     const navigate = useNavigate();
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(true);
+    const [activeCardIndex, setActiveCardIndex] = useState(0);
 
     const handleCategoryClick = (category: typeof CATEGORIES[0]) => {
         if (onCategoryClick) {
-            onCategoryClick(category.searchQuery, category.title);
+            // Используем название категории как тэг для поиска
+            onCategoryClick(category.title, category.title);
         } else {
-            // Переход на страницу услуг с параметрами категории
-            navigate(`/services?category=${encodeURIComponent(category.searchQuery)}&name=${encodeURIComponent(category.title)}`);
+            // Переход на страницу услуг с параметрами категории (используем название как тэг)
+            navigate(`/services?category=${encodeURIComponent(category.title)}&name=${encodeURIComponent(category.title)}`);
+        }
+    };
+
+    const findActiveCard = () => {
+        if (!scrollContainerRef.current) return;
+        
+        const container = scrollContainerRef.current;
+        const containerCenter = container.clientWidth / 2;
+        const scrollLeft = container.scrollLeft;
+        const centerPoint = scrollLeft + containerCenter;
+
+        let closestIndex = 0;
+        let closestDistance = Infinity;
+
+        cardRefs.current.forEach((card, index) => {
+            if (card) {
+                const cardRect = card.getBoundingClientRect();
+                const cardCenter = cardRect.left - container.getBoundingClientRect().left + cardRect.width / 2;
+                const distance = Math.abs(centerPoint - (scrollLeft + cardCenter));
+
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestIndex = index;
+                }
+            }
+        });
+
+        setActiveCardIndex(closestIndex);
+    };
+
+    const checkScrollButtons = () => {
+        if (scrollContainerRef.current) {
+            const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+            setCanScrollLeft(scrollLeft > 0);
+            setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+        }
+        findActiveCard();
+    };
+
+    useEffect(() => {
+        // Небольшая задержка для правильной инициализации после рендера
+        const timer = setTimeout(() => {
+            checkScrollButtons();
+        }, 100);
+        
+        const container = scrollContainerRef.current;
+        if (container) {
+            container.addEventListener('scroll', checkScrollButtons);
+            window.addEventListener('resize', checkScrollButtons);
+            return () => {
+                clearTimeout(timer);
+                container.removeEventListener('scroll', checkScrollButtons);
+                window.removeEventListener('resize', checkScrollButtons);
+            };
+        }
+        
+        return () => clearTimeout(timer);
+    }, []);
+
+    const scroll = (direction: 'left' | 'right') => {
+        if (scrollContainerRef.current && cardRefs.current.length > 0) {
+            const container = scrollContainerRef.current;
+            const containerCenter = container.clientWidth / 2;
+            const currentScroll = container.scrollLeft;
+            
+            // Находим текущую активную карточку
+            let targetIndex = activeCardIndex;
+            
+            if (direction === 'right' && targetIndex < CATEGORIES.length - 1) {
+                targetIndex = targetIndex + 1;
+            } else if (direction === 'left' && targetIndex > 0) {
+                targetIndex = targetIndex - 1;
+            }
+            
+            const targetCard = cardRefs.current[targetIndex];
+            if (targetCard) {
+                const cardRect = targetCard.getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
+                const cardCenter = cardRect.left - containerRect.left + cardRect.width / 2;
+                const scrollOffset = cardCenter - containerCenter;
+                
+                container.scrollTo({
+                    left: currentScroll + scrollOffset,
+                    behavior: 'smooth'
+                });
+            }
         }
     };
 
@@ -91,18 +183,55 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({ onCategory
                     <h2 className="categories-title">Популярные категории</h2>
                     <p className="categories-subtitle">Выберите интересующую вас категорию услуг</p>
                 </div>
-                <div className="categories-grid">
-                    {CATEGORIES.map((category) => {
-                        const { iconComponent, backgroundImage, ...categoryData } = category;
-                        return (
-                            <CategoryCard
-                                key={category.id}
-                                category={{ ...categoryData, iconComponent, backgroundImage }}
-                                size={category.size}
-                                onClick={() => handleCategoryClick(category)}
-                            />
-                        );
-                    })}
+                <div 
+                    className={`categories-scroll-wrapper ${canScrollLeft ? 'has-scroll-left' : ''} ${canScrollRight ? 'has-scroll-right' : ''}`}
+                >
+                    {canScrollLeft && (
+                        <button 
+                            className="categories-scroll-btn categories-scroll-btn-left"
+                            onClick={() => scroll('left')}
+                            aria-label="Прокрутить влево"
+                        >
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M15 18l-6-6 6-6"/>
+                            </svg>
+                        </button>
+                    )}
+                    <div 
+                        className="categories-scroll-container"
+                        ref={scrollContainerRef}
+                        onScroll={checkScrollButtons}
+                    >
+                        <div className="categories-grid">
+                            {CATEGORIES.map((category, index) => {
+                                const { iconComponent, backgroundImage, ...categoryData } = category;
+                                return (
+                                    <div
+                                        key={category.id}
+                                        ref={(el) => { cardRefs.current[index] = el; }}
+                                        className={`category-card-wrapper ${index === activeCardIndex ? 'active' : ''}`}
+                                    >
+                                        <CategoryCard
+                                            category={{ ...categoryData, iconComponent, backgroundImage }}
+                                            size="medium"
+                                            onClick={() => handleCategoryClick(category)}
+                                        />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                    {canScrollRight && (
+                        <button 
+                            className="categories-scroll-btn categories-scroll-btn-right"
+                            onClick={() => scroll('right')}
+                            aria-label="Прокрутить вправо"
+                        >
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M9 18l6-6-6-6"/>
+                            </svg>
+                        </button>
+                    )}
                 </div>
             </div>
         </section>

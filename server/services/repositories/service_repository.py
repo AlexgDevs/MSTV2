@@ -12,21 +12,27 @@ from ...common.db import (
     selectinload,
     Service,
     ServiceEnroll,
-    Tag
+    Tag,
+    ServiceTagConnection
 )
 
 from ..schemas import CreateServiceModel, PatchServiceModel
 
+
 class ServiceRepository:
     def __init__(
-        self,
-        session: AsyncSession) -> None:
+            self,
+            session: AsyncSession) -> None:
 
         self._session = session
 
     async def get_all(self) -> List[Service]:
         services = await self._session.scalars(
             select(Service)
+            .options(
+                selectinload(Service.tag_connections).selectinload(
+                    ServiceTagConnection.tag)
+            )
         )
 
         return services.all()
@@ -39,20 +45,28 @@ class ServiceRepository:
         service = await self._session.scalar(
             select(Service)
             .where(Service.id == service_id)
+            .options(
+                selectinload(Service.tag_connections).selectinload(
+                    ServiceTagConnection.tag)
+            )
         )
 
         return service
 
     async def get_by_service_user_id(
-        self,
-        service_id: int,
-        user_id: int) -> Service | None:
+            self,
+            service_id: int,
+            user_id: int) -> Service | None:
 
         service = await self._session.scalar(
             select(Service)
             .where(
                 Service.id == service_id,
                 Service.user_id == user_id)
+            .options(
+                selectinload(Service.tag_connections).selectinload(
+                    ServiceTagConnection.tag)
+            )
         )
 
         return service
@@ -63,8 +77,13 @@ class ServiceRepository:
     ) -> List[Service]:
         services = await self._session.scalars(
             select(Service)
+            .join(ServiceTagConnection)
             .join(Tag)
-            .where(Tag.name == category_name)
+            .where(Tag.title == category_name)
+            .options(
+                selectinload(Service.tag_connections).selectinload(
+                    ServiceTagConnection.tag)
+            )
         )
         return services.all()
 
@@ -78,13 +97,15 @@ class ServiceRepository:
             .where(
                 Service.id == service_id)
             .options(
-            selectinload(Service.users_enroll).selectinload(ServiceEnroll.user),
-            selectinload(Service.templates),
-            selectinload(Service.tags),
-            selectinload(Service.dates),
-            selectinload(Service.user)
+                selectinload(Service.users_enroll).selectinload(
+                    ServiceEnroll.user),
+                selectinload(Service.templates),
+                selectinload(Service.tag_connections).selectinload(
+                    ServiceTagConnection.tag),
+                selectinload(Service.dates),
+                selectinload(Service.user)
+            )
         )
-    )
 
         return service
 
@@ -96,7 +117,7 @@ class ServiceRepository:
 
         # soon photo func for code in bytes 64
         new_service = Service(
-            user_id=user_id, 
+            user_id=user_id,
             **service_data.model_dump()
         )
 
@@ -112,7 +133,7 @@ class ServiceRepository:
 
         # soon photo func for code in bytes 64
         updating_service = Service(
-            id=service_id, 
+            id=service_id,
             **service_update_data.model_dump(exclude_none=True, exclude_unset=True)
         )
 
@@ -143,6 +164,6 @@ class ServiceRepository:
 
 def get_service_repository(
     session: AsyncSession = Depends(db_config.session)
-    ) -> ServiceRepository:
+) -> ServiceRepository:
 
     return ServiceRepository(session)

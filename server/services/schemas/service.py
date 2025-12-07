@@ -14,8 +14,15 @@ TimeSlot = Literal[
 Status = Literal["available", "booked", "break", "unavailable"]
 
 Days = Literal["monday", "tuesday", "wednesday",
-            "thursday", "friday", "saturday", "sunday"]
+               "thursday", "friday", "saturday", "sunday"]
 
+
+class SimpleServiceTagResponse(BaseModel):
+    id: int
+    title: str
+
+    class Config:
+        from_attributes = True
 
 
 class CreateServiceModel(BaseModel):
@@ -26,8 +33,8 @@ class CreateServiceModel(BaseModel):
 
 
 class PatchServiceModel(BaseModel):
-    title: str | None = None 
-    description: str | None = None 
+    title: str | None = None
+    description: str | None = None
     price: int | None = None
     photo: str | None = None
 
@@ -39,6 +46,10 @@ class ServiceResponse(BaseModel):
     user_id: int
     price: int
     photo: str
+    tags: List[SimpleServiceTagResponse]
+
+    class Config:
+        from_attributes = True
 
 
 class SimpleServiceTemplateResponse(BaseModel):
@@ -56,14 +67,6 @@ class SimpleServiceDateResponse(BaseModel):
     id: int
     date: str
     slots: Dict[TimeSlot, Status]
-
-    class Config:
-        from_attributes = True
-
-
-class SimpleServiceTagResponse(BaseModel):
-    id: int
-    title: str
 
     class Config:
         from_attributes = True

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import type { ServiceResponse } from '../../../types/service.types';
@@ -16,7 +16,17 @@ interface ServiceCardProps {
 }
 
 export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect }) => {
+    const navigate = useNavigate();
     const hasPhoto = service.photo && !service.photo.includes('placehold.co');
+    
+    // Получаем до 5 тэгов
+    const displayTags = (service.tags || []).slice(0, 5);
+    
+    const handleTagClick = (e: React.MouseEvent, tagTitle: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        navigate(`/services?category=${encodeURIComponent(tagTitle)}&name=${encodeURIComponent(tagTitle)}`);
+    };
 
     const coverImage = React.useMemo(() => {
         if (service.photo?.startsWith('http')) {
@@ -82,6 +92,22 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect }) =
                     <p className="service-description">
                         {description}
                     </p>
+                )}
+
+                {/* Tags */}
+                {displayTags.length > 0 && (
+                    <div className="service-tags">
+                        {displayTags.map((tag) => (
+                            <button
+                                key={tag.id}
+                                onClick={(e) => handleTagClick(e, tag.title)}
+                                className="service-tag"
+                                type="button"
+                            >
+                                #{tag.title}
+                            </button>
+                        ))}
+                    </div>
                 )}
 
                 {/* Footer */}

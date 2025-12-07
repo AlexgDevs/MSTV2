@@ -9,6 +9,7 @@ import type { EnrollResponse } from '../../api/enrolls/types';
 import { getCurrentWeekDays } from '../../utils/helpers';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { CalendarIcon, WarningIcon } from '../../components/icons/Icons';
+import { CATEGORIES } from '../../components/categories/CategoriesSection';
 import '../../assets/styles/MasterDashboardPage.css';
 
 type TabId = 'services' | 'schedule' | 'templates' | 'bookings';
@@ -90,6 +91,8 @@ export const MasterDashboardPage: React.FC = () => {
         price: '',
         photo: ''
     });
+    const [selectedTags, setSelectedTags] = useState<string[]>([]); // Выбранные основные категории
+    const [customTags, setCustomTags] = useState<string>(''); // Новые тэги через запятую
     const [servicePhotoFile, setServicePhotoFile] = useState<File | null>(null);
     const [serviceFormError, setServiceFormError] = useState<string | null>(null);
     const [isServiceSubmitting, setIsServiceSubmitting] = useState(false);
@@ -294,7 +297,9 @@ export const MasterDashboardPage: React.FC = () => {
                     title: serviceForm.title.trim(),
                     description: serviceForm.description.trim(),
                     price,
-                    photo: serviceForm.photo.trim() || ''
+                    photo: serviceForm.photo.trim() || '',
+                    existing_tags: selectedTags.length > 0 ? JSON.stringify(selectedTags) : undefined,
+                    custom_tags: customTags.trim() ? JSON.stringify(customTags.split(',').map(t => t.trim()).filter(t => t.length > 0)) : undefined
                 }, servicePhotoFile || undefined);
             }
             await refreshUser();
@@ -305,6 +310,8 @@ export const MasterDashboardPage: React.FC = () => {
                 photo: ''
             });
             setServicePhotoFile(null);
+            setSelectedTags([]);
+            setCustomTags('');
             setIsCreatingService(false);
             setEditingService(null);
         } catch (error) {
@@ -337,6 +344,9 @@ export const MasterDashboardPage: React.FC = () => {
             price: '',
             photo: ''
         });
+        setServicePhotoFile(null);
+        setSelectedTags([]);
+        setCustomTags('');
         setServiceFormError(null);
     };
 
@@ -713,6 +723,58 @@ export const MasterDashboardPage: React.FC = () => {
                                         }}
                                         placeholder="https://example.com/photo.jpg"
                                         disabled={!!servicePhotoFile}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label>Категории (тэги)</label>
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <div style={{ fontSize: '0.875rem', color: '#858585', marginBottom: '0.5rem' }}>
+                                        Выберите основные категории:
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                        {CATEGORIES.map((category) => (
+                                            <label
+                                                key={category.id}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.5rem',
+                                                    cursor: 'pointer',
+                                                    padding: '0.5rem 1rem',
+                                                    border: '1px solid #ddd',
+                                                    borderRadius: '8px',
+                                                    backgroundColor: selectedTags.includes(category.title) ? '#e3f2fd' : '#fff',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedTags.includes(category.title)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setSelectedTags(prev => [...prev, category.title]);
+                                                        } else {
+                                                            setSelectedTags(prev => prev.filter(t => t !== category.title));
+                                                        }
+                                                    }}
+                                                />
+                                                <span>{category.title}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: '0.875rem', color: '#858585', marginBottom: '0.5rem' }}>
+                                        Или добавьте свои тэги (через запятую):
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={customTags}
+                                        onChange={(e) => setCustomTags(e.target.value)}
+                                        placeholder="Например: маникюр, педикюр, наращивание"
+                                        style={{ width: '100%' }}
                                     />
                                 </div>
                             </div>
