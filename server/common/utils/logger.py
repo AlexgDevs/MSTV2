@@ -21,4 +21,4 @@ logging.basicConfig(
 logger = logging.getLogger("mstv2")
 
 logging.getLogger("sqlalchemy.engine").setLevel(
-    logging.WARNING) 
+    logging.WARNING)

@@ -107,7 +107,7 @@ class EnrollRepository:
             select(ServiceEnroll)
             .where(
                 ServiceEnroll.service_date_id == service_date_id,
-                ServiceEnroll.user_id,
+                ServiceEnroll.user_id == user_id,
                 ServiceEnroll.slot_time == slot_time)
         )
 

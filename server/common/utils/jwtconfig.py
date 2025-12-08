@@ -99,13 +99,13 @@ class CookieManager:
     async def set_custom_cookies(
             response: Response,
             access_token: str,
-            refresh_token: str,):
+            refresh_token: str):
 
-        access_max_age = int(ACCESS_EXPIRE) * 24 * 60 * \
-            60 if ACCESS_EXPIRE else 3600
+        access_max_age = (int(ACCESS_EXPIRE) * 24 * 60 * 60
+                          if ACCESS_EXPIRE else 3600)
 
-        refresh_max_age = int(REFRESH_EXPIRE) * 24 * 60 * \
-            60 if REFRESH_EXPIRE else 604800
+        refresh_max_age = (int(REFRESH_EXPIRE) * 24 * 60 * 60
+                           if REFRESH_EXPIRE else 604800)
 
         response.set_cookie(
             key="access_token",
@@ -132,8 +132,8 @@ class CookieManager:
             response: Response,
             access_token: str):
 
-        access_max_age = int(ACCESS_EXPIRE) * 24 * 60 * \
-            60 if ACCESS_EXPIRE else 3600
+        access_max_age = (int(ACCESS_EXPIRE) * 24 * 60 * 60
+                          if ACCESS_EXPIRE else 3600)
 
         response.set_cookie(
             key="access_token",
@@ -168,7 +168,6 @@ class JWTManager:
         refresh_token = request.cookies.get('refresh_token')
         if access_token or refresh_token:
             await Exceptions403.alredy_loggined()
-
 
     @staticmethod
     async def current_user(request: Request, is_admin: bool = False):

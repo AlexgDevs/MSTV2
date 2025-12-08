@@ -1,5 +1,6 @@
 from fastapi import HTTPException, status
 
+
 class NotFoundException404:
     @staticmethod
     async def user_not_found():

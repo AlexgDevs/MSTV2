@@ -3,7 +3,7 @@ from asyncio import run
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from server import (
-    master_app, 
+    master_app,
     db_config
 )
 
@@ -11,14 +11,13 @@ app = FastAPI(description='mstv2 api')
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"], 
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
-    allow_methods=["*"],  
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
 app.include_router(master_app)
-
 
 
 @app.get('/')
@@ -28,6 +27,7 @@ async def say_title():
 
 async def start_db():
     await db_config.up()
+
 
 if __name__ == '__main__':
     run(start_db())

@@ -165,7 +165,7 @@ class ServiceUseCase:
         except SQLAlchemyError as e:
             await self._session.rollback()
             logger.error('error', f'failed updating service: {str(e)}')
-            return {'status': 'failed updating service', 'detail': {str(e)}}
+            return {'status': 'failed updating service', 'detail': str(e)}
 
     async def delete_service(
         self,

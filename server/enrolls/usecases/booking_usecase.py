@@ -81,7 +81,7 @@ class BookingUseCase:
     ):
 
         existing = await self._enroll_repository.get_by_slot_service_date_user_id(
-            user_id, enroll_data.service_date_id, enroll_data.slot_time)
+            enroll_data.service_date_id, user_id, enroll_data.slot_time)
 
         if existing and existing.status == 'cancelled':
             if await self._check_slot_availability(enroll_data.service_date_id, enroll_data.slot_time):
@@ -137,7 +137,7 @@ class BookingUseCase:
     async def cancel_book(
             self,
             enroll_id: int,
-            user_id: int,
+            user_id: int
     ):
         exiting = await self._enroll_repository.get_by_enroll_user_id(
             enroll_id,
@@ -188,16 +188,12 @@ class BookingUseCase:
         service_owner_id: int,
         action: str
     ):
-        """
-        Изменяет статус записи (accept/reject).
-        action: 'accept' -> confirmed, 'reject' -> cancelled
-        """
+
         enroll = await self._enroll_repository.get_by_id(enroll_id)
 
         if not enroll:
             return {'status': 'failed', 'detail': 'enroll not found'}
 
-        # Проверяем, что пользователь является владельцем услуги
         service = await self._session.scalar(
             select(Service).where(Service.id == enroll.service_id)
         )
@@ -208,16 +204,14 @@ class BookingUseCase:
         if service.user_id != service_owner_id:
             return {'status': 'failed', 'detail': 'permission denied'}
 
-        # Проверяем, что статус pending
         if enroll.status != 'pending':
             return {'status': 'failed', 'detail': f'enroll status is {enroll.status}, only pending can be changed'}
 
-        # Определяем новый статус
         if action == 'accept':
             new_status = 'confirmed'
         elif action == 'reject':
             new_status = 'cancelled'
-            # При отклонении освобождаем слот
+
             date = await self._service_date_repository.get_by_id(enroll.service_date_id)
             if date:
                 new_slots = date.slots.copy()
@@ -229,7 +223,6 @@ class BookingUseCase:
         try:
             await self._session.merge(ServiceEnroll(id=enroll_id, status=new_status))
             await self._session.commit()
-            # Обновляем объект enroll для возврата
             updated_enroll = await self._enroll_repository.get_by_id(enroll_id)
             return updated_enroll
         except SQLAlchemyError as e:
@@ -242,7 +235,7 @@ class BookingUseCase:
 def get_booking_usecase(
     session: AsyncSession = Depends(db_config.session),
     enroll_repository: EnrollRepository = Depends(get_enroll_repository),
-    service_date_repository:  ServiceDateRepository = Depends(
+    service_date_repository: ServiceDateRepository = Depends(
         get_service_date_repository)
 ) -> BookingUseCase:
     return BookingUseCase(

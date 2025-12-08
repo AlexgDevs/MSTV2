@@ -5,3 +5,7 @@ from .user import (
     LoginUserModel,
     PatchUserModel
 )
+
+from .email_code import (
+    VerifiedEmailCodeModel
+)

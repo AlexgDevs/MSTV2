@@ -49,8 +49,7 @@ async def get_service_by_id(
 @service_app.get('/detail/{service_id}',
                  response_model=DetailServiceResponse,
                  summary='get detail service',
-                 description='endpoint for getting detail service'
-                 )
+                 description='endpoint for getting detail service')
 async def get_detail_service(
     service_id: int,
     user=Depends(JWTManager.auth_required),
@@ -114,14 +113,14 @@ async def create_service(
             import json
             existing_tags_list = json.loads(
                 existing_tags) if existing_tags else []
-        except:
+        except Exception:
             existing_tags_list = []
 
     if custom_tags:
         try:
             import json
             custom_tags_list = json.loads(custom_tags) if custom_tags else []
-        except:
+        except Exception:
             custom_tags_list = []
 
     exiting = await service_usecase.create_service(
@@ -184,8 +183,7 @@ async def patch_update_service(
 
 
 @service_app.get('/by/{category_name}',
-                 response_model=List[ServiceResponse]
-                 )
+                 response_model=List[ServiceResponse])
 async def get_by_category(
     category_name: str,
     service_repo: ServiceRepository = Depends(get_service_repository)

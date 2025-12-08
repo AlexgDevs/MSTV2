@@ -19,10 +19,11 @@ from ..schemas import (
     CreateServiceDate
 )
 
+
 class ServiceDateRepository:
     def __init__(
-        self,
-        session: AsyncSession) -> None:
+            self,
+            session: AsyncSession) -> None:
 
         self._session = session
 
@@ -31,7 +32,7 @@ class ServiceDateRepository:
             select(ServiceDate)
         )
 
-        return dates.all() 
+        return dates.all()
 
     async def get_all_by_service_id(
         self,
@@ -47,7 +48,7 @@ class ServiceDateRepository:
 
     async def get_by_id(
         self,
-        service_date_id: int 
+        service_date_id: int
     ):
 
         service_date = await self._session.scalar(
@@ -61,14 +62,14 @@ class ServiceDateRepository:
         self,
         service_date_data: CreateServiceDate
     ):
-
-    
         new_date = ServiceDate(**service_date_data.model_dump())
         self._session.add(new_date)
         await self._session.flush()
         return new_date
 
+
 service_date_repository_exemplar = ServiceDateRepository(db_config.session)
+
 
 def get_service_date_repository(
     session: AsyncSession = Depends(db_config.session)

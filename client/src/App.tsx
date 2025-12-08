@@ -4,6 +4,7 @@ import { useAuthStore } from './stores/auth.store';
 import { Layout } from './components/layout/Layout';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
+import { VerifyEmailPage } from './pages/auth/VerifyEmailPage';
 import { HomePage } from './pages/HomePage';
 import { ProfilePage } from './pages/profile/ProfilePage';
 import { MasterDashboardPage } from './pages/master/MasterDashboardPage';
@@ -75,6 +76,12 @@ function App() {
             <PublicRoute>
               <RegisterPage />
             </PublicRoute>
+          } />
+
+          <Route path="/auth/verify-email" element={
+            <ProtectedRoute>
+              <VerifyEmailPage />
+            </ProtectedRoute>
           } />
           
           {/* Protected routes */}

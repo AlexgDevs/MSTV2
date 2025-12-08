@@ -121,11 +121,11 @@ class DatesInteractionTemplates:
             except SQLAlchemyError as e:
                 await self._session.rollback()
                 failed += 1
-                logger(
+                logger.error(
                     'error', f'failed creating date with template, detail: {str(e)}')
                 continue
 
-        return {'status': 'created', 'succes': len(completed_templates), 'failed': failed}
+        return {'status': 'created', 'success': len(completed_templates), 'failed': failed}
 
     async def _create_date_with_template(
         self,

@@ -28,7 +28,8 @@ class SimpleUserService(BaseModel):
 class SimpleServiceEnroll(BaseModel):
     id: int
     slot_time: str
-    status: Literal['pending', 'confirmed', 'completed', 'cancelled', 'expired']
+    status: Literal['pending', 'confirmed',
+                    'completed', 'cancelled', 'expired']
     price: int
     service_id: int
     service_date_id: int
@@ -51,7 +52,6 @@ class CreateUserModel(BaseModel):
     name: str
     password: str
     email: str
-    verified_token: str
     about: str | None = None
 
 
@@ -82,11 +82,10 @@ class DetailUserResponse(BaseModel):
     name: str
     email: str
     role: Literal['user', 'admin', 'moderator']
-    templates: List[SimpleUserScheduleTemplate] 
+    templates: List[SimpleUserScheduleTemplate]
     services: List[SimpleUserService]
-    services_enroll: List[SimpleServiceEnroll] 
+    services_enroll: List[SimpleServiceEnroll]
     tags: List[SimpleUserTag]
 
     class Config:
         from_attributes = True
-

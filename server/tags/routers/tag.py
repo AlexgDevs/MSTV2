@@ -35,6 +35,6 @@ async def create_tag(
     )
 
     if isinstance(new_tag, dict):
-        Exceptions400.creating_error(str(new_tag.get('detail', 'error')))
+        await Exceptions400.creating_error(str(new_tag.get('detail', 'error')))
 
     return {'status': 'created'}

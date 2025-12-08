@@ -41,7 +41,6 @@ export interface CreateUserModel {
     name: string;
     password: string;
     email: string;
-    verified_token: string;
     about?: string | null;
 }
 

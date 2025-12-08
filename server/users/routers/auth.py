@@ -13,11 +13,18 @@ from passlib.context import CryptContext
 from ...common.utils import (
     CookieManager,
     JWTManager,
-    TokenFactory
+    TokenFactory,
+    email_verfification_obj
 )
+
 from ...common.utils.exceptions import Exceptions400, NotFoundException404
 from ..repositories import UserRepository, get_user_repository
-from ..schemas import CreateUserModel, LoginUserModel
+from ..schemas import (
+    CreateUserModel, 
+    LoginUserModel,
+    VerifiedEmailCodeModel
+)
+
 from ..usecases import (
     UserUseCase,
     get_user_use_case
@@ -40,9 +47,12 @@ async def registered_user(
 ) -> dict:
     user_exit = user_data.model_dump()
     user_exit['password'] = pwd_context.hash(user_data.password)
-    new_user = await user_use_case.create_user(CreateUserModel(**user_exit))
+    verifi_code = await email_verfification_obj.create_enter_code()
+    new_user = await user_use_case.create_user(CreateUserModel(**user_exit), verifi_code)
     if isinstance(new_user, dict):
         await Exceptions400.creating_error(str(new_user.get('detail')))
+
+    email_verfification_obj.send_verification_code(new_user.email, new_user.verified_code)
 
     user_token_data = {
         'id': new_user.id,
@@ -106,7 +116,8 @@ async def token(
         'tokens': {
             'access': access_token,
             'refresh': refresh_token
-        }}
+        }
+    }
 
 
 @auth_app.post('/refresh',
@@ -118,10 +129,12 @@ async def refresh_access_token(
 
     new_access_token = await TokenFactory.access_by_refresh(refresh_token)
     await CookieManager.set_access(response, new_access_token)
-    return {'status': 'refreshed',
-            'tokens': {
-                'access': new_access_token
-            }}
+    return {
+        'status': 'refreshed',
+        'tokens': {
+            'access': new_access_token
+        }
+    }
 
 
 @auth_app.get('/check',
@@ -136,3 +149,23 @@ async def check_auth_status(user=Depends(JWTManager.auth_required)):
 async def logout(response: Response, is_auth=Depends(JWTManager.auth_required)):
     await CookieManager.delete_cookies(response)
     return {'status': 'cookies deleted'}
+
+
+@auth_app.post('/verified_email',
+summary='verfifed email',
+description='endpoint for verifing code to email'
+)
+async def verified_email(
+    enter_code: VerifiedEmailCodeModel,
+    user = Depends(JWTManager.auth_required),
+    user_usecase: UserUseCase = Depends(get_user_use_case)
+):
+    exiting = await user_usecase.success_email_verification(
+        int(user.get('id')),
+        enter_code.code
+    )
+
+    if isinstance(exiting, dict):
+        await Exceptions400.creating_error(str(exiting.get('detail')))
+
+    return {'status': 'verifed success'}

@@ -71,8 +71,8 @@ class UserRepository:
         )
         return user
 
-    async def create_user(self, user_data: CreateUserModel) -> User:
-        new_user = User(**user_data.model_dump())
+    async def create_user(self, user_data: CreateUserModel, verifi_code: str) -> User:
+        new_user = User(**user_data.model_dump(), verified_code=verifi_code)
         self._session.add(new_user)
         await self._session.flush()
         return new_user
@@ -89,7 +89,6 @@ class UserRepository:
         await self._session.flush()
         await self._session.refresh(updating_user)
         return updating_user
-
 
 
 def get_user_repository(
