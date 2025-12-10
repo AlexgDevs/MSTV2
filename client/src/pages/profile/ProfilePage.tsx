@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../../stores/auth.store';
 import '../../assets/styles/ProfilePage.css'
 
@@ -84,28 +84,9 @@ export const ProfilePage: React.FC = () => {
         setFeedback(null);
     };
 
-    const serviceTitleMap = useMemo(() => {
-        const map = new Map<number, string>();
-        user?.services?.forEach(service => {
-            map.set(service.id, service.title);
-        });
-        return map;
-    }, [user?.services]);
-
     const bookings = user?.services_enroll ?? [];
 
-    const formatSlotTime = (value: string) => {
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) {
-            return value;
-        }
-        return date.toLocaleString('ru-RU', {
-            day: '2-digit',
-            month: 'long',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
+    // formatSlotTime больше не нужен, так как slot_time - это просто время (например "14:00")
 
     if (!user) {
         return null;
@@ -266,17 +247,46 @@ export const ProfilePage: React.FC = () => {
                             ) : (
                                 <div className="bookings-list">
                                     {bookings.map(enroll => {
-                                        const title =
-                                            serviceTitleMap.get(enroll.service_id) ||
-                                            `Услуга #${enroll.service_id}`;
                                         const status = statusVariants[enroll.status] || statusVariants.pending;
+                                        const serviceTitle = enroll.service?.title || `Услуга #${enroll.service_id}`;
+                                        const serviceDescription = enroll.service?.description || '';
+                                        const serviceAuthor = enroll.service?.user?.name || 'Неизвестный автор';
+                                        
+                                        // Форматируем дату для отображения
+                                        const formatDate = (dateString: string | null | undefined): string => {
+                                            if (!dateString) return '';
+                                            try {
+                                                // Парсим формат dd-mm-YYYY
+                                                const [day, month, year] = dateString.split('-');
+                                                if (day && month && year) {
+                                                    return `${day}.${month}.${year}`;
+                                                }
+                                                return dateString;
+                                            } catch {
+                                                return dateString;
+                                            }
+                                        };
+                                        
+                                        const formattedDate = formatDate(enroll.date);
+                                        const dateTimeDisplay = formattedDate 
+                                            ? `${formattedDate}, ${enroll.slot_time}` 
+                                            : enroll.slot_time;
 
                                         return (
                                             <div key={enroll.id} className="booking-item">
                                                 <div className="booking-info">
-                                                    <p className="booking-time">{formatSlotTime(enroll.slot_time)}</p>
-                                                    <h3 className="booking-title">{title}</h3>
-                                                    <p className="booking-meta">Дата записи #{enroll.service_date_id}</p>
+                                                    <p className="booking-time">{dateTimeDisplay}</p>
+                                                    <h3 className="booking-title">{serviceTitle}</h3>
+                                                    {serviceDescription && (
+                                                        <p className="booking-description">
+                                                            {serviceDescription.length > 100 
+                                                                ? `${serviceDescription.substring(0, 100)}...` 
+                                                                : serviceDescription}
+                                                        </p>
+                                                    )}
+                                                    <p className="booking-meta">
+                                                        Мастер: <strong>{serviceAuthor}</strong>
+                                                    </p>
                                                 </div>
                                                 <div className="booking-details">
                                                     <span className={`status-badge ${status.class}`}>

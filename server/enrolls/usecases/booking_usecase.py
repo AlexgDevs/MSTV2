@@ -50,7 +50,16 @@ class BookingUseCase:
         service_date = await self._service_date_repository.get_by_id(service_date_id)
         if not service_date:
             return False
-        return service_date.slots.get(slot_time) == 'available'
+
+        slot_status = service_date.slots.get(slot_time)
+
+        if slot_status != 'available':
+            return False
+
+        if await self._check_date_expire(service_date):
+            return False
+
+        return True
 
     async def _check_user_booking(
         self,
@@ -164,8 +173,17 @@ class BookingUseCase:
 
     async def _check_date_expire(self, date_obj: ServiceDate) -> bool:
         if isinstance(date_obj.date, str):
-            service_date = datetime.strptime(date_obj.date, "%Y-%m-%d").date()
+            try:
+                service_date = datetime.strptime(
+                    date_obj.date, "%d-%m-%Y").date()
+            except ValueError:
+                try:
+                    service_date = datetime.strptime(
+                        date_obj.date, "%Y-%m-%d").date()
+                except ValueError:
+                    return False  
             return service_date < date.today()
+        return False
 
     async def _mark_status_break(self, date_obj: ServiceDate):
         update_date = {time: 'break' for time in date_obj.slots}

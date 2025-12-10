@@ -10,6 +10,9 @@ import { ProfilePage } from './pages/profile/ProfilePage';
 import { MasterDashboardPage } from './pages/master/MasterDashboardPage';
 import { ServiceDetailPage } from './pages/services/ServiceDetailPage';
 import { ServicesPage } from './pages/services/ServicesPage';
+import { PrivacyPolicyPage } from './pages/legal/PrivacyPolicyPage';
+import { TermsOfServicePage } from './pages/legal/TermsOfServicePage';
+import { AboutPage } from './pages/legal/AboutPage';
 
 // Компонент-обертка для инициализации auth
 const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -71,6 +74,11 @@ function App() {
           
 
           <Route path="/services/:serviceId" element={<ServiceDetailPage />} />
+
+          {/* Legal pages - доступны без авторизации */}
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsOfServicePage />} />
+          <Route path="/about" element={<AboutPage />} />
 
           <Route path="/auth/register" element={
             <PublicRoute>

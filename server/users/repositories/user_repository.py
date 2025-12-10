@@ -9,6 +9,7 @@ from server.users.schemas.user import PatchUserModel
 from ...common.db import (
     AsyncSession,
     User,
+    Service,
     db_config,
     joinedload,
     select,
@@ -52,7 +53,10 @@ class UserRepository:
             .options(
                 selectinload(User.templates),
                 selectinload(User.services),
-                selectinload(User.services_enroll),
+                selectinload(User.services_enroll).selectinload(
+                    ServiceEnroll.service).selectinload(Service.user),
+                selectinload(User.services_enroll).selectinload(
+                    ServiceEnroll.service_date),
                 selectinload(User.tags)
             )
         )

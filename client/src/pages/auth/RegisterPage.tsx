@@ -12,6 +12,8 @@ export const RegisterPage: React.FC = () => {
     });
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [agreeToTerms, setAgreeToTerms] = useState(false);
+    const [agreeToPrivacy, setAgreeToPrivacy] = useState(false);
 
     const { register, isAuthenticated, isLoading: isAuthLoading } = useAuthStore();
     const navigate = useNavigate();
@@ -44,6 +46,17 @@ export const RegisterPage: React.FC = () => {
 
         if (formData.password.length < 6) {
             setError('Пароль должен быть не менее 6 символов');
+            return;
+        }
+
+        // Проверка согласия на обработку персональных данных
+        if (!agreeToPrivacy) {
+            setError('Необходимо согласие на обработку персональных данных');
+            return;
+        }
+
+        if (!agreeToTerms) {
+            setError('Необходимо принять пользовательское соглашение');
             return;
         }
 
@@ -169,9 +182,47 @@ export const RegisterPage: React.FC = () => {
                                 />
                             </div>
 
+                            <div className="auth-form-group">
+                                <div className="auth-checkbox-group">
+                                    <input
+                                        id="agreeToPrivacy"
+                                        type="checkbox"
+                                        checked={agreeToPrivacy}
+                                        onChange={(e) => setAgreeToPrivacy(e.target.checked)}
+                                        required
+                                        className="auth-checkbox"
+                                    />
+                                    <label htmlFor="agreeToPrivacy" className="auth-checkbox-label">
+                                        Я согласен на{' '}
+                                        <Link to="/privacy" target="_blank" className="auth-link-inline">
+                                            обработку персональных данных
+                                        </Link>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="auth-form-group">
+                                <div className="auth-checkbox-group">
+                                    <input
+                                        id="agreeToTerms"
+                                        type="checkbox"
+                                        checked={agreeToTerms}
+                                        onChange={(e) => setAgreeToTerms(e.target.checked)}
+                                        required
+                                        className="auth-checkbox"
+                                    />
+                                    <label htmlFor="agreeToTerms" className="auth-checkbox-label">
+                                        Я принимаю{' '}
+                                        <Link to="/terms" target="_blank" className="auth-link-inline">
+                                            пользовательское соглашение
+                                        </Link>
+                                    </label>
+                                </div>
+                            </div>
+
                             <button
                                 type="submit"
-                                disabled={isLoading}
+                                disabled={isLoading || !agreeToPrivacy || !agreeToTerms}
                                 className="auth-form-button"
                             >
                                 {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}

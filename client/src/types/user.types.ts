@@ -19,6 +19,18 @@ export interface SimpleUserService {
     created_at: string; // Date в JSON приходит как string
 }
 
+export interface SimpleServiceAuthor {
+    id: number;
+    name: string;
+}
+
+export interface SimpleServiceInfo {
+    id: number;
+    title: string;
+    description: string;
+    user: SimpleServiceAuthor;
+}
+
 export interface SimpleServiceEnroll {
     id: number;
     slot_time: string;
@@ -26,6 +38,8 @@ export interface SimpleServiceEnroll {
     price: number;
     service_id: number;
     service_date_id: number;
+    date?: string | null; // Дата записи (формат: dd-mm-YYYY)
+    service?: SimpleServiceInfo | null; // Информация об услуге
 }
 
 export interface SimpleUserTag {
@@ -69,6 +83,7 @@ export interface DetailUserResponse {
     id: number;
     name: string;
     email: string;
+    about: string | null;
     role: 'user' | 'admin' | 'moderator';
     templates: SimpleUserScheduleTemplate[];
     services: SimpleUserService[];
