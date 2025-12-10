@@ -1,8 +1,10 @@
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
+from time import strptime
 from typing import List, Dict
 
 from dotenv.main import logger
 from fastapi import Depends
+from sqlalchemy import update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import session
 
@@ -47,7 +49,7 @@ class ServiceDateUseCase:
         user_id: int,
         service_date_data: CreateServiceDate
     ) -> ServiceDate | dict:
-        # soon check date if есть то выкидываем
+
         service = await self._session.scalar(
             select(Service)
             .where(
@@ -69,6 +71,81 @@ class ServiceDateUseCase:
             logger.error(
                 'error', f'failed creating service date, detail: {str(e)}')
             return {'status': 'failed creating service date', 'detail': str(e)}
+
+    async def _check_date_exipire(self, date_obj: ServiceDate):
+        if isinstance(date_obj, ServiceDate):
+            if isinstance(date_obj.date, str):
+                try:
+                    service_date = datetime.strptime(
+                        date_obj.date, "%d-%m-%Y").date()
+                except ValueError:
+                    try:
+                        service_date = datetime.strptime(
+                            date_obj.date, "%Y-%m-%d").date()
+                    except ValueError:
+                        return False
+                return service_date < date.today()
+
+        return False
+
+    async def expire_all_dates_slots(self) -> dict:
+        try:
+            all_dates = await self._service_date_repo.get_all()
+            expired_dates = []
+
+            for date_obj in all_dates:
+                if await self._check_date_exipire(date_obj):
+                    updated_slots = {
+                        time: 'break' for time in date_obj.slots.keys()
+                    }
+                    expired_dates.append({
+                        'id': date_obj.id,
+                        'slots': updated_slots
+                    })
+
+            if expired_dates:
+                for expired_date in expired_dates:
+                    stmt = (
+                        update(ServiceDate)
+                        .where(ServiceDate.id == expired_date['id'])
+                        .values(slots=expired_date['slots'])
+                    )
+                    await self._session.execute(stmt)
+
+                await self._session.commit()
+
+                return {
+                    'status': 'success',
+                    'expired_dates_count': len(expired_dates),
+                    'expired_ids': [d['id'] for d in expired_dates]
+                }
+
+            return {
+                'status': 'success',
+                'expired_dates_count': 0,
+                'message': 'No expired dates found'
+            }
+
+        except SQLAlchemyError as e:
+            await self._session.rollback()
+            logger.error(
+                'error', f'failed expiring dates slots, detail: {str(e)}')
+            return {'status': 'failed', 'detail': str(e)}
+
+    async def check_all_dates_slots_at_expire(self):
+        dates = await self._service_date_repo.get_all()
+        date_meta = {}
+        expired_count = 0
+
+        for date_obj in dates:
+            if await self._check_date_exipire(date_obj):
+                expired_count += 1
+                date_meta['expire'] = str(date_obj.service_id)
+
+        return {
+            'expired_count': expired_count,
+            'meta': date_meta
+        }
 
 
 class DatesInteractionTemplates:
