@@ -5,14 +5,15 @@ from typing import List, Literal
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
-    relationship
+    relationship,
 )
 from sqlalchemy.ext.associationproxy import association_proxy
 
 from sqlalchemy import (
     String,
     DateTime,
-    ForeignKey
+    ForeignKey,
+    Index
 )
 
 from .. import Base
@@ -20,9 +21,13 @@ from .. import Base
 
 class ServiceEnroll(Base):
     __tablename__ = 'service_enrolls'
+    __table_args__ = (
+    Index('ux_service_enrolls_date_slot', 'service_date_id', 'slot_time', unique=True),
+)
+
     slot_time: Mapped[str]
     status: Mapped[Literal['pending', 'confirmed', 'completed',
-                           'cancelled', 'expired']] = mapped_column(default='pending')
+                        'cancelled', 'expired']] = mapped_column(default='pending')
     price: Mapped[int]
     created_at: Mapped[DateTime] = mapped_column(
         DateTime, default=datetime.now(timezone.utc))

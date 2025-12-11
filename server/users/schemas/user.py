@@ -18,7 +18,9 @@ class SimpleUserScheduleTemplate(BaseModel):
 class SimpleUserService(BaseModel):
     id: int
     title: str
+    description: str
     price: int
+    photo: str | None = None
     created_at: datetime
 
     class Config:
