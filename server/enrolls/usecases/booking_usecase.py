@@ -1,9 +1,10 @@
 from datetime import datetime, date
 from typing import List
+import re
 
 from dotenv.main import logger
 from fastapi import Depends
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.orm import session
 
 from ..repositories import (
@@ -41,16 +42,35 @@ class BookingUseCase:
         self._session = session
         self._enroll_repository = enroll_repository
         self._service_date_repository = service_date_repository
+        self._slot_time_pattern = re.compile(r"^(?:[01]\d|2[0-3]):[0-5]\d$")
+
+    def _is_valid_slot_time_format(self, slot_time: str) -> bool:
+        return bool(self._slot_time_pattern.match(slot_time))
 
     async def _check_slot_availability(
         self,
         service_date_id: int,
         slot_time: str
     ) -> bool:
+        if not self._is_valid_slot_time_format(slot_time):
+            return False
+
         service_date = await self._service_date_repository.get_by_id(service_date_id)
         if not service_date:
             return False
-        return service_date.slots.get(slot_time) == 'available'
+
+        if slot_time not in service_date.slots:
+            return False
+
+        slot_status = service_date.slots.get(slot_time)
+
+        if slot_status != 'available':
+            return False
+
+        if await self._check_date_expire(service_date):
+            return False
+
+        return True
 
     async def _check_user_booking(
         self,
@@ -79,65 +99,85 @@ class BookingUseCase:
         user_id: int,
         enroll_data: CreateEnrollModel
     ):
+        try:
+            if not self._is_valid_slot_time_format(enroll_data.slot_time):
+                return {'status': 'failed creating enroll', 'detail': 'invalid slot time'}
 
-        existing = await self._enroll_repository.get_by_slot_service_date_user_id(
-            user_id, enroll_data.service_date_id, enroll_data.slot_time)
+            async with self._session.begin():
+                date_row = await self._session.scalar(
+                    select(ServiceDate)
+                    .where(ServiceDate.id == enroll_data.service_date_id)
+                    .with_for_update()
+                )
+                if not date_row:
+                    return {'status': 'failed creating enroll', 'detail': 'date not found'}
 
-        if existing and existing.status == 'cancelled':
-            if await self._check_slot_availability(enroll_data.service_date_id, enroll_data.slot_time):
-                await self._session.merge(ServiceEnroll(
-                    id=existing.id,
-                    status='pending',
-                    price=enroll_data.price
-                ))
-                await self._session.commit()
+                if enroll_data.slot_time not in date_row.slots:
+                    return {'status': 'failed creating enroll', 'detail': 'slot not found'}
 
-                date = await self._service_date_repository.get_by_id(enroll_data.service_date_id)
-                new_slots = date.slots.copy()
-                new_slots[enroll_data.slot_time] = 'booked'
-                await self._session.merge(ServiceDate(id=enroll_data.service_date_id, slots=new_slots))
-                await self._session.commit()
-                return date
+                service = await self._session.scalar(
+                    select(Service).where(Service.id == enroll_data.service_id)
+                )
+                if not service:
+                    return {'status': 'failed creating enroll', 'detail': 'service not found'}
+                if service.id != date_row.service_id:
+                    return {'status': 'failed creating enroll', 'detail': 'date does not belong to service'}
+                slot_price = service.price
 
-        if await self.can_book_slot(
-            user_id,
-            enroll_data.service_date_id,
-            enroll_data.slot_time
-        ):
-            date = await self._service_date_repository.get_by_id(
-                enroll_data.service_date_id
-            )
+                if await self._check_date_expire(date_row):
+                    return {'status': 'failed creating enroll', 'detail': 'date expired'}
 
-            if date:
-                try:
-                    new_enroll = await self._enroll_repository.create_enroll(
-                        user_id,
-                        enroll_data
+                slot_status = date_row.slots.get(enroll_data.slot_time)
+                if slot_status != 'available':
+                    return {'status': 'failed creating enroll', 'detail': 'slot not available'}
+
+                existing = await self._enroll_repository.get_by_slot_service_date_user_id(
+                    enroll_data.service_date_id, user_id, enroll_data.slot_time
+                )
+
+                booked_enroll = None
+
+                if existing and existing.status == 'cancelled':
+                    booked_enroll = await self._session.merge(ServiceEnroll(
+                        id=existing.id,
+                        status='pending',
+                        price=slot_price
+                    ))
+                elif existing:
+                    return {'status': 'failed creating enroll', 'detail': 'user already booked this slot'}
+                else:
+                    booked_enroll = ServiceEnroll(
+                        user_id=user_id,
+                        service_id=enroll_data.service_id,
+                        service_date_id=enroll_data.service_date_id,
+                        slot_time=enroll_data.slot_time,
+                        price=slot_price
                     )
+                    self._session.add(booked_enroll)
+                    await self._session.flush()
 
-                    self._session.add(new_enroll)
-                    await self._session.commit()
-                except SQLAlchemyError as e:
-                    await self._session.rollback()
-                    logger.error(
-                        'error', f'failed creating enroll, detail: {str(e)}')
-                    return {'status': 'failed creating enroll', 'detail': str(e)}
-
-                new_slots = date.slots.copy()
+                new_slots = date_row.slots.copy()
                 new_slots[enroll_data.slot_time] = 'booked'
                 await self._session.merge(
                     ServiceDate(
                         id=enroll_data.service_date_id,
                         slots=new_slots))
-                await self._session.commit()
-                return new_enroll
-            return {'status': 'failed creating enroll', 'detail': 'date not found'}
-        return {'status': 'failed creating enroll', 'detail': 'date not available'}
+
+                return booked_enroll
+
+        except IntegrityError:
+            await self._session.rollback()
+            return {'status': 'failed creating enroll', 'detail': 'slot already booked'}
+        except SQLAlchemyError as e:
+            await self._session.rollback()
+            logger.error(
+                'error', f'failed creating enroll, detail: {str(e)}')
+            return {'status': 'failed creating enroll', 'detail': str(e)}
 
     async def cancel_book(
             self,
             enroll_id: int,
-            user_id: int,
+            user_id: int
     ):
         exiting = await self._enroll_repository.get_by_enroll_user_id(
             enroll_id,
@@ -164,8 +204,17 @@ class BookingUseCase:
 
     async def _check_date_expire(self, date_obj: ServiceDate) -> bool:
         if isinstance(date_obj.date, str):
-            service_date = datetime.strptime(date_obj.date, "%Y-%m-%d").date()
+            try:
+                service_date = datetime.strptime(
+                    date_obj.date, "%d-%m-%Y").date()
+            except ValueError:
+                try:
+                    service_date = datetime.strptime(
+                        date_obj.date, "%Y-%m-%d").date()
+                except ValueError:
+                    return False
             return service_date < date.today()
+        return False
 
     async def _mark_status_break(self, date_obj: ServiceDate):
         update_date = {time: 'break' for time in date_obj.slots}
@@ -188,16 +237,12 @@ class BookingUseCase:
         service_owner_id: int,
         action: str
     ):
-        """
-        Изменяет статус записи (accept/reject).
-        action: 'accept' -> confirmed, 'reject' -> cancelled
-        """
+
         enroll = await self._enroll_repository.get_by_id(enroll_id)
 
         if not enroll:
             return {'status': 'failed', 'detail': 'enroll not found'}
 
-        # Проверяем, что пользователь является владельцем услуги
         service = await self._session.scalar(
             select(Service).where(Service.id == enroll.service_id)
         )
@@ -208,16 +253,14 @@ class BookingUseCase:
         if service.user_id != service_owner_id:
             return {'status': 'failed', 'detail': 'permission denied'}
 
-        # Проверяем, что статус pending
         if enroll.status != 'pending':
             return {'status': 'failed', 'detail': f'enroll status is {enroll.status}, only pending can be changed'}
 
-        # Определяем новый статус
         if action == 'accept':
             new_status = 'confirmed'
         elif action == 'reject':
             new_status = 'cancelled'
-            # При отклонении освобождаем слот
+
             date = await self._service_date_repository.get_by_id(enroll.service_date_id)
             if date:
                 new_slots = date.slots.copy()
@@ -229,7 +272,6 @@ class BookingUseCase:
         try:
             await self._session.merge(ServiceEnroll(id=enroll_id, status=new_status))
             await self._session.commit()
-            # Обновляем объект enroll для возврата
             updated_enroll = await self._enroll_repository.get_by_id(enroll_id)
             return updated_enroll
         except SQLAlchemyError as e:
@@ -242,7 +284,7 @@ class BookingUseCase:
 def get_booking_usecase(
     session: AsyncSession = Depends(db_config.session),
     enroll_repository: EnrollRepository = Depends(get_enroll_repository),
-    service_date_repository:  ServiceDateRepository = Depends(
+    service_date_repository: ServiceDateRepository = Depends(
         get_service_date_repository)
 ) -> BookingUseCase:
     return BookingUseCase(

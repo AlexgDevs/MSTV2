@@ -467,6 +467,65 @@
     gap: 0.75rem;
 }
 
+.service-form .file-upload-dropzone {
+    border: 2px dashed #d4d4d4;
+    border-radius: 12px;
+    padding: 16px;
+    background: #fafafa;
+    cursor: pointer;
+    transition: border-color 200ms, background-color 200ms;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.service-form .file-upload-dropzone:hover {
+    border-color: #111827;
+    background: #f5f5f5;
+}
+
+.service-form .file-input-hidden {
+    display: none;
+}
+
+.service-form .file-upload-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.service-form .file-upload-title {
+    font-weight: 600;
+    color: #111827;
+}
+
+.service-form .file-upload-hint {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.service-form .file-preview {
+    margin-top: 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    max-width: 320px;
+    background: #fff;
+}
+
+.service-form .file-preview img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.service-form .file-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .service-form .file-info {
     font-size: 0.875rem;
     color: #737373;
@@ -476,7 +535,6 @@
 }
 
 .service-form .file-remove-btn {
-    margin-left: 0.5rem;
     color: #DC2626;
     cursor: pointer;
     font-size: 0.875rem;

@@ -3,14 +3,11 @@ from . import app
 from ...common.db import db_config
 from ...dates.repositories import (
     ServiceDateRepository,
-    service_date_repository_exemplar
 )
 from ...scheduletemplates.repositories import (
     ScheduleTemplateRepository,
-    schedule_template_repository_exemplar
 )
 from ...dates.usecases.service_date_usecase import DatesInteractionTemplates
-
 
 @app.task
 def generate_all_dates_schedule():

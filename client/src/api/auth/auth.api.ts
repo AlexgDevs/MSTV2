@@ -59,4 +59,8 @@ export const authApi = {
     // PATCH /api/v1/users/me
     updateMe: (data: PatchUserModel) =>
         API.patch('/users/me', data),
+
+    // POST /api/v1/auth/verified_email
+    verifyEmail: (data: { code: string }) =>
+        API.post<{ status: string }>('/auth/verified_email', data),
 };

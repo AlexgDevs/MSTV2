@@ -29,7 +29,8 @@ class UserUseCase:
 
     async def create_user(
         self,
-        user_data: CreateUserModel
+        user_data: CreateUserModel,
+        verifi_code: str
     ) -> User | dict:
         existing_user = await self._user_repository.get_by_name(user_data.name)
         if existing_user:
@@ -40,7 +41,7 @@ class UserUseCase:
             return {'status': 'failed created user', 'detail': 'User with this email already exists'}
 
         try:
-            user = await self._user_repository.create_user(user_data)  # f
+            user = await self._user_repository.create_user(user_data, verifi_code)  # f
             await self._session.commit()  # c f+c = rtrn
             return user
         except SQLAlchemyError as e:
@@ -75,6 +76,28 @@ class UserUseCase:
             await self._session.rollback()
             logger.error('error', f'failed patch update user: {str(e)}')
             return {'status': 'failed update user', 'detail': str(e)}
+
+    async def success_email_verification(
+        self,
+        user_id: int,
+        verified_code: str
+    ) -> User | dict:
+
+        user = await self._user_repository.get_by_id(user_id)
+        if not user:
+            return {'status': 'failed verified emaild', 'detail': 'user not found'}
+
+        if user.verified_code != verified_code:
+            return {'status': 'failed verified emaild', 'detail': 'invalid code action'}
+
+        try:
+            new_user = User(id=user_id, verified_code=None, verified_email=True)
+            await self._session.merge(new_user)
+            await self._session.commit()
+            return new_user
+        except SQLAlchemyError as e:
+            logger.error('error', f'invalid verifed email, detail: {str(e)}')
+            return {'status': 'failed verified emaild', 'detail': 'invalid code action'}
 
 
 def get_user_use_case(

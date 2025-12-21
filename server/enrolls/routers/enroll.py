@@ -15,14 +15,14 @@ from ...common.utils import (
     NotFoundException404,
     Exceptions403
 )
+
 enroll_app = APIRouter(prefix='/enrolls', tags=['Enrolls'])
 
 
 @enroll_app.post('/',
                  status_code=status.HTTP_201_CREATED,
                  summary='enroll user',
-                 description='endpoint for enrolling user'
-                 )
+                 description='endpoint for enrolling user')
 async def create_enroll(
     enroll_data: CreateEnrollModel,
     booking_usecase: BookingUseCase = Depends(get_booking_usecase),
@@ -42,8 +42,7 @@ async def create_enroll(
 
 @enroll_app.post('/{enroll_id}/cancel',
                  summary='cancel enroll by id',
-                 description='endpoint for canceling enroll by id'
-                 )
+                 description='endpoint for canceling enroll by id')
 async def cancel_enroll(
     enroll_id: int,
     user=Depends(JWTManager.auth_required),

@@ -12,8 +12,9 @@ TimeSlot = Literal[
 
 Status = Literal["available", "booked", "break", "unavailable"]
 
+
 class CreateServiceDate(BaseModel):
-    date: str #format dd-mm-YYYY
+    date: str  # format dd-mm-YYYY
     slots: Dict[TimeSlot, Status]
     service_id: int
 

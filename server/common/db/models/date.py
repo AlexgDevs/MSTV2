@@ -1,4 +1,4 @@
-from typing import  List
+from typing import List
 
 from sqlalchemy.orm import (
     Mapped,

@@ -32,3 +32,10 @@ class Exceptions403:
             status_code=status.HTTP_403_FORBIDDEN,
             detail='email not verifed'
         )
+
+    @staticmethod
+    async def forbidden():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='forbidden'
+        )

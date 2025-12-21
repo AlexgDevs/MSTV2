@@ -66,7 +66,9 @@ class TagUseCase:
             await self._session.commit()
             return new_tag
         except SQLAlchemyError as e:
+            await self._session.rollback()
             logger.error('error', f'failed creating tag, detail: {e}')
+            return {'status': 'failed creating tag', 'detail': str(e)}
 
 
 def get_tag_usecase(

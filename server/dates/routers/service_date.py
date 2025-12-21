@@ -34,11 +34,12 @@ async def create_service_date(
 
 
 @service_date_app.get('/',
-response_model=List[ServiceDateResponse],
-summary='get all dates',
-description='endpoint for getting all dates')
+                      response_model=List[ServiceDateResponse],
+                      summary='get all dates',
+                      description='endpoint for getting all dates')
 async def get_all_dates(
-    service_date_repo: ServiceDateRepository = Depends(get_service_date_repository)
+    service_date_repo: ServiceDateRepository = Depends(
+        get_service_date_repository)
 ):
     dates = await service_date_repo.get_all()
     return dates

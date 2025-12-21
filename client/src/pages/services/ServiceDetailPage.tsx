@@ -6,6 +6,7 @@ import type { DetailServiceResponse } from '../../api/services/types';
 import { useAuthStore } from '../../stores/auth.store';
 import { cn } from '../../utils/cn';
 import { CheckIcon, XIcon } from '../../components/icons/Icons';
+import { canBookSlot, validateBookingData, isValidTimeSlot } from '../../utils/bookingValidation';
 import '../../assets/styles/ServiceDetailPage.css';
 
 const priceFormatter = new Intl.NumberFormat('ru-RU', {
@@ -157,9 +158,24 @@ export const ServiceDetailPage: React.FC = () => {
         }
     };
 
-    const handleSlotClick = (dateId: number, slotTime: string, status: string) => {
-        if (isOwner) return; // Владелец не может записываться
-        if (status !== 'available') return; // Можно записаться только на доступные слоты
+    const handleSlotClick = (dateId: number, slotTime: string, status: string, dateString?: string) => {
+        if (isOwner) {
+            setBookingError('Владелец услуги не может записываться на свою услугу');
+            return;
+        }
+
+        // Валидация времени слота
+        if (!isValidTimeSlot(slotTime)) {
+            setBookingError('Некорректное время слота');
+            return;
+        }
+
+        // Проверка возможности бронирования (статус и дата)
+        const { canBook, reason } = canBookSlot(status, dateString);
+        if (!canBook) {
+            setBookingError(reason || 'Этот слот недоступен для бронирования');
+            return;
+        }
         
         setBookingSlot({ dateId, slotTime });
         setBookingError(null);
@@ -167,18 +183,37 @@ export const ServiceDetailPage: React.FC = () => {
     };
 
     const handleConfirmBooking = async () => {
-        if (!bookingSlot || !service || !user) return;
+        if (!bookingSlot || !service || !user) {
+            setBookingError('Недостаточно данных для бронирования');
+            return;
+        }
+
+        // Валидация данных перед отправкой
+        const validation = validateBookingData({
+            service_id: service.id,
+            service_date_id: bookingSlot.dateId,
+            slot_time: bookingSlot.slotTime,
+            price: service.price // Отправляем для совместимости, но сервер должен проверять
+        });
+
+        if (!validation.valid) {
+            setBookingError(validation.error || 'Некорректные данные для бронирования');
+            return;
+        }
 
         setIsBooking(true);
         setBookingError(null);
         setBookingSuccess(false);
 
         try {
+            // ВАЖНО: Цена отправляется только для совместимости с текущим API
+            // На сервере должна быть проверка, что цена соответствует цене услуги
+            // Идеально: убрать price из запроса и получать его на сервере из БД
             await enrollsApi.create({
                 service_id: service.id,
                 service_date_id: bookingSlot.dateId,
                 slot_time: bookingSlot.slotTime,
-                price: service.price
+                price: service.price // Сервер должен игнорировать это и брать из БД
             });
             
             setBookingSuccess(true);
@@ -381,19 +416,21 @@ export const ServiceDetailPage: React.FC = () => {
                                                 {Object.entries(dateItem.slots).map(([time, status]) => {
                                                     const isAvailable = status === 'available';
                                                     const isBooked = status === 'booked';
-                                                    const canBook = !isOwner && isAvailable && user;
+                                                    const isBreak = status === 'break';
+                                                    const canBook = !isOwner && isAvailable && !isBreak && user;
                                                     
                                                     return (
                                                         <button
                                                             key={time}
-                                                            onClick={() => handleSlotClick(dateItem.id, time, status)}
+                                                            onClick={() => handleSlotClick(dateItem.id, time, status, dateItem.date)}
                                                             disabled={!canBook}
                                                             className={cn(
                                                                 'service-slot-button',
                                                                 isAvailable && canBook && 'service-slot-available',
                                                                 isAvailable && !canBook && 'service-slot-available',
                                                                 isBooked && 'service-slot-booked',
-                                                                !isAvailable && !isBooked && 'service-slot-unavailable'
+                                                                isBreak && 'service-slot-unavailable',
+                                                                !isAvailable && !isBooked && !isBreak && 'service-slot-unavailable'
                                                             )}
                                                         >
                                                             <span className="slot-time">{time}</span>

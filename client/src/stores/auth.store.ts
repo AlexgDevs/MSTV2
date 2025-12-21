@@ -36,11 +36,21 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
     register: async (data: CreateUserModel) => {
         await authApi.register(data);
-        const response = await authApi.getMe();
-        set({
-            user: response.data,
-            isAuthenticated: true
-        });
+        // После регистрации пользователь авторизован, но email не подтвержден
+        // Получаем данные пользователя для сохранения в стейте
+        try {
+            const response = await authApi.getMe();
+            set({
+                user: response.data,
+                isAuthenticated: true
+            });
+        } catch (error) {
+            // Если не удалось получить данные, все равно считаем авторизованным
+            // так как токены уже установлены
+            set({
+                isAuthenticated: true
+            });
+        }
     },
 
     logout: async () => {
@@ -85,10 +95,15 @@ export const useAuthStore = create<AuthStore>((set) => ({
     },
 
     refreshUser: async () => {
-        const response = await authApi.getMe();
-        set({
-            user: response.data,
-            isAuthenticated: true
-        });
+        try {
+            const response = await authApi.getMe();
+            set({
+                user: response.data,
+                isAuthenticated: true
+            });
+        } catch (error) {
+            // Если не удалось получить данные, проверяем авторизацию
+            await checkAuth();
+        }
     }
 }));

@@ -94,6 +94,7 @@ export const MasterDashboardPage: React.FC = () => {
     const [selectedTags, setSelectedTags] = useState<string[]>([]); // Выбранные основные категории
     const [customTags, setCustomTags] = useState<string>(''); // Новые тэги через запятую
     const [servicePhotoFile, setServicePhotoFile] = useState<File | null>(null);
+    const [servicePhotoPreview, setServicePhotoPreview] = useState<string | null>(null);
     const [serviceFormError, setServiceFormError] = useState<string | null>(null);
     const [isServiceSubmitting, setIsServiceSubmitting] = useState(false);
 
@@ -148,6 +149,15 @@ export const MasterDashboardPage: React.FC = () => {
             setScheduleForm(prev => ({ ...prev, date: weekDays[0].date }));
         }
     }, [services, bookingsServiceFilter, weekDays]);
+
+    useEffect(() => {
+        if (servicePhotoFile) {
+            const objectUrl = URL.createObjectURL(servicePhotoFile);
+            setServicePhotoPreview(objectUrl);
+            return () => URL.revokeObjectURL(objectUrl);
+        }
+        setServicePhotoPreview(serviceForm.photo || null);
+    }, [servicePhotoFile, serviceForm.photo]);
 
     const {
         schedule,
@@ -285,22 +295,29 @@ export const MasterDashboardPage: React.FC = () => {
         try {
             if (editingService) {
                 // Редактирование существующей услуги
-                await servicesApi.update(editingService, {
-                    title: serviceForm.title.trim(),
-                    description: serviceForm.description.trim(),
-                    price,
-                    photo: serviceForm.photo.trim() || null
-                }, servicePhotoFile || undefined);
+                await servicesApi.update(
+                    editingService,
+                    {
+                        title: serviceForm.title.trim(),
+                        description: serviceForm.description.trim(),
+                        price,
+                        photo: serviceForm.photo.trim() || null // если пользователь удалил фото, отправляем null
+                    },
+                    servicePhotoFile || undefined
+                );
             } else {
                 // Создание новой услуги
-                await servicesApi.create({
-                    title: serviceForm.title.trim(),
-                    description: serviceForm.description.trim(),
-                    price,
-                    photo: serviceForm.photo.trim() || '',
-                    existing_tags: selectedTags.length > 0 ? JSON.stringify(selectedTags) : undefined,
-                    custom_tags: customTags.trim() ? JSON.stringify(customTags.split(',').map(t => t.trim()).filter(t => t.length > 0)) : undefined
-                }, servicePhotoFile || undefined);
+                await servicesApi.create(
+                    {
+                        title: serviceForm.title.trim(),
+                        description: serviceForm.description.trim(),
+                        price,
+                        photo: serviceForm.photo.trim() || null,
+                        existing_tags: selectedTags.length > 0 ? JSON.stringify(selectedTags) : undefined,
+                        custom_tags: customTags.trim() ? JSON.stringify(customTags.split(',').map(t => t.trim()).filter(t => t.length > 0)) : undefined
+                    },
+                    servicePhotoFile || undefined
+                );
             }
             await refreshUser();
             setServiceForm({
@@ -333,6 +350,7 @@ export const MasterDashboardPage: React.FC = () => {
         });
         setIsCreatingService(true);
         setServiceFormError(null);
+        setServicePhotoFile(null);
     };
 
     const handleCancelServiceForm = () => {
@@ -677,52 +695,56 @@ export const MasterDashboardPage: React.FC = () => {
                             </div>
 
                             <div className="form-group">
-                                <label>Фото услуги (опционально)</label>
+                                <label>Фото услуги</label>
                                 <div className="file-upload-section">
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (file) {
-                                                // Проверяем размер (4 МБ)
-                                                if (file.size > 4 * 1024 * 1024) {
-                                                    setServiceFormError('Размер файла не должен превышать 4 МБ');
-                                                    return;
+                                    <label className="file-upload-dropzone">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    if (file.size > 4 * 1024 * 1024) {
+                                                        setServiceFormError('Размер файла не должен превышать 4 МБ');
+                                                        return;
+                                                    }
+                                                    setServicePhotoFile(file);
+                                                    setServiceForm(prev => ({ ...prev, photo: '' }));
                                                 }
-                                                setServicePhotoFile(file);
-                                                setServiceForm(prev => ({ ...prev, photo: '' }));
-                                            }
-                                        }}
-                                    />
-                                    {servicePhotoFile && (
-                                        <div className="file-info">
-                                            Выбран файл: {servicePhotoFile.name}
+                                            }}
+                                            className="file-input-hidden"
+                                        />
+                                        <div className="file-upload-content">
+                                            <span className="file-upload-title">Загрузить фотографию</span>
+                                            <span className="file-upload-hint">PNG, JPG до 4 МБ</span>
+                                        </div>
+                                    </label>
+
+                                    {servicePhotoPreview && (
+                                        <div className="file-preview">
+                                            <img src={servicePhotoPreview} alt="Превью услуги" />
+                                        </div>
+                                    )}
+
+                                    {(servicePhotoFile || serviceForm.photo) && (
+                                        <div className="file-actions">
+                                            {servicePhotoFile && (
+                                                <span className="file-info">
+                                                    Выбран файл: {servicePhotoFile.name}
+                                                </span>
+                                            )}
                                             <button
                                                 type="button"
-                                                onClick={() => setServicePhotoFile(null)}
+                                                onClick={() => {
+                                                    setServicePhotoFile(null);
+                                                    setServiceForm(prev => ({ ...prev, photo: '' }));
+                                                }}
                                                 className="file-remove-btn"
                                             >
-                                                Удалить
+                                                Удалить фото
                                             </button>
                                         </div>
                                     )}
-                                    <div className="file-url-label">
-                                        Или введите URL:
-                                    </div>
-                                    <input
-                                        type="url"
-                                        name="photo"
-                                        value={serviceForm.photo}
-                                        onChange={(e) => {
-                                            handleServiceFormChange(e);
-                                            if (e.target.value) {
-                                                setServicePhotoFile(null);
-                                            }
-                                        }}
-                                        placeholder="https://example.com/photo.jpg"
-                                        disabled={!!servicePhotoFile}
-                                    />
                                 </div>
                             </div>
 

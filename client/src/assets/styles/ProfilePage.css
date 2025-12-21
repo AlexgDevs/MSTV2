@@ -415,10 +415,24 @@
     letter-spacing: -0.01em;
 }
 
+.booking-description {
+    color: #737373;
+    font-size: 0.8125rem;
+    font-weight: 400;
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
 .booking-meta {
     color: #737373;
     font-size: 0.75rem;
     font-weight: 400;
+    margin-top: 0.25rem;
+}
+
+.booking-meta strong {
+    color: #0A0A0A;
+    font-weight: 600;
 }
 
 .booking-details {

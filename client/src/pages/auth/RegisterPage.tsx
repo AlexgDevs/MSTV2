@@ -8,11 +8,12 @@ export const RegisterPage: React.FC = () => {
         name: '',
         email: '',
         password: '',
-        confirmPassword: '',
-        verificationToken: ''
+        confirmPassword: ''
     });
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [agreeToTerms, setAgreeToTerms] = useState(false);
+    const [agreeToPrivacy, setAgreeToPrivacy] = useState(false);
 
     const { register, isAuthenticated, isLoading: isAuthLoading } = useAuthStore();
     const navigate = useNavigate();
@@ -48,8 +49,14 @@ export const RegisterPage: React.FC = () => {
             return;
         }
 
-        if (!formData.verificationToken.trim()) {
-            setError('Укажите токен подтверждения, отправленный на почту');
+        // Проверка согласия на обработку персональных данных
+        if (!agreeToPrivacy) {
+            setError('Необходимо согласие на обработку персональных данных');
+            return;
+        }
+
+        if (!agreeToTerms) {
+            setError('Необходимо принять пользовательское соглашение');
             return;
         }
 
@@ -59,10 +66,10 @@ export const RegisterPage: React.FC = () => {
             await register({
                 name: formData.name,
                 email: formData.email,
-                password: formData.password,
-                verified_token: formData.verificationToken
+                password: formData.password
             });
-            navigate('/'); // Редирект на главную после успешной регистрации
+            // Перенаправляем на страницу верификации после успешной регистрации
+            navigate('/auth/verify-email', { replace: true });
         } catch (err: any) {
             const errorMessage = err.response?.data?.detail || 'Ошибка регистрации';
             // Если пользователь уже авторизован (403), редиректим на главную
@@ -176,24 +183,46 @@ export const RegisterPage: React.FC = () => {
                             </div>
 
                             <div className="auth-form-group">
-                                <label htmlFor="verificationToken" className="auth-form-label">
-                                    Токен подтверждения
-                                </label>
-                                <input
-                                    id="verificationToken"
-                                    name="verificationToken"
-                                    type="text"
-                                    value={formData.verificationToken}
-                                    onChange={handleChange}
-                                    required
-                                    placeholder="Из письма после регистрации"
-                                    className="auth-form-input"
-                                />
+                                <div className="auth-checkbox-group">
+                                    <input
+                                        id="agreeToPrivacy"
+                                        type="checkbox"
+                                        checked={agreeToPrivacy}
+                                        onChange={(e) => setAgreeToPrivacy(e.target.checked)}
+                                        required
+                                        className="auth-checkbox"
+                                    />
+                                    <label htmlFor="agreeToPrivacy" className="auth-checkbox-label">
+                                        Я согласен на{' '}
+                                        <Link to="/privacy" target="_blank" className="auth-link-inline">
+                                            обработку персональных данных
+                                        </Link>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="auth-form-group">
+                                <div className="auth-checkbox-group">
+                                    <input
+                                        id="agreeToTerms"
+                                        type="checkbox"
+                                        checked={agreeToTerms}
+                                        onChange={(e) => setAgreeToTerms(e.target.checked)}
+                                        required
+                                        className="auth-checkbox"
+                                    />
+                                    <label htmlFor="agreeToTerms" className="auth-checkbox-label">
+                                        Я принимаю{' '}
+                                        <Link to="/terms" target="_blank" className="auth-link-inline">
+                                            пользовательское соглашение
+                                        </Link>
+                                    </label>
+                                </div>
                             </div>
 
                             <button
                                 type="submit"
-                                disabled={isLoading}
+                                disabled={isLoading || !agreeToPrivacy || !agreeToTerms}
                                 className="auth-form-button"
                             >
                                 {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}

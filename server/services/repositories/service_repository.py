@@ -165,5 +165,4 @@ class ServiceRepository:
 def get_service_repository(
     session: AsyncSession = Depends(db_config.session)
 ) -> ServiceRepository:
-
     return ServiceRepository(session)
