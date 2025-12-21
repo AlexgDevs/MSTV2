@@ -19,4 +19,6 @@ from .email_config import (
     email_verfification_obj
 )
 
+from .rate_limiter_config import RateLimitMiddleware
+
 __all__ = ["logger", "process_to_base64"]

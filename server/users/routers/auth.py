@@ -18,9 +18,10 @@ from ...common.utils import (
 )
 
 from ...common.utils.exceptions import Exceptions400, NotFoundException404
+from ...common.utils.rate_limiter_config import AUTH_RATE_LIMIT, create_rate_limiter
 from ..repositories import UserRepository, get_user_repository
 from ..schemas import (
-    CreateUserModel, 
+    CreateUserModel,
     LoginUserModel,
     VerifiedEmailCodeModel
 )
@@ -42,6 +43,7 @@ pwd_context = CryptContext(schemes=['argon2'], deprecated='auto')
 async def registered_user(
     response: Response,
     user_data: CreateUserModel,
+    limiter=Depends(create_rate_limiter(AUTH_RATE_LIMIT)),
     guest=Depends(JWTManager.not_auth_required),
     user_use_case: UserUseCase = Depends(get_user_use_case)
 ) -> dict:
@@ -52,7 +54,8 @@ async def registered_user(
     if isinstance(new_user, dict):
         await Exceptions400.creating_error(str(new_user.get('detail')))
 
-    email_verfification_obj.send_verification_code(new_user.email, new_user.verified_code)
+    email_verfification_obj.send_verification_code(
+        new_user.email, new_user.verified_code)
 
     user_token_data = {
         'id': new_user.id,
@@ -84,6 +87,7 @@ async def registered_user(
 async def token(
     response: Response,
     user_data: LoginUserModel,
+    limiter=Depends(create_rate_limiter(AUTH_RATE_LIMIT)),
     guest=Depends(JWTManager.not_auth_required),
     user_repository: UserRepository = Depends(get_user_repository),
 ):
@@ -152,12 +156,12 @@ async def logout(response: Response, is_auth=Depends(JWTManager.auth_required)):
 
 
 @auth_app.post('/verified_email',
-summary='verfifed email',
-description='endpoint for verifing code to email'
-)
+               summary='verfifed email',
+               description='endpoint for verifing code to email'
+               )
 async def verified_email(
     enter_code: VerifiedEmailCodeModel,
-    user = Depends(JWTManager.auth_required),
+    user=Depends(JWTManager.auth_required),
     user_usecase: UserUseCase = Depends(get_user_use_case)
 ):
     exiting = await user_usecase.success_email_verification(

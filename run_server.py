@@ -4,10 +4,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from server import (
     master_app,
-    db_config
+    db_config,
+    RateLimitMiddleware
 )
+from server.common.utils.rate_limiter_config import lifespan
 
-app = FastAPI(description='mstv2 api')
+app = FastAPI(description='mstv2 api', lifespan=lifespan)
+
+app.add_middleware(RateLimitMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
