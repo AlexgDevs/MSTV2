@@ -7,6 +7,7 @@ import { useAuthStore } from '../../stores/auth.store';
 import { cn } from '../../utils/cn';
 import { CheckIcon, XIcon } from '../../components/icons/Icons';
 import { canBookSlot, validateBookingData, isValidTimeSlot } from '../../utils/bookingValidation';
+import { PaymentModal } from '../../components/payments/PaymentModal';
 import '../../assets/styles/ServiceDetailPage.css';
 
 const priceFormatter = new Intl.NumberFormat('ru-RU', {
@@ -54,6 +55,8 @@ export const ServiceDetailPage: React.FC = () => {
     const [isBooking, setIsBooking] = useState(false);
     const [bookingError, setBookingError] = useState<string | null>(null);
     const [bookingSuccess, setBookingSuccess] = useState(false);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [createdEnrollId, setCreatedEnrollId] = useState<number | null>(null);
     
     // Состояния для редактирования
     const [isEditing, setIsEditing] = useState(false);
@@ -209,19 +212,24 @@ export const ServiceDetailPage: React.FC = () => {
             // ВАЖНО: Цена отправляется только для совместимости с текущим API
             // На сервере должна быть проверка, что цена соответствует цене услуги
             // Идеально: убрать price из запроса и получать его на сервере из БД
-            await enrollsApi.create({
+            const response = await enrollsApi.create({
                 service_id: service.id,
                 service_date_id: bookingSlot.dateId,
                 slot_time: bookingSlot.slotTime,
                 price: service.price // Сервер должен игнорировать это и брать из БД
             });
             
+            const enrollId = response.data.enroll_id;
+            setCreatedEnrollId(enrollId);
             setBookingSuccess(true);
             setBookingSlot(null);
             
             // Обновляем данные услуги
-            const response = await servicesApi.getDetail(parseInt(serviceId!));
-            setService(response.data);
+            const serviceResponse = await servicesApi.getDetail(parseInt(serviceId!));
+            setService(serviceResponse.data);
+            
+            // Показываем модальное окно для оплаты
+            setShowPaymentModal(true);
             
             // Скрываем сообщение об успехе через 3 секунды
             setTimeout(() => setBookingSuccess(false), 3000);
@@ -237,6 +245,17 @@ export const ServiceDetailPage: React.FC = () => {
         setBookingSlot(null);
         setBookingError(null);
         setBookingSuccess(false);
+    };
+
+    const handlePaymentSuccess = (confirmationUrl: string) => {
+        setShowPaymentModal(false);
+        // Перенаправляем на страницу оплаты ЮKassa
+        window.location.href = confirmationUrl;
+    };
+
+    const handleClosePaymentModal = () => {
+        setShowPaymentModal(false);
+        setCreatedEnrollId(null);
     };
 
     if (loading) {
@@ -633,6 +652,18 @@ export const ServiceDetailPage: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Модальное окно для оплаты */}
+            {showPaymentModal && createdEnrollId && service && (
+                <PaymentModal
+                    isOpen={showPaymentModal}
+                    enrollId={createdEnrollId}
+                    amount={service.price}
+                    serviceName={service.title}
+                    onClose={handleClosePaymentModal}
+                    onSuccess={handlePaymentSuccess}
+                />
+            )}
         </div>
     );
 };

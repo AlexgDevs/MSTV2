@@ -199,6 +199,17 @@ export const MasterDashboardPage: React.FC = () => {
     const [enrolls, setEnrolls] = useState<EnrollResponse[]>([]);
     const [isLoadingEnrolls, setIsLoadingEnrolls] = useState(false);
     const [enrollsError, setEnrollsError] = useState<string | null>(null);
+    const [rejectConfirmModal, setRejectConfirmModal] = useState<{
+        isOpen: boolean;
+        enrollId: number | null;
+        enrollPrice: number;
+        clientName: string;
+    }>({
+        isOpen: false,
+        enrollId: null,
+        enrollPrice: 0,
+        clientName: ''
+    });
 
     // Загрузка записей для выбранной услуги
     useEffect(() => {
@@ -224,7 +235,26 @@ export const MasterDashboardPage: React.FC = () => {
         fetchEnrolls();
     }, [bookingsServiceFilter]);
 
-    const handleProcessEnroll = async (enrollId: number, action: 'accept' | 'reject') => {
+    const handleProcessEnroll = (enrollId: number, action: 'accept' | 'reject') => {
+        // Для отмены показываем модальное окно с предупреждением о возврате денег
+        if (action === 'reject') {
+            const enroll = enrolls.find(e => e.id === enrollId);
+            if (enroll) {
+                setRejectConfirmModal({
+                    isOpen: true,
+                    enrollId: enrollId,
+                    enrollPrice: enroll.price,
+                    clientName: enroll.user?.name || 'Клиент'
+                });
+                return;
+            }
+        }
+        
+        // Для принятия или если enroll не найден - выполняем сразу
+        executeProcessEnroll(enrollId, action);
+    };
+
+    const executeProcessEnroll = async (enrollId: number, action: 'accept' | 'reject') => {
         try {
             await enrollsApi.process(enrollId, action);
             // Обновляем список записей
@@ -234,6 +264,16 @@ export const MasterDashboardPage: React.FC = () => {
             }
             // Обновляем расписание
             await refreshSchedule();
+            
+            // Закрываем модальное окно если было открыто
+            if (rejectConfirmModal.isOpen) {
+                setRejectConfirmModal({
+                    isOpen: false,
+                    enrollId: null,
+                    enrollPrice: 0,
+                    clientName: ''
+                });
+            }
         } catch (error: any) {
             const message = error?.response?.data?.detail || `Не удалось ${action === 'accept' ? 'принять' : 'отклонить'} запись`;
             alert(message);
@@ -1677,6 +1717,33 @@ export const MasterDashboardPage: React.FC = () => {
                 variant="danger"
                 onConfirm={confirmDelete}
                 onCancel={cancelDelete}
+            />
+
+            {/* Модальное окно подтверждения отмены бронирования */}
+            <ConfirmModal
+                isOpen={rejectConfirmModal.isOpen}
+                title="Отменить бронирование?"
+                message={
+                    `Вы уверены, что хотите отменить бронирование клиента "${rejectConfirmModal.clientName}"?\n\n` +
+                    `💰 Сумма ${priceFormatter.format(rejectConfirmModal.enrollPrice)} будет автоматически возвращена клиенту.\n\n` +
+                    `Это действие нельзя отменить.`
+                }
+                confirmText="Да, отменить"
+                cancelText="Нет, оставить"
+                variant="danger"
+                onConfirm={() => {
+                    if (rejectConfirmModal.enrollId) {
+                        executeProcessEnroll(rejectConfirmModal.enrollId, 'reject');
+                    }
+                }}
+                onCancel={() => {
+                    setRejectConfirmModal({
+                        isOpen: false,
+                        enrollId: null,
+                        enrollPrice: 0,
+                        clientName: ''
+                    });
+                }}
             />
         </div>
     );

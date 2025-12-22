@@ -22,12 +22,13 @@ from .. import Base
 class ServiceEnroll(Base):
     __tablename__ = 'service_enrolls'
     __table_args__ = (
-    Index('ux_service_enrolls_date_slot', 'service_date_id', 'slot_time', unique=True),
-)
+        Index('ux_service_enrolls_date_slot',
+              'service_date_id', 'slot_time', unique=True),
+    )
 
     slot_time: Mapped[str]
     status: Mapped[Literal['pending', 'confirmed', 'completed',
-                        'cancelled', 'expired']] = mapped_column(default='pending')
+                           'cancelled', 'expired']] = mapped_column(default='pending')
     price: Mapped[int]
     created_at: Mapped[DateTime] = mapped_column(
         DateTime, default=datetime.now(timezone.utc))
@@ -43,6 +44,9 @@ class ServiceEnroll(Base):
     service_id: Mapped[int] = mapped_column(ForeignKey('services.id'))
     service: Mapped['Service'] = relationship(
         'Service', back_populates='users_enroll')
+
+    payment: Mapped['Payment'] = relationship(
+        'Payment', back_populates='enroll', uselist=False, cascade="all, delete-orphan")
 
 
 class Service(Base):

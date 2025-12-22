@@ -31,17 +31,27 @@ from ...dates.repositories import (
     ServiceDateRepository
 )
 
+from ...payments.repositories import PaymentRepository, get_payment_repository
+from ...common.utils.yookassa import (
+    cancel_payment as yookassa_cancel_payment,
+    create_refund as yookassa_create_refund,
+    get_payment as yookassa_get_payment
+)
+from ...common.utils.logger import logger
+
 
 class BookingUseCase:
     def __init__(
             self,
             session: AsyncSession,
             enroll_repository: EnrollRepository,
-            service_date_repository: ServiceDateRepository) -> None:
+            service_date_repository: ServiceDateRepository,
+            payment_repository: PaymentRepository) -> None:
 
         self._session = session
         self._enroll_repository = enroll_repository
         self._service_date_repository = service_date_repository
+        self._payment_repository = payment_repository
         self._slot_time_pattern = re.compile(r"^(?:[01]\d|2[0-3]):[0-5]\d$")
 
     def _is_valid_slot_time_format(self, slot_time: str) -> bool:
@@ -266,6 +276,62 @@ class BookingUseCase:
                 new_slots = date.slots.copy()
                 new_slots[enroll.slot_time] = 'available'
                 await self._session.merge(ServiceDate(id=enroll.service_date_id, slots=new_slots))
+
+            payment = await self._payment_repository.get_by_enroll_id(enroll_id)
+            if payment and payment.yookassa_payment_id:
+                try:
+                    yookassa_payment = await yookassa_get_payment(payment.yookassa_payment_id)
+                    yookassa_status = yookassa_payment.get('status')
+
+                    if yookassa_status == 'succeeded':
+                        try:
+                            refund_result = await yookassa_create_refund(
+                                payment_id=payment.yookassa_payment_id,
+                                amount=payment.amount,
+                                description=f'Refund for canceled enroll #{enroll_id}'
+                            )
+
+                            await self._payment_repository.update_payment(
+                                payment_id=payment.id,
+                                yookassa_status='succeeded',
+                                status='canceled'
+                            )
+                            logger.info(
+                                f'Refund created for payment {payment.yookassa_payment_id}, '
+                                f'refund_id: {refund_result.get("id")}'
+                            )
+                        except Exception as e:
+                            logger.error(
+                                f'Error creating refund for payment {payment.yookassa_payment_id}: {str(e)}'
+                            )
+
+                    elif yookassa_status == 'waiting_for_capture':
+                        try:
+                            cancel_result = await yookassa_cancel_payment(payment.yookassa_payment_id)
+                            await self._payment_repository.update_payment(
+                                payment_id=payment.id,
+                                yookassa_status=cancel_result.get(
+                                    'status', 'canceled'),
+                                status='canceled'
+                            )
+                            logger.info(
+                                f'Payment {payment.yookassa_payment_id} canceled')
+                        except Exception as e:
+                            logger.error(
+                                f'Error canceling payment {payment.yookassa_payment_id}: {str(e)}')
+
+                    else:
+                        await self._payment_repository.update_payment(
+                            payment_id=payment.id,
+                            status='canceled'
+                        )
+                        logger.info(
+                            f'Payment {payment.yookassa_payment_id} marked as canceled (status: {yookassa_status})')
+
+                except Exception as e:
+                    logger.error(
+                        f'Error processing refund for payment {payment.yookassa_payment_id}: {str(e)}'
+                    )
         else:
             return {'status': 'failed', 'detail': f'invalid action: {action}. Use "accept" or "reject"'}
 
@@ -285,10 +351,12 @@ def get_booking_usecase(
     session: AsyncSession = Depends(db_config.session),
     enroll_repository: EnrollRepository = Depends(get_enroll_repository),
     service_date_repository: ServiceDateRepository = Depends(
-        get_service_date_repository)
+        get_service_date_repository),
+    payment_repository: PaymentRepository = Depends(get_payment_repository)
 ) -> BookingUseCase:
     return BookingUseCase(
         session,
         enroll_repository,
-        service_date_repository
+        service_date_repository,
+        payment_repository
     )

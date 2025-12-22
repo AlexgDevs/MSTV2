@@ -86,5 +86,6 @@ from .models import (
     Service,
     ServiceDate,
     ServiceEnroll,
-    Tag
+    Tag,
+    Payment
 )

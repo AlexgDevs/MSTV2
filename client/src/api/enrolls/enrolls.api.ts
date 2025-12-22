@@ -5,7 +5,7 @@ import type { EnrollResponse } from './types';
 
 export const enrollsApi = {
     create: (data: CreateEnrollModel) =>
-        API.post<{ status: string }>('/enrolls', data),
+        API.post<{ status: string; enroll_id: number }>('/enrolls', data),
     cancel: (enrollId: number) =>
         API.post(`/enrolls/${enrollId}/cancel`),
     process: (enrollId: number, action: 'accept' | 'reject') =>

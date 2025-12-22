@@ -13,6 +13,7 @@ import { ServicesPage } from './pages/services/ServicesPage';
 import { PrivacyPolicyPage } from './pages/legal/PrivacyPolicyPage';
 import { TermsOfServicePage } from './pages/legal/TermsOfServicePage';
 import { AboutPage } from './pages/legal/AboutPage';
+import { PaymentSuccessPage } from './pages/payments/PaymentSuccessPage';
 
 // Компонент-обертка для инициализации auth
 const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -74,6 +75,9 @@ function App() {
           
 
           <Route path="/services/:serviceId" element={<ServiceDetailPage />} />
+
+          {/* Payment pages */}
+          <Route path="/payment/success" element={<PaymentSuccessPage />} />
 
           {/* Legal pages - доступны без авторизации */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />

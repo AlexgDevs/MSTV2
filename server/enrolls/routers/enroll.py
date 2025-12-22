@@ -37,7 +37,7 @@ async def create_enroll(
     if isinstance(new_enroll, dict):
         await Exceptions400.creating_error(str(new_enroll.get('detail')))
 
-    return {'status': 'enrolled'}
+    return {'status': 'enrolled', 'enroll_id': new_enroll.id}
 
 
 @enroll_app.post('/{enroll_id}/cancel',
