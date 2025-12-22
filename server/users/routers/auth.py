@@ -5,6 +5,7 @@ from fastapi import (
     Cookie,
     Depends,
     HTTPException,
+    Request,
     Response,
     status
 )
@@ -19,6 +20,7 @@ from ...common.utils import (
 
 from ...common.utils.exceptions import Exceptions400, NotFoundException404
 from ...common.utils.rate_limiter_config import AUTH_RATE_LIMIT, create_rate_limiter
+from ...common.utils.turnstile import verify_turnstile
 from ..repositories import UserRepository, get_user_repository
 from ..schemas import (
     CreateUserModel,
@@ -41,13 +43,20 @@ pwd_context = CryptContext(schemes=['argon2'], deprecated='auto')
                summary='create and adding tokens in coocking sesson',
                description='endpoint for creating and registered user')
 async def registered_user(
+    request: Request,
     response: Response,
     user_data: CreateUserModel,
     limiter=Depends(create_rate_limiter(AUTH_RATE_LIMIT)),
     guest=Depends(JWTManager.not_auth_required),
     user_use_case: UserUseCase = Depends(get_user_use_case)
 ) -> dict:
-    user_exit = user_data.model_dump()
+    if user_data.recaptcha_token:
+        client_ip = request.client.host if request.client else None
+        is_valid = await verify_turnstile(user_data.recaptcha_token, client_ip)
+        if not is_valid:
+            await Exceptions400.creating_error('Invalid auth security')
+
+    user_exit = user_data.model_dump(exclude={'recaptcha_token'})
     user_exit['password'] = pwd_context.hash(user_data.password)
     verifi_code = await email_verfification_obj.create_enter_code()
     new_user = await user_use_case.create_user(CreateUserModel(**user_exit), verifi_code)

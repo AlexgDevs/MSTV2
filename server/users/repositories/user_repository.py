@@ -76,7 +76,8 @@ class UserRepository:
         return user
 
     async def create_user(self, user_data: CreateUserModel, verifi_code: str) -> User:
-        new_user = User(**user_data.model_dump(), verified_code=verifi_code)
+        user_dict = user_data.model_dump(exclude={'recaptcha_token'})
+        new_user = User(**user_dict, verified_code=verifi_code)
         self._session.add(new_user)
         await self._session.flush()
         return new_user

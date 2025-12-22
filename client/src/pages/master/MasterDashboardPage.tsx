@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/auth.store';
 import { useMasterSchedule } from '../../features/master/hooks/useMasterData';
 import { servicesApi } from '../../api/services/services.api';
@@ -59,7 +60,6 @@ const formatDate = (value: string) => {
         }
     }
     
-    // Если формат не dd-mm-YYYY, пытаемся стандартный парсинг
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) {
         return value;
@@ -73,9 +73,31 @@ const formatDate = (value: string) => {
 };
 
 export const MasterDashboardPage: React.FC = () => {
-    const { user, refreshUser } = useAuthStore();
+    const { user, refreshUser, isLoading: isAuthLoading } = useAuthStore();
+    const navigate = useNavigate();
     const services = user?.services ?? [];
     const serviceIds = useMemo(() => services.map(service => service.id), [services]);
+
+    // Проверка верификации email при входе в мастер панель
+    useEffect(() => {
+        if (!isAuthLoading && user && !user.verified_email) {
+            navigate('/auth/verify-email', { replace: true });
+        }
+    }, [user, isAuthLoading, navigate]);
+
+    // Показываем загрузку пока проверяется авторизация или email не подтвержден
+    if (isAuthLoading || !user || !user.verified_email) {
+        return (
+            <div style={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                minHeight: '50vh' 
+            }}>
+                <div>Загрузка...</div>
+            </div>
+        );
+    }
 
     const [activeTab, setActiveTab] = useState<TabId>('services');
     const [scheduleServiceFilter, setScheduleServiceFilter] = useState<number | 'all'>('all');

@@ -56,6 +56,7 @@ export interface CreateUserModel {
     password: string;
     email: string;
     about?: string | null;
+    recaptcha_token?: string; // Токен Cloudflare Turnstile (используем то же поле для совместимости)
 }
 
 export interface PatchUserModel {
@@ -85,6 +86,7 @@ export interface DetailUserResponse {
     email: string;
     about: string | null;
     role: 'user' | 'admin' | 'moderator';
+    verified_email: boolean;
     templates: SimpleUserScheduleTemplate[];
     services: SimpleUserService[];
     services_enroll: SimpleServiceEnroll[];
