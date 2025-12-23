@@ -5,7 +5,9 @@ from sqlalchemy.orm import selectinload
 
 from ...common import db_config
 from ...common.db.models.payment import Payment
-from ...common.db.models.service import ServiceEnroll
+from ...common.db.models.service import ServiceEnroll, Service
+from ...common.db.models.user import User
+from ...common.db.models.date import ServiceDate
 
 
 class PaymentRepository:
@@ -35,6 +37,28 @@ class PaymentRepository:
             .options(selectinload(Payment.enroll))
         )
         return payment
+
+    async def get_by_user_id(
+        self,
+        user_id: int,
+        limit: int = 50,
+        offset: int = 0
+    ) -> list[Payment]:
+        payments = await self._session.scalars(
+            select(Payment)
+            .join(ServiceEnroll, Payment.enroll_id == ServiceEnroll.id)
+            .where(ServiceEnroll.user_id == user_id)
+            .order_by(Payment.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+            .options(
+                selectinload(Payment.enroll).selectinload(
+                    ServiceEnroll.service).selectinload(Service.user),
+                selectinload(Payment.enroll).selectinload(
+                    ServiceEnroll.service_date)
+            )
+        )
+        return list(payments.all())
 
     async def create_payment(
         self,

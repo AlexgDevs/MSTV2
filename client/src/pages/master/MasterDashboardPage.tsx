@@ -9,6 +9,7 @@ import { enrollsApi } from '../../api/enrolls/enrolls.api';
 import type { EnrollResponse } from '../../api/enrolls/types';
 import { getCurrentWeekDays } from '../../utils/helpers';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { CancelReasonModal } from '../../components/enrolls/CancelReasonModal';
 import { CalendarIcon, WarningIcon, ClipboardIcon, UsersIcon } from '../../components/icons/Icons';
 import { CATEGORIES } from '../../components/categories/CategoriesSection';
 import '../../assets/styles/MasterDashboardPage.css';
@@ -199,16 +200,18 @@ export const MasterDashboardPage: React.FC = () => {
     const [enrolls, setEnrolls] = useState<EnrollResponse[]>([]);
     const [isLoadingEnrolls, setIsLoadingEnrolls] = useState(false);
     const [enrollsError, setEnrollsError] = useState<string | null>(null);
-    const [rejectConfirmModal, setRejectConfirmModal] = useState<{
+    const [cancelReasonModal, setCancelReasonModal] = useState<{
         isOpen: boolean;
         enrollId: number | null;
         enrollPrice: number;
         clientName: string;
+        serviceTitle: string;
     }>({
         isOpen: false,
         enrollId: null,
         enrollPrice: 0,
-        clientName: ''
+        clientName: '',
+        serviceTitle: ''
     });
 
     // Загрузка записей для выбранной услуги
@@ -236,15 +239,17 @@ export const MasterDashboardPage: React.FC = () => {
     }, [bookingsServiceFilter]);
 
     const handleProcessEnroll = (enrollId: number, action: 'accept' | 'reject') => {
-        // Для отмены показываем модальное окно с предупреждением о возврате денег
+        // Для отмены показываем модальное окно для выбора причины
         if (action === 'reject') {
             const enroll = enrolls.find(e => e.id === enrollId);
             if (enroll) {
-                setRejectConfirmModal({
+                const service = services.find(s => s.id === enroll.service_id);
+                setCancelReasonModal({
                     isOpen: true,
                     enrollId: enrollId,
                     enrollPrice: enroll.price,
-                    clientName: enroll.user?.name || 'Клиент'
+                    clientName: enroll.user?.name || 'Клиент',
+                    serviceTitle: service?.title ?? 'Услуга'
                 });
                 return;
             }
@@ -254,9 +259,9 @@ export const MasterDashboardPage: React.FC = () => {
         executeProcessEnroll(enrollId, action);
     };
 
-    const executeProcessEnroll = async (enrollId: number, action: 'accept' | 'reject') => {
+    const executeProcessEnroll = async (enrollId: number, action: 'accept' | 'reject', reason?: string) => {
         try {
-            await enrollsApi.process(enrollId, action);
+            await enrollsApi.process(enrollId, action, reason);
             // Обновляем список записей
             if (bookingsServiceFilter) {
                 const response = await enrollsApi.getByService(bookingsServiceFilter);
@@ -266,12 +271,13 @@ export const MasterDashboardPage: React.FC = () => {
             await refreshSchedule();
             
             // Закрываем модальное окно если было открыто
-            if (rejectConfirmModal.isOpen) {
-                setRejectConfirmModal({
+            if (cancelReasonModal.isOpen) {
+                setCancelReasonModal({
                     isOpen: false,
                     enrollId: null,
                     enrollPrice: 0,
-                    clientName: ''
+                    clientName: '',
+                    serviceTitle: ''
                 });
             }
         } catch (error: any) {
@@ -1719,29 +1725,24 @@ export const MasterDashboardPage: React.FC = () => {
                 onCancel={cancelDelete}
             />
 
-            {/* Модальное окно подтверждения отмены бронирования */}
-            <ConfirmModal
-                isOpen={rejectConfirmModal.isOpen}
-                title="Отменить бронирование?"
-                message={
-                    `Вы уверены, что хотите отменить бронирование клиента "${rejectConfirmModal.clientName}"?\n\n` +
-                    `💰 Сумма ${priceFormatter.format(rejectConfirmModal.enrollPrice)} будет автоматически возвращена клиенту.\n\n` +
-                    `Это действие нельзя отменить.`
-                }
-                confirmText="Да, отменить"
-                cancelText="Нет, оставить"
-                variant="danger"
-                onConfirm={() => {
-                    if (rejectConfirmModal.enrollId) {
-                        executeProcessEnroll(rejectConfirmModal.enrollId, 'reject');
+            {/* Модальное окно выбора причины отмены */}
+            <CancelReasonModal
+                isOpen={cancelReasonModal.isOpen}
+                clientName={cancelReasonModal.clientName}
+                serviceTitle={cancelReasonModal.serviceTitle}
+                enrollPrice={cancelReasonModal.enrollPrice}
+                onConfirm={(reason) => {
+                    if (cancelReasonModal.enrollId) {
+                        executeProcessEnroll(cancelReasonModal.enrollId, 'reject', reason);
                     }
                 }}
                 onCancel={() => {
-                    setRejectConfirmModal({
+                    setCancelReasonModal({
                         isOpen: false,
                         enrollId: null,
                         enrollPrice: 0,
-                        clientName: ''
+                        clientName: '',
+                        serviceTitle: ''
                     });
                 }}
             />

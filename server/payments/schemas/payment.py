@@ -12,6 +12,13 @@ class CreatePaymentModel(BaseModel):
     return_url: Optional[str] = None
 
 
+class PaymentServiceInfo(BaseModel):
+    id: Optional[int] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    master_name: Optional[str] = None
+
+
 class PaymentResponse(BaseModel):
     id: int
     enroll_id: Optional[int]
@@ -23,6 +30,9 @@ class PaymentResponse(BaseModel):
     confirmation_url: Optional[str]
     created_at: datetime
     paid_at: Optional[datetime]
+    service: Optional[PaymentServiceInfo] = None
+    enroll_date: Optional[str] = None
+    enroll_time: Optional[str] = None
 
     class Config:
         from_attributes = True

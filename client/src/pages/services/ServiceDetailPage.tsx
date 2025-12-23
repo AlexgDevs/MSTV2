@@ -191,6 +191,14 @@ export const ServiceDetailPage: React.FC = () => {
             return;
         }
 
+        // Проверка подтверждения почты
+        if (!user.verified_email) {
+            setBookingError('Для записи на услугу необходимо подтвердить email. Пожалуйста, проверьте почту и подтвердите email в настройках профиля.');
+            // Можно перенаправить на страницу подтверждения
+            // navigate('/auth/verify-email');
+            return;
+        }
+
         // Валидация данных перед отправкой
         const validation = validateBookingData({
             service_id: service.id,

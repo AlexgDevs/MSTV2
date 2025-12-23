@@ -18,6 +18,10 @@ YUKASSA_API_TEST_URL = "https://api.yookassa.ru/v3"
 IS_TEST_MODE = YUKASSA_SECRET_KEY and YUKASSA_SECRET_KEY.startswith('test_')
 
 
+def get_api_url() -> str:
+    return YUKASSA_API_TEST_URL if IS_TEST_MODE else YUKASSA_API_URL
+
+
 def get_auth_header() -> str:
     if not YUKASSA_SHOP_ID or not YUKASSA_SECRET_KEY:
         raise ValueError(
@@ -39,7 +43,7 @@ async def create_payment(
         logger.error("YUKASSA_SHOP_ID or YUKASSA_SECRET_KEY not initialized")
         raise ValueError("YUKASSA credentials not configured")
 
-    url = f"{YUKASSA_API_TEST_URL}/payments"
+    url = f"{get_api_url()}/payments"
     headers = {
         "Authorization": get_auth_header(),
         "Content-Type": "application/json",
@@ -85,7 +89,7 @@ async def get_payment(payment_id: str) -> Dict[str, Any]:
     if not YUKASSA_SHOP_ID or not YUKASSA_SECRET_KEY:
         raise ValueError("YUKASSA credentials not configured")
 
-    url = f"{YUKASSA_API_TEST_URL}/payments/{payment_id}"
+    url = f"{get_api_url()}/payments/{payment_id}"
     headers = {
         "Authorization": get_auth_header(),
         "Content-Type": "application/json"
@@ -109,7 +113,7 @@ async def capture_payment(payment_id: str, amount: Optional[int] = None) -> Dict
     if not YUKASSA_SHOP_ID or not YUKASSA_SECRET_KEY:
         raise ValueError("YUKASSA credentials not configured")
 
-    url = f"{YUKASSA_API_TEST_URL}/payments/{payment_id}/capture"
+    url = f"{get_api_url()}/payments/{payment_id}/capture"
     headers = {
         "Authorization": get_auth_header(),
         "Content-Type": "application/json",
@@ -142,7 +146,7 @@ async def cancel_payment(payment_id: str) -> Dict[str, Any]:
     if not YUKASSA_SHOP_ID or not YUKASSA_SECRET_KEY:
         raise ValueError("YUKASSA credentials not configured")
 
-    url = f"{YUKASSA_API_TEST_URL}/payments/{payment_id}/cancel"
+    url = f"{get_api_url()}/payments/{payment_id}/cancel"
     headers = {
         "Authorization": get_auth_header(),
         "Content-Type": "application/json",
@@ -171,7 +175,7 @@ async def create_refund(
     if not YUKASSA_SHOP_ID or not YUKASSA_SECRET_KEY:
         raise ValueError("YUKASSA credentials not configured")
 
-    url = f"{YUKASSA_API_TEST_URL}/refunds"
+    url = f"{get_api_url()}/refunds"
     headers = {
         "Authorization": get_auth_header(),
         "Content-Type": "application/json",
@@ -210,4 +214,28 @@ async def create_refund(
 
 
 def verify_webhook_signature(data: Dict[str, Any], signature: Optional[str] = None) -> bool:
+    # Basic validation - check required fields
+    if not data:
+        return False
+
+    event = data.get('event')
+    payment_object = data.get('object', {})
+
+    # Validate required webhook structure
+    if not event or not payment_object:
+        return False
+
+    # Validate event type
+    valid_events = ['payment.succeeded',
+                    'payment.canceled', 'payment.waiting_for_capture']
+    if event not in valid_events:
+        return False
+
+    # Validate payment object has required fields
+    if not payment_object.get('id'):
+        return False
+
+    # TODO: Add IP whitelist check for production
+    # YooKassa IP ranges should be whitelisted
+
     return True

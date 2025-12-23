@@ -8,8 +8,8 @@ export const enrollsApi = {
         API.post<{ status: string; enroll_id: number }>('/enrolls', data),
     cancel: (enrollId: number) =>
         API.post(`/enrolls/${enrollId}/cancel`),
-    process: (enrollId: number, action: 'accept' | 'reject') =>
-        API.post<{ status: string; enroll_status: string }>(`/enrolls/${enrollId}/process/${action}`),
+    process: (enrollId: number, action: 'accept' | 'reject', reason?: string) =>
+        API.post<{ status: string; enroll_status: string }>(`/enrolls/${enrollId}/process/${action}`, { reason }),
     getByService: (serviceId: number) =>
         API.get<EnrollResponse[]>(`/enrolls/service/${serviceId}`),
 };

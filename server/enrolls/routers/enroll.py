@@ -92,7 +92,8 @@ async def change_enroll_status(
     enroll_id: int,
     action: str,
     user=Depends(JWTManager.auth_required),
-    booking_usecase: BookingUseCase = Depends(get_booking_usecase)
+    booking_usecase: BookingUseCase = Depends(get_booking_usecase),
+    reason: str | None = None
 ):
     if action not in ['accept', 'reject']:
         await Exceptions400.creating_error('Invalid action. Use "accept" or "reject"')
@@ -100,7 +101,8 @@ async def change_enroll_status(
     result = await booking_usecase.change_enroll_status(
         enroll_id,
         int(user.get('id')),
-        action
+        action,
+        reason
     )
 
     if isinstance(result, dict):

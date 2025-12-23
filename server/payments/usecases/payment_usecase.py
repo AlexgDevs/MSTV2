@@ -230,6 +230,72 @@ class PaymentUseCase:
                 'detail': f'Error: {str(e)}'
             }
 
+    async def get_user_payments(
+        self,
+        user_id: int,
+        limit: int = 50,
+        offset: int = 0
+    ) -> Dict[str, Any]:
+        try:
+            payments = await self._payment_repository.get_by_user_id(
+                user_id=user_id,
+                limit=limit,
+                offset=offset
+            )
+
+            payments_data = []
+            for payment in payments:
+                service_info = None
+                enroll_date = None
+                enroll_time = None
+
+                if payment.enroll:
+                    enroll_time = payment.enroll.slot_time
+
+                    if payment.enroll.service_date:
+                        enroll_date = payment.enroll.service_date.date
+
+                    if payment.enroll.service:
+                        master_name = None
+                        if payment.enroll.service.user:
+                            master_name = payment.enroll.service.user.name
+
+                        service_info = {
+                            'id': payment.enroll.service.id,
+                            'title': payment.enroll.service.title,
+                            'description': payment.enroll.service.description,
+                            'master_name': master_name
+                        }
+
+                payments_data.append({
+                    'id': payment.id,
+                    'enroll_id': payment.enroll_id,
+                    'amount': payment.amount,
+                    'currency': payment.currency,
+                    'status': payment.status,
+                    'yookassa_status': payment.yookassa_status,
+                    'description': payment.description,
+                    'confirmation_url': payment.confirmation_url,
+                    'created_at': payment.created_at.isoformat(),
+                    'paid_at': payment.paid_at.isoformat() if payment.paid_at else None,
+                    'service': service_info,
+                    'enroll_date': enroll_date,
+                    'enroll_time': enroll_time
+                })
+
+            return {
+                'status': 'success',
+                'payments': payments_data,
+                'total': len(payments_data)
+            }
+
+        except Exception as e:
+            logger.error(f'Get user payments error: {str(e)}')
+            return {
+                'status': 'error',
+                'detail': f'Error: {str(e)}'
+            }
+
 
 def get_payment_usecase(
     session: AsyncSession = Depends(db_config.session),

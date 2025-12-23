@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { paymentsApi } from '../../api/payments/payments.api';
+import { useAuthStore } from '../../stores/auth.store';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import './PaymentModal.css';
 
@@ -26,12 +27,19 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     onClose,
     onSuccess
 }) => {
+    const { user } = useAuthStore();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     if (!isOpen) return null;
 
     const handleCreatePayment = async () => {
+        // Проверка подтверждения почты
+        if (!user?.verified_email) {
+            setError('Для оплаты услуги необходимо подтвердить email. Пожалуйста, проверьте почту и подтвердите email в настройках профиля.');
+            return;
+        }
+
         setIsLoading(true);
         setError(null);
 

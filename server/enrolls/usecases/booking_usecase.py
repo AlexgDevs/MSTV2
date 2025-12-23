@@ -38,6 +38,7 @@ from ...common.utils.yookassa import (
     get_payment as yookassa_get_payment
 )
 from ...common.utils.logger import logger
+from ...common.utils.email_config import email_verfification_obj
 
 
 class BookingUseCase:
@@ -245,7 +246,8 @@ class BookingUseCase:
         self,
         enroll_id: int,
         service_owner_id: int,
-        action: str
+        action: str,
+        reason: str | None = None
     ):
 
         enroll = await self._enroll_repository.get_by_id(enroll_id)
@@ -270,6 +272,29 @@ class BookingUseCase:
             new_status = 'confirmed'
         elif action == 'reject':
             new_status = 'cancelled'
+
+            # Отправляем письмо пользователю с причиной отмены
+            if reason:
+                try:
+                    user = await self._session.scalar(
+                        select(User).where(User.id == enroll.user_id)
+                    )
+                    if user and user.email:
+                        master = await self._session.scalar(
+                            select(User).where(User.id == service_owner_id)
+                        )
+                        master_name = master.name if master else 'Мастер'
+
+                        email_verfification_obj.send_cancel_enroll_message(
+                            to_email=user.email,
+                            service_title=service.title,
+                            master_name=master_name,
+                            reason=reason
+                        )
+                        logger.info(
+                            f'Cancel email sent to {user.email} for enroll #{enroll_id}')
+                except Exception as e:
+                    logger.error(f'Error sending cancel email: {str(e)}')
 
             date = await self._service_date_repository.get_by_id(enroll.service_date_id)
             if date:
