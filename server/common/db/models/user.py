@@ -37,3 +37,13 @@ class User(Base):
 
     services_enroll: Mapped[List['ServiceEnroll']] = relationship(
         'ServiceEnroll', back_populates='user')
+
+    master_chats: Mapped[List['ServiceChat']] = relationship(
+        'ServiceChat', foreign_keys='ServiceChat.master_id', back_populates='master')
+    client_chats: Mapped[List['ServiceChat']] = relationship(
+        'ServiceChat', foreign_keys='ServiceChat.client_id', back_populates='client')
+
+    support_chats: Mapped[List['SupportChat']] = relationship(
+        'SupportChat', foreign_keys='SupportChat.support_id', back_populates='support')
+    client_support_chats: Mapped[List['SupportChat']] = relationship(
+        'SupportChat', foreign_keys='SupportChat.client_id', back_populates='client')

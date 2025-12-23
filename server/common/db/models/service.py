@@ -74,3 +74,6 @@ class Service(Base):
         'ServiceTagConnection', back_populates='service', cascade="all, delete-orphan")
 
     tags: association_proxy = association_proxy('tag_connections', 'tag')
+
+    chats: Mapped[List['ServiceChat']] = relationship(
+        'ServiceChat', back_populates='service', cascade="all, delete-orphan")
