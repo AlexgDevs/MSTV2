@@ -10,7 +10,6 @@ from server import (
 from server.common.utils.rate_limiter_config import lifespan
 
 app = FastAPI(description='mstv2 api', lifespan=lifespan)
-
 app.add_middleware(RateLimitMiddleware)
 
 app.add_middleware(

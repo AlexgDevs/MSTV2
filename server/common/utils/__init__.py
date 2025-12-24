@@ -21,4 +21,6 @@ from .email_config import (
 
 from .rate_limiter_config import RateLimitMiddleware
 
+from .turnstile import verify_turnstile
+
 __all__ = ["logger", "process_to_base64"]

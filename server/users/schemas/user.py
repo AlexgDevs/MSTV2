@@ -111,6 +111,7 @@ class CreateUserModel(BaseModel):
     password: str
     email: str
     about: str | None = None
+    recaptcha_token: str | None = None  # Токен Cloudflare Turnstile
 
 
 class PatchUserModel(BaseModel):
@@ -141,6 +142,7 @@ class DetailUserResponse(BaseModel):
     email: str
     about: str | None = None
     role: Literal['user', 'admin', 'moderator']
+    verified_email: bool
     templates: List[SimpleUserScheduleTemplate]
     services: List[SimpleUserService]
     services_enroll: List[SimpleServiceEnroll]

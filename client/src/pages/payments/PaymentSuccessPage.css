@@ -1,0 +1,163 @@
+.payment-success-page {
+    min-height: 100vh;
+    background: #1e1e1e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.payment-success-container {
+    width: 100%;
+    max-width: 600px;
+}
+
+.payment-success-card {
+    background: #252526;
+    border-radius: 16px;
+    padding: 48px 32px;
+    text-align: center;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+    border: 1px solid #3e3e42;
+    animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.payment-success-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 24px;
+    background: #4caf50;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: scaleIn 0.5s ease-out;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0);
+    }
+    to {
+        transform: scale(1);
+    }
+}
+
+.payment-success-icon svg {
+    width: 48px;
+    height: 48px;
+    color: #ffffff;
+}
+
+.payment-success-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 16px;
+}
+
+.payment-success-message {
+    font-size: 18px;
+    color: #cccccc;
+    margin: 0 0 32px;
+    line-height: 1.6;
+}
+
+.payment-success-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: #1e1e1e;
+    border-radius: 8px;
+    margin-bottom: 32px;
+    border: 1px solid #3e3e42;
+}
+
+.payment-success-label {
+    font-size: 14px;
+    color: #cccccc;
+}
+
+.payment-success-value {
+    font-size: 14px;
+    color: #4caf50;
+    font-weight: 600;
+    font-family: monospace;
+}
+
+.payment-success-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+
+.payment-success-btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    background: #007acc;
+    color: #ffffff;
+}
+
+.payment-success-btn:hover {
+    background: #0098ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 122, 204, 0.3);
+}
+
+.payment-success-btn-secondary {
+    background: #3e3e42;
+    color: #ffffff;
+}
+
+.payment-success-btn-secondary:hover {
+    background: #4e4e52;
+    box-shadow: 0 4px 12px rgba(62, 62, 66, 0.3);
+}
+
+.payment-success-note {
+    font-size: 14px;
+    color: #888888;
+    margin: 0;
+}
+
+@media (max-width: 640px) {
+    .payment-success-card {
+        padding: 32px 24px;
+    }
+
+    .payment-success-title {
+        font-size: 24px;
+    }
+
+    .payment-success-message {
+        font-size: 16px;
+    }
+
+    .payment-success-actions {
+        flex-direction: column;
+    }
+
+    .payment-success-btn {
+        width: 100%;
+    }
+}
+

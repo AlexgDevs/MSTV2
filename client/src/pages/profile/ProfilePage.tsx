@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../../stores/auth.store';
+import { paymentsApi } from '../../api/payments/payments.api';
+import type { PaymentResponse } from '../../api/payments/types';
 import '../../assets/styles/ProfilePage.css'
 
 const priceFormatter = new Intl.NumberFormat('ru-RU', {
@@ -16,8 +18,19 @@ const statusVariants: Record<string, { class: string; label: string }> = {
     expired: { class: 'status-expired', label: 'Истекло' }
 };
 
+const paymentStatusVariants: Record<string, { class: string; label: string }> = {
+    pending: { class: 'status-pending', label: 'Ожидание оплаты' },
+    processing: { class: 'status-processing', label: 'Обработка' },
+    succeeded: { class: 'status-confirmed', label: 'Оплачено' },
+    canceled: { class: 'status-cancelled', label: 'Отменено' },
+    failed: { class: 'status-cancelled', label: 'Ошибка' }
+};
+
+type TabId = 'profile' | 'payments';
+
 export const ProfilePage: React.FC = () => {
     const { user, updateProfile } = useAuthStore();
+    const [activeTab, setActiveTab] = useState<TabId>('profile');
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
@@ -26,6 +39,11 @@ export const ProfilePage: React.FC = () => {
     });
     const [isSaving, setIsSaving] = useState(false);
     const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    
+    // Payments state
+    const [payments, setPayments] = useState<PaymentResponse[]>([]);
+    const [isLoadingPayments, setIsLoadingPayments] = useState(false);
+    const [paymentsError, setPaymentsError] = useState<string | null>(null);
 
     useEffect(() => {
         if (user) {
@@ -36,6 +54,25 @@ export const ProfilePage: React.FC = () => {
             });
         }
     }, [user]);
+
+    useEffect(() => {
+        if (activeTab === 'payments') {
+            loadPayments();
+        }
+    }, [activeTab]);
+
+    const loadPayments = async () => {
+        setIsLoadingPayments(true);
+        setPaymentsError(null);
+        try {
+            const response = await paymentsApi.getAll(100, 0);
+            setPayments(response.data);
+        } catch (error) {
+            setPaymentsError(error instanceof Error ? error.message : 'Не удалось загрузить историю покупок');
+        } finally {
+            setIsLoadingPayments(false);
+        }
+    };
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData(prev => ({
@@ -92,35 +129,23 @@ export const ProfilePage: React.FC = () => {
         return null;
     }
 
-    return (
-        <div className="profile-page">
-            <div className="container">
-                {/* Header */}
-                <section className="profile-header">
-                    <div className="flex items-center gap-6">
-                        <div className="profile-avatar">
-                            {user.name?.charAt(0)?.toUpperCase()}
-                        </div>
-                        <div className="profile-info">
-                            <p className="profile-label">Аккаунт</p>
-                            <h1 className="profile-name">{user.name}</h1>
-                            <p className="profile-email">{user.email}</p>
-                        </div>
-                        <div className="profile-stats">
-                            <div className="profile-stat">
-                                <p className="profile-stat-label">Мои записи</p>
-                                <p className="profile-stat-value">{bookings.length}</p>
-                            </div>
-                            <div className="profile-stat">
-                                <p className="profile-stat-label">Созданные услуги</p>
-                                <p className="profile-stat-value">{user.services?.length ?? 0}</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+    const formatPaymentDate = (dateString: string): string => {
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ru-RU', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch {
+            return dateString;
+        }
+    };
 
-                {/* Main Content */}
-                <div className="profile-layout">
+    const renderProfileTab = () => (
+        <div className="profile-layout">
                     {/* Basic Info */}
                     <div className="profile-card">
                         <div className="profile-card-header">
@@ -304,6 +329,146 @@ export const ProfilePage: React.FC = () => {
                         </div>
                     </div>
                 </div>
+    );
+
+    const renderPaymentsTab = () => (
+        <div className="profile-payments">
+            <div className="profile-card">
+                <div className="profile-card-header">
+                    <h2 className="profile-card-title">История покупок</h2>
+                    <p className="profile-card-subtitle">
+                        {payments.length ? `Всего платежей: ${payments.length}` : 'Платежей пока нет'}
+                    </p>
+                </div>
+                <div className="profile-card-content">
+                    {isLoadingPayments ? (
+                        <p className="booking-empty">Загрузка...</p>
+                    ) : paymentsError ? (
+                        <div className={`feedback feedback-error`}>
+                            {paymentsError}
+                        </div>
+                    ) : payments.length === 0 ? (
+                        <p className="booking-empty">
+                            У вас пока нет платежей. После оплаты услуги они появятся здесь.
+                        </p>
+                    ) : (
+                        <div className="payments-list">
+                            {payments.map(payment => {
+                                const status = paymentStatusVariants[payment.status] || paymentStatusVariants.pending;
+                                const serviceTitle = payment.service?.title || 'Услуга';
+                                const masterName = payment.service?.master_name || 'Неизвестный мастер';
+                                
+                                // Форматируем дату записи
+                                const formatEnrollDate = (dateString: string | null | undefined): string => {
+                                    if (!dateString) return '';
+                                    try {
+                                        const [day, month, year] = dateString.split('-');
+                                        if (day && month && year) {
+                                            return `${day}.${month}.${year}`;
+                                        }
+                                        return dateString;
+                                    } catch {
+                                        return dateString;
+                                    }
+                                };
+                                
+                                const enrollDateTime = payment.enroll_date && payment.enroll_time
+                                    ? `${formatEnrollDate(payment.enroll_date)}, ${payment.enroll_time}`
+                                    : payment.enroll_time || null;
+
+                                return (
+                                    <div key={payment.id} className="payment-item">
+                                        <div className="payment-info">
+                                            <p className="payment-time">
+                                                {formatPaymentDate(payment.created_at)}
+                                            </p>
+                                            <h3 className="payment-title">
+                                                {serviceTitle}
+                                            </h3>
+                                            {payment.service?.description && (
+                                                <p className="payment-description">
+                                                    {payment.service.description.length > 100 
+                                                        ? `${payment.service.description.substring(0, 100)}...` 
+                                                        : payment.service.description}
+                                                </p>
+                                            )}
+                                            <p className="payment-meta">
+                                                Мастер: <strong>{masterName}</strong>
+                                            </p>
+                                            {enrollDateTime && (
+                                                <p className="payment-meta">
+                                                    Запись: {enrollDateTime}
+                                                </p>
+                                            )}
+                                            {payment.paid_at && (
+                                                <p className="payment-meta">
+                                                    Оплачено: {formatPaymentDate(payment.paid_at)}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="payment-details">
+                                            <span className={`status-badge ${status.class}`}>
+                                                {status.label}
+                                            </span>
+                                            <p className="payment-price">
+                                                {priceFormatter.format(payment.amount)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="profile-page">
+            <div className="container">
+                {/* Header */}
+                <section className="profile-header">
+                    <div className="flex items-center gap-6">
+                        <div className="profile-avatar">
+                            {user.name?.charAt(0)?.toUpperCase()}
+                        </div>
+                        <div className="profile-info">
+                            <p className="profile-label">Аккаунт</p>
+                            <h1 className="profile-name">{user.name}</h1>
+                            <p className="profile-email">{user.email}</p>
+                        </div>
+                        <div className="profile-stats">
+                            <div className="profile-stat">
+                                <p className="profile-stat-label">Мои записи</p>
+                                <p className="profile-stat-value">{bookings.length}</p>
+                            </div>
+                            <div className="profile-stat">
+                                <p className="profile-stat-label">Созданные услуги</p>
+                                <p className="profile-stat-value">{user.services?.length ?? 0}</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Tabs */}
+                <div className="profile-tabs">
+                    <button
+                        className={`profile-tab ${activeTab === 'profile' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('profile')}
+                    >
+                        Профиль
+                    </button>
+                    <button
+                        className={`profile-tab ${activeTab === 'payments' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('payments')}
+                    >
+                        История покупок
+                    </button>
+                </div>
+
+                {/* Tab Content */}
+                {activeTab === 'profile' ? renderProfileTab() : renderPaymentsTab()}
             </div>
         </div>
     );

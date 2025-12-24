@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/auth.store';
+import { executeTurnstile } from '../../utils/recaptcha';
+import { loadTurnstileScript } from '../../utils/loadRecaptcha';
 import '../../assets/styles/AuthPage.css';
 
 export const RegisterPage: React.FC = () => {
@@ -17,6 +19,11 @@ export const RegisterPage: React.FC = () => {
 
     const { register, isAuthenticated, isLoading: isAuthLoading } = useAuthStore();
     const navigate = useNavigate();
+
+    // Загружаем Turnstile скрипт при монтировании компонента
+    useEffect(() => {
+        loadTurnstileScript().catch(console.error);
+    }, []);
 
     // Редирект если уже авторизован
     useEffect(() => {
@@ -63,10 +70,20 @@ export const RegisterPage: React.FC = () => {
         setIsLoading(true);
 
         try {
+            // Получаем токен Turnstile (в dev режиме вернется mock токен)
+            const turnstileToken = await executeTurnstile('register');
+            
+            if (!turnstileToken) {
+                setError('Не удалось пройти проверку безопасности. Пожалуйста, обновите страницу.');
+                setIsLoading(false);
+                return;
+            }
+
             await register({
                 name: formData.name,
                 email: formData.email,
-                password: formData.password
+                password: formData.password,
+                recaptcha_token: turnstileToken // Используем то же поле для совместимости с бэкендом
             });
             // Перенаправляем на страницу верификации после успешной регистрации
             navigate('/auth/verify-email', { replace: true });

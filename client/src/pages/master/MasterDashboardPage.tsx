@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/auth.store';
 import { useMasterSchedule } from '../../features/master/hooks/useMasterData';
 import { servicesApi } from '../../api/services/services.api';
@@ -8,6 +9,7 @@ import { enrollsApi } from '../../api/enrolls/enrolls.api';
 import type { EnrollResponse } from '../../api/enrolls/types';
 import { getCurrentWeekDays } from '../../utils/helpers';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { CancelReasonModal } from '../../components/enrolls/CancelReasonModal';
 import { CalendarIcon, WarningIcon, ClipboardIcon, UsersIcon } from '../../components/icons/Icons';
 import { CATEGORIES } from '../../components/categories/CategoriesSection';
 import '../../assets/styles/MasterDashboardPage.css';
@@ -59,7 +61,6 @@ const formatDate = (value: string) => {
         }
     }
     
-    // Если формат не dd-mm-YYYY, пытаемся стандартный парсинг
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) {
         return value;
@@ -73,9 +74,31 @@ const formatDate = (value: string) => {
 };
 
 export const MasterDashboardPage: React.FC = () => {
-    const { user, refreshUser } = useAuthStore();
+    const { user, refreshUser, isLoading: isAuthLoading } = useAuthStore();
+    const navigate = useNavigate();
     const services = user?.services ?? [];
     const serviceIds = useMemo(() => services.map(service => service.id), [services]);
+
+    // Проверка верификации email при входе в мастер панель
+    useEffect(() => {
+        if (!isAuthLoading && user && !user.verified_email) {
+            navigate('/auth/verify-email', { replace: true });
+        }
+    }, [user, isAuthLoading, navigate]);
+
+    // Показываем загрузку пока проверяется авторизация или email не подтвержден
+    if (isAuthLoading || !user || !user.verified_email) {
+        return (
+            <div style={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                minHeight: '50vh' 
+            }}>
+                <div>Загрузка...</div>
+            </div>
+        );
+    }
 
     const [activeTab, setActiveTab] = useState<TabId>('services');
     const [scheduleServiceFilter, setScheduleServiceFilter] = useState<number | 'all'>('all');
@@ -177,6 +200,19 @@ export const MasterDashboardPage: React.FC = () => {
     const [enrolls, setEnrolls] = useState<EnrollResponse[]>([]);
     const [isLoadingEnrolls, setIsLoadingEnrolls] = useState(false);
     const [enrollsError, setEnrollsError] = useState<string | null>(null);
+    const [cancelReasonModal, setCancelReasonModal] = useState<{
+        isOpen: boolean;
+        enrollId: number | null;
+        enrollPrice: number;
+        clientName: string;
+        serviceTitle: string;
+    }>({
+        isOpen: false,
+        enrollId: null,
+        enrollPrice: 0,
+        clientName: '',
+        serviceTitle: ''
+    });
 
     // Загрузка записей для выбранной услуги
     useEffect(() => {
@@ -202,9 +238,30 @@ export const MasterDashboardPage: React.FC = () => {
         fetchEnrolls();
     }, [bookingsServiceFilter]);
 
-    const handleProcessEnroll = async (enrollId: number, action: 'accept' | 'reject') => {
+    const handleProcessEnroll = (enrollId: number, action: 'accept' | 'reject') => {
+        // Для отмены показываем модальное окно для выбора причины
+        if (action === 'reject') {
+            const enroll = enrolls.find(e => e.id === enrollId);
+            if (enroll) {
+                const service = services.find(s => s.id === enroll.service_id);
+                setCancelReasonModal({
+                    isOpen: true,
+                    enrollId: enrollId,
+                    enrollPrice: enroll.price,
+                    clientName: enroll.user?.name || 'Клиент',
+                    serviceTitle: service?.title ?? 'Услуга'
+                });
+                return;
+            }
+        }
+        
+        // Для принятия или если enroll не найден - выполняем сразу
+        executeProcessEnroll(enrollId, action);
+    };
+
+    const executeProcessEnroll = async (enrollId: number, action: 'accept' | 'reject', reason?: string) => {
         try {
-            await enrollsApi.process(enrollId, action);
+            await enrollsApi.process(enrollId, action, reason);
             // Обновляем список записей
             if (bookingsServiceFilter) {
                 const response = await enrollsApi.getByService(bookingsServiceFilter);
@@ -212,6 +269,17 @@ export const MasterDashboardPage: React.FC = () => {
             }
             // Обновляем расписание
             await refreshSchedule();
+            
+            // Закрываем модальное окно если было открыто
+            if (cancelReasonModal.isOpen) {
+                setCancelReasonModal({
+                    isOpen: false,
+                    enrollId: null,
+                    enrollPrice: 0,
+                    clientName: '',
+                    serviceTitle: ''
+                });
+            }
         } catch (error: any) {
             const message = error?.response?.data?.detail || `Не удалось ${action === 'accept' ? 'принять' : 'отклонить'} запись`;
             alert(message);
@@ -1655,6 +1723,28 @@ export const MasterDashboardPage: React.FC = () => {
                 variant="danger"
                 onConfirm={confirmDelete}
                 onCancel={cancelDelete}
+            />
+
+            {/* Модальное окно выбора причины отмены */}
+            <CancelReasonModal
+                isOpen={cancelReasonModal.isOpen}
+                clientName={cancelReasonModal.clientName}
+                serviceTitle={cancelReasonModal.serviceTitle}
+                enrollPrice={cancelReasonModal.enrollPrice}
+                onConfirm={(reason) => {
+                    if (cancelReasonModal.enrollId) {
+                        executeProcessEnroll(cancelReasonModal.enrollId, 'reject', reason);
+                    }
+                }}
+                onCancel={() => {
+                    setCancelReasonModal({
+                        isOpen: false,
+                        enrollId: null,
+                        enrollPrice: 0,
+                        clientName: '',
+                        serviceTitle: ''
+                    });
+                }}
             />
         </div>
     );
