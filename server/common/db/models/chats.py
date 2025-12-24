@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from sqlalchemy.orm import (
     Mapped,
@@ -16,6 +16,7 @@ from sqlalchemy import (
 if TYPE_CHECKING:
     from .service import Service
     from .user import User
+    from .messages import ServiceMessage, SupportMessage
 
 from .. import Base
 
@@ -24,7 +25,7 @@ class ServiceChat(Base):
     __tablename__ = 'service_chats'
     __table_args__ = (
         Index('ux_service_chats_master_client_service',
-            'master_id', 'client_id', 'service_id', unique=True),
+              'master_id', 'client_id', 'service_id', unique=True),
     )
 
     service_id: Mapped[int] = mapped_column(ForeignKey('services.id'))
@@ -41,12 +42,15 @@ class ServiceChat(Base):
     client: Mapped['User'] = relationship(
         'User', foreign_keys=[client_id], back_populates='client_chats')
 
+    messages: Mapped[List['ServiceMessage']] = relationship(
+        'ServiceMessage', back_populates='chat', cascade="all, delete-orphan")
+
 
 class SupportChat(Base):
     __tablename__ = 'support_chats'
     __table_args__ = (
         Index('ux_support_chats_client_support',
-            'client_id', 'support_id', unique=True),
+              'client_id', 'support_id', unique=True),
     )
 
     client_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
@@ -59,3 +63,6 @@ class SupportChat(Base):
         'User', foreign_keys=[support_id], back_populates='support_chats')
     client: Mapped['User'] = relationship(
         'User', foreign_keys=[client_id], back_populates='client_support_chats')
+
+    messages: Mapped[List['SupportMessage']] = relationship(
+        'SupportMessage', back_populates='chat', cascade="all, delete-orphan")

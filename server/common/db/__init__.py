@@ -89,5 +89,7 @@ from .models import (
     Tag,
     Payment,
     SupportChat,
-    ServiceChat
+    ServiceChat,
+    ServiceMessage,
+    SupportMessage
 )

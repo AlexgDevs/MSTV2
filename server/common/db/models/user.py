@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Literal
+from typing import List, Literal, TYPE_CHECKING
 
 from sqlalchemy.orm import (
     Mapped,
@@ -11,6 +11,14 @@ from sqlalchemy import (
     String,
     DateTime
 )
+
+if TYPE_CHECKING:
+    from .messages import ServiceMessage, SupportMessage
+    from .chats import ServiceChat, SupportChat
+    from .service import Service
+    from .tag import Tag
+    from .scheduletemplate import ScheduleTemplate
+    from .service import ServiceEnroll
 
 from .. import Base
 
@@ -27,7 +35,7 @@ class User(Base):
     about: Mapped[str] = mapped_column(String(1024), nullable=True)
     joined: Mapped[DateTime] = mapped_column(DateTime, default=datetime.now)
     role: Mapped[Literal['user', 'admin', 'moderator']
-                 ] = mapped_column(default='user')
+                ] = mapped_column(default='user')
 
     templates: Mapped[List['ScheduleTemplate']] = relationship(
         'ScheduleTemplate', back_populates='user')
@@ -47,3 +55,8 @@ class User(Base):
         'SupportChat', foreign_keys='SupportChat.support_id', back_populates='support')
     client_support_chats: Mapped[List['SupportChat']] = relationship(
         'SupportChat', foreign_keys='SupportChat.client_id', back_populates='client')
+
+    service_messages: Mapped[List['ServiceMessage']] = relationship(
+        'ServiceMessage', foreign_keys='ServiceMessage.sender_id', back_populates='sender')
+    support_messages: Mapped[List['SupportMessage']] = relationship(
+        'SupportMessage', foreign_keys='SupportMessage.sender_id', back_populates='sender')
