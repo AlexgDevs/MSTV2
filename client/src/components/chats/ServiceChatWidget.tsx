@@ -150,9 +150,9 @@ export const ServiceChatWidget: React.FC<ServiceChatWidgetProps> = ({
         onOpen: () => {
             setWsError(null);
         },
-        onClose: (event?: CloseEvent) => {
+        onClose: () => {
         },
-        onError: (error) => {
+        onError: () => {
             setWsError('Ошибка соединения с чатом');
         },
         reconnect: true,
@@ -240,7 +240,15 @@ export const ServiceChatWidget: React.FC<ServiceChatWidgetProps> = ({
                     onClick={() => setIsMinimized(!isMinimized)}
                     aria-label={isMinimized ? 'Развернуть' : 'Свернуть'}
                 >
-                    {isMinimized ? '↑' : '↓'}
+                    {isMinimized ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 15L12 9L6 15" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                    ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M6 9L12 15L18 9" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                    )}
                 </button>
             </div>
 
@@ -281,22 +289,28 @@ export const ServiceChatWidget: React.FC<ServiceChatWidgetProps> = ({
                                 {wsError || 'Переподключение...'}
                             </div>
                         )}
-                        <textarea
-                            className="service-chat-input"
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            placeholder="Напишите сообщение..."
-                            disabled={!isConnected}
-                            rows={2}
-                        />
-                        <button
-                            className="service-chat-send-button"
-                            onClick={handleSendMessage}
-                            disabled={!isConnected || !newMessage.trim()}
-                        >
-                            Отправить
-                        </button>
+                        <div className="service-chat-input-wrapper">
+                            <textarea
+                                className="service-chat-input"
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                onKeyPress={handleKeyPress}
+                                placeholder="Напишите сообщение..."
+                                disabled={!isConnected}
+                                rows={1}
+                            />
+                            <button
+                                className="service-chat-send-button"
+                                onClick={handleSendMessage}
+                                disabled={!isConnected || !newMessage.trim()}
+                                aria-label="Отправить сообщение"
+                            >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </>
             )}

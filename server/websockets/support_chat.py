@@ -8,6 +8,9 @@ from ..common.db import db_config, SupportChat, select, AsyncSession
 from ..messages.usecases import get_support_message_use_case, SupportMessageUseCase
 from ..messages.repositories import SupportMessageRepository
 
+MAX_MESSAGE_LENGTH = 1024
+MAX_WEBSOCKET_MESSAGE_SIZE = 10000
+
 
 async def support_chat_websocket(websocket: WebSocket, chat_id: int):
     user = None
@@ -59,9 +62,23 @@ async def support_chat_websocket(websocket: WebSocket, chat_id: int):
 
             while True:
                 try:
-                    data = await websocket.receive_json()
+                    raw_data = await websocket.receive_text()
+                    if len(raw_data) > MAX_WEBSOCKET_MESSAGE_SIZE:
+                        await websocket.close(code=status.WS_1009_MESSAGE_TOO_BIG)
+                        return
+
+                    data = json.loads(raw_data)
                 except WebSocketDisconnect:
                     return
+                except json.JSONDecodeError:
+                    try:
+                        await websocket.send_json({
+                            "type": "error",
+                            "message": "Invalid JSON format"
+                        })
+                    except:
+                        return
+                    continue
                 except Exception as receive_error:
                     return
 
@@ -74,6 +91,16 @@ async def support_chat_websocket(websocket: WebSocket, chat_id: int):
                                 await websocket.send_json({
                                     "type": "error",
                                     "message": "Message content cannot be empty"
+                                })
+                            except:
+                                return
+                            continue
+
+                        if len(content) > MAX_MESSAGE_LENGTH:
+                            try:
+                                await websocket.send_json({
+                                    "type": "error",
+                                    "message": f"Message too long. Maximum {MAX_MESSAGE_LENGTH} characters"
                                 })
                             except:
                                 return

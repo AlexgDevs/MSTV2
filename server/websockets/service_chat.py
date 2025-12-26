@@ -6,6 +6,10 @@ from .connection_manager import service_chat_manager
 from .auth import get_user_from_websocket
 from ..common.db import db_config, ServiceChat, select, AsyncSession
 from ..messages.usecases import get_service_message_use_case, ServiceMessageUseCase
+from starlette.websockets import WebSocketState
+
+MAX_MESSAGE_LENGTH = 1024  # Соответствует лимиту в БД
+MAX_WEBSOCKET_MESSAGE_SIZE = 10000  # 10KB лимит на размер JSON
 
 
 async def service_chat_websocket(websocket: WebSocket, chat_id: int):
@@ -44,8 +48,6 @@ async def service_chat_websocket(websocket: WebSocket, chat_id: int):
             await service_chat_manager.connect(websocket, chat_id, user_id)
 
             try:
-                from starlette.websockets import WebSocketState
-
                 client_state = websocket.client_state
                 app_state = websocket.application_state
 
@@ -83,13 +85,26 @@ async def service_chat_websocket(websocket: WebSocket, chat_id: int):
 
             while True:
                 try:
-                    from starlette.websockets import WebSocketState
                     if websocket.client_state != WebSocketState.CONNECTED:
                         return
 
-                    data = await websocket.receive_json()
+                    raw_data = await websocket.receive_text()
+                    if len(raw_data) > MAX_WEBSOCKET_MESSAGE_SIZE:
+                        await websocket.close(code=status.WS_1009_MESSAGE_TOO_BIG)
+                        return
+
+                    data = json.loads(raw_data)
                 except WebSocketDisconnect:
                     return
+                except json.JSONDecodeError:
+                    try:
+                        await websocket.send_json({
+                            "type": "error",
+                            "message": "Invalid JSON format"
+                        })
+                    except:
+                        return
+                    continue
                 except Exception as receive_error:
                     import traceback
                     return
@@ -103,6 +118,16 @@ async def service_chat_websocket(websocket: WebSocket, chat_id: int):
                                 await websocket.send_json({
                                     "type": "error",
                                     "message": "Message content cannot be empty"
+                                })
+                            except:
+                                return
+                            continue
+
+                        if len(content) > MAX_MESSAGE_LENGTH:
+                            try:
+                                await websocket.send_json({
+                                    "type": "error",
+                                    "message": f"Message too long. Maximum {MAX_MESSAGE_LENGTH} characters"
                                 })
                             except:
                                 return

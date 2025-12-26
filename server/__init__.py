@@ -9,6 +9,7 @@ from .tags import tag_app
 from .payments.routers import payment_app
 from .chats import service_chat_app, support_chat_app
 from .websockets.routers import websocket_router
+from .websockets.notification_routes import notification_routes
 from .common import RateLimitMiddleware
 
 master_app = APIRouter(prefix='/api/v1', tags=['MASTER'])
@@ -22,3 +23,4 @@ master_app.include_router(tag_app)
 master_app.include_router(payment_app)
 master_app.include_router(service_chat_app)
 master_app.include_router(support_chat_app)
+master_app.include_router(notification_routes)

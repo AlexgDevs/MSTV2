@@ -201,7 +201,10 @@ export const ChatDetailPage: React.FC = () => {
             <div className="container">
                 <div className="chat-header">
                     <button onClick={() => navigate(-1)} className="btn-back">
-                        ← Назад
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Назад
                     </button>
                     <div className="chat-header-info">
                         <div className="chat-header-avatar">
@@ -259,6 +262,9 @@ export const ChatDetailPage: React.FC = () => {
                         disabled={!isConnected || !newMessage.trim()}
                     >
                         Отправить
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
                     </button>
                 </div>
             </div>

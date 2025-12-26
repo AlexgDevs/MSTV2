@@ -48,7 +48,7 @@ export const ChatList: React.FC<ChatListProps> = ({
     if (isLoading) {
         return (
             <div className="chat-list-loading">
-                <div>Загрузка чатов...</div>
+                Загрузка чатов...
             </div>
         );
     }
@@ -56,7 +56,7 @@ export const ChatList: React.FC<ChatListProps> = ({
     if (error) {
         return (
             <div className="chat-list-error">
-                <p>Ошибка загрузки чатов: {error}</p>
+                Ошибка загрузки чатов: {error}
             </div>
         );
     }
@@ -64,7 +64,13 @@ export const ChatList: React.FC<ChatListProps> = ({
     if (chats.length === 0) {
         return (
             <div className="chat-list-empty">
-                <p>У вас пока нет чатов</p>
+                <div className="chat-list-empty-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                </div>
+                <h3 className="chat-list-empty-title">У вас пока нет чатов</h3>
+                <p className="chat-list-empty-description">Начните общение с мастером через услугу</p>
             </div>
         );
     }

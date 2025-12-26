@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from .service_chat import service_chat_websocket
 from .support_chat import support_chat_websocket
+from .notfifcations import notifications_websocket
 
 websocket_router = APIRouter()
 
@@ -9,3 +10,6 @@ websocket_router.websocket(
 
 websocket_router.websocket(
     "/ws/support-chats/{chat_id}")(support_chat_websocket)
+
+websocket_router.websocket(
+    "/ws/notifications")(notifications_websocket)
