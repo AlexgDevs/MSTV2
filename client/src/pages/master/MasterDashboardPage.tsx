@@ -12,15 +12,18 @@ import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { CancelReasonModal } from '../../components/enrolls/CancelReasonModal';
 import { CalendarIcon, WarningIcon, ClipboardIcon, UsersIcon } from '../../components/icons/Icons';
 import { CATEGORIES } from '../../components/categories/CategoriesSection';
+import { chatsApi, type ServiceChatResponse } from '../../api/chats/chats.api';
+import { ChatList } from '../../components/chats/ChatList';
 import '../../assets/styles/MasterDashboardPage.css';
 
-type TabId = 'services' | 'schedule' | 'templates' | 'bookings';
+type TabId = 'services' | 'schedule' | 'templates' | 'bookings' | 'clients';
 
 const tabs: { id: TabId; label: string }[] = [
     { id: 'services', label: 'Мои услуги' },
     { id: 'schedule', label: 'Расписание' },
     { id: 'templates', label: 'Шаблоны расписания' },
     { id: 'bookings', label: 'Бронирования' },
+    { id: 'clients', label: 'Клиенты' },
 ];
 
 const priceFormatter = new Intl.NumberFormat('ru-RU', {
@@ -79,13 +82,6 @@ export const MasterDashboardPage: React.FC = () => {
     const services = user?.services ?? [];
     const serviceIds = useMemo(() => services.map(service => service.id), [services]);
 
-    // Проверка верификации email при входе в мастер панель
-    useEffect(() => {
-        if (!isAuthLoading && user && !user.verified_email) {
-            navigate('/auth/verify-email', { replace: true });
-        }
-    }, [user, isAuthLoading, navigate]);
-
     // Показываем загрузку пока проверяется авторизация или email не подтвержден
     if (isAuthLoading || !user || !user.verified_email) {
         return (
@@ -120,6 +116,11 @@ export const MasterDashboardPage: React.FC = () => {
     const [servicePhotoPreview, setServicePhotoPreview] = useState<string | null>(null);
     const [serviceFormError, setServiceFormError] = useState<string | null>(null);
     const [isServiceSubmitting, setIsServiceSubmitting] = useState(false);
+
+    // Chats state
+    const [chats, setChats] = useState<ServiceChatResponse[]>([]);
+    const [isLoadingChats, setIsLoadingChats] = useState(false);
+    const [chatsError, setChatsError] = useState<string | null>(null);
 
     // Состояния для модального окна подтверждения
     const [deleteModal, setDeleteModal] = useState<{
@@ -157,6 +158,36 @@ export const MasterDashboardPage: React.FC = () => {
     const [isScheduleSubmitting, setIsScheduleSubmitting] = useState(false);
     const [scheduleFormError, setScheduleFormError] = useState<string | null>(null);
     const weekDays = useMemo(() => getCurrentWeekDays(), []);
+
+    // Загрузка чатов при переключении на вкладку "Клиенты"
+    const loadChats = async () => {
+        if (!user) return;
+        setIsLoadingChats(true);
+        setChatsError(null);
+        try {
+            const response = await chatsApi.getServiceChats();
+            // Проверяем, что response.data существует и является массивом
+            if (response && response.data && Array.isArray(response.data)) {
+                // Фильтруем только чаты где пользователь мастер
+                const masterChats = response.data.filter(chat => chat && chat.master_id === user.id);
+                setChats(masterChats);
+            } else {
+                setChats([]);
+            }
+        } catch (error) {
+            console.error('Error loading chats:', error);
+            setChatsError(error instanceof Error ? error.message : 'Не удалось загрузить чаты');
+            setChats([]);
+        } finally {
+            setIsLoadingChats(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'clients') {
+            loadChats();
+        }
+    }, [activeTab, user]);
 
     useEffect(() => {
         if (services.length && bookingsServiceFilter === null) {
@@ -1639,6 +1670,28 @@ export const MasterDashboardPage: React.FC = () => {
         </div>
     );
 
+    const renderClientsTab = () => (
+        <div className="dashboard-clients">
+            <div className="dashboard-section">
+                <div className="section-header">
+                    <h2 className="section-title">Мои клиенты</h2>
+                    <p className="section-subtitle">
+                        {chats.length ? `Всего чатов: ${chats.length}` : 'Чатов пока нет'}
+                    </p>
+                </div>
+                <div className="section-content">
+                    <ChatList
+                        chats={chats}
+                        isLoading={isLoadingChats}
+                        error={chatsError}
+                        currentUserId={user?.id || 0}
+                        showMasterInfo={true}
+                    />
+                </div>
+            </div>
+        </div>
+    );
+
     const renderBody = () => {
         switch (activeTab) {
             case 'schedule':
@@ -1647,6 +1700,8 @@ export const MasterDashboardPage: React.FC = () => {
                 return renderTemplatesTab();
             case 'bookings':
                 return renderBookingsTab();
+            case 'clients':
+                return renderClientsTab();
             default:
                 return renderServicesTab();
         }
@@ -1665,8 +1720,7 @@ export const MasterDashboardPage: React.FC = () => {
                             Управляйте услугами и расписанием
                         </h1>
                         <p className="header-description">
-                            Здесь собраны все рабочие инструменты мастера. Пока подключены только
-                            отображение данных, но после интеграции API появится полноценное управление.
+                            Здесь собраны все рабочие инструменты мастера.
                         </p>
                     </div>
                     

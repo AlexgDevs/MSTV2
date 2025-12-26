@@ -12,6 +12,7 @@ from ...common.db import (
 
 from ..schemas import CreatedServiceChat
 
+
 class ServiceChatRepository:
     def __init__(
         self,
@@ -37,22 +38,32 @@ class ServiceChatRepository:
 
     async def get_all_by_user_id(self, user_id: int) -> dict[str, List[ServiceChat]]:
         chats = {}
-        
+
         client_chats = await self._session.scalars(
             select(ServiceChat)
             .where(ServiceChat.client_id == user_id)
+            .options(
+                selectinload(ServiceChat.client),
+                selectinload(ServiceChat.master),
+                selectinload(ServiceChat.service)
+            )
         )
 
         master_chats = await self._session.scalars(
             select(ServiceChat)
             .where(ServiceChat.master_id == user_id)
+            .options(
+                selectinload(ServiceChat.client),
+                selectinload(ServiceChat.master),
+                selectinload(ServiceChat.service)
+            )
         )
 
         chats['client_chats'] = client_chats.all()
         chats['master_chats'] = master_chats.all()
         return chats
 
-    async def get_detail_by_user_chat_id(self, user_id: int, chat_id: int) -> ServiceChat | None:        
+    async def get_detail_by_user_chat_id(self, user_id: int, chat_id: int) -> ServiceChat | None:
         client_chat = await self._session.scalar(
             select(ServiceChat)
             .where(
@@ -74,12 +85,34 @@ class ServiceChatRepository:
                     ServiceChat.id == chat_id,
                     ServiceChat.master_id == user_id
                 )
+                .options(
+                    selectinload(ServiceChat.client),
+                    selectinload(ServiceChat.master),
+                    selectinload(ServiceChat.service),
+                    selectinload(ServiceChat.messages)
+                )
             )
             if not master_chat:
                 return None
             return master_chat
 
         return client_chat
+
+    async def get_by_service_master_client(
+        self,
+        service_id: int,
+        master_id: int,
+        client_id: int
+    ) -> ServiceChat | None:
+        chat = await self._session.scalar(
+            select(ServiceChat)
+            .where(
+                ServiceChat.service_id == service_id,
+                ServiceChat.master_id == master_id,
+                ServiceChat.client_id == client_id
+            )
+        )
+        return chat
 
     async def create_chat(self, chat_data: CreatedServiceChat, client_id: int) -> ServiceChat:
         new_chat = ServiceChat(**chat_data.model_dump(), client_id=client_id)
@@ -100,5 +133,5 @@ class ServiceChatRepository:
 
 
 def get_service_chat_repository(
-    session: AsyncSession = Depends(db_config.session)) -> ServiceChatRepository:
+        session: AsyncSession = Depends(db_config.session)) -> ServiceChatRepository:
     return ServiceChatRepository(session)

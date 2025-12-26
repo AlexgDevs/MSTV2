@@ -1,0 +1,47 @@
+/* ChatsPage.css - Minimalist Light Design */
+
+.chats-page {
+    padding: var(--spacing-2xl) 0;
+    min-height: calc(100vh - 80px);
+}
+
+.chats-header {
+    margin-bottom: var(--spacing-2xl);
+}
+
+.chats-title {
+    font-size: var(--font-size-3xl, 2rem);
+    font-weight: var(--font-weight-bold, 700);
+    color: var(--color-black);
+    margin: 0 0 var(--spacing-sm) 0;
+}
+
+.chats-subtitle {
+    font-size: var(--font-size-base);
+    color: var(--color-gray-500);
+    margin: 0;
+}
+
+.chats-content {
+    background: var(--color-white);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--color-gray-200);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .chats-page {
+        padding: var(--spacing-lg) 0;
+    }
+    
+    .chats-title {
+        font-size: var(--font-size-2xl, 1.5rem);
+    }
+    
+    .chats-content {
+        padding: var(--spacing-md);
+        border-radius: var(--radius-md);
+    }
+}

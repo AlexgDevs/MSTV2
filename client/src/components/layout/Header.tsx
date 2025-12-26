@@ -100,6 +100,16 @@ export const Header: React.FC = () => {
                                     Профиль
                                 </Link>
                                 <Link
+                                    to="/chats"
+                                    className={cn('nav-link', isActive('/chats') && 'active')}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                    </svg>
+                                    Чаты
+                                </Link>
+                                <Link
                                     to="/master"
                                     className={cn('nav-link', isActive('/master') && 'active')}
                                     style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}

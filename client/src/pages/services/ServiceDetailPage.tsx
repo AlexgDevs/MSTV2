@@ -8,6 +8,8 @@ import { cn } from '../../utils/cn';
 import { CheckIcon, XIcon } from '../../components/icons/Icons';
 import { canBookSlot, validateBookingData, isValidTimeSlot } from '../../utils/bookingValidation';
 import { PaymentModal } from '../../components/payments/PaymentModal';
+import { ServiceChatWidget } from '../../components/chats/ServiceChatWidget';
+import { chatsApi } from '../../api/chats/chats.api';
 import '../../assets/styles/ServiceDetailPage.css';
 
 const priceFormatter = new Intl.NumberFormat('ru-RU', {
@@ -69,6 +71,7 @@ export const ServiceDetailPage: React.FC = () => {
     });
     const [isSaving, setIsSaving] = useState(false);
     const [editError, setEditError] = useState<string | null>(null);
+    const [isMasterOnline, setIsMasterOnline] = useState(false);
 
     const isOwner = user && service && user.id === service.user_id;
 
@@ -91,6 +94,28 @@ export const ServiceDetailPage: React.FC = () => {
 
         fetchServiceDetail();
     }, [serviceId]);
+
+    // Проверка статуса онлайн мастера
+    useEffect(() => {
+        const checkMasterStatus = async () => {
+            if (!service || isOwner || !user) return;
+
+            try {
+                const response = await chatsApi.checkMasterOnlineStatus(service.user_id);
+                setIsMasterOnline(response.data.is_online);
+            } catch (error) {
+                // Игнорируем ошибки проверки статуса - это не критично
+                console.error('Error checking master status:', error);
+            }
+        };
+
+        if (service && !isOwner && user) {
+            checkMasterStatus();
+            // Обновляем статус каждые 30 секунд
+            const interval = setInterval(checkMasterStatus, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [service, isOwner, user]);
 
     const handleBackClick = () => {
         navigate(-1);
@@ -670,6 +695,16 @@ export const ServiceDetailPage: React.FC = () => {
                     serviceName={service.title}
                     onClose={handleClosePaymentModal}
                     onSuccess={handlePaymentSuccess}
+                />
+            )}
+
+            {/* Чат с мастером (только для клиентов) */}
+            {!isOwner && service && user && service.user && (
+                <ServiceChatWidget
+                    serviceId={service.id}
+                    masterId={service.user_id}
+                    masterName={service.user.name || 'Мастер'}
+                    isMasterOnline={isMasterOnline}
                 />
             )}
         </div>

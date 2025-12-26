@@ -8,6 +8,7 @@ from .enrolls import enroll_app
 from .tags import tag_app
 from .payments.routers import payment_app
 from .chats import service_chat_app, support_chat_app
+from .websockets.routers import websocket_router
 from .common import RateLimitMiddleware
 
 master_app = APIRouter(prefix='/api/v1', tags=['MASTER'])

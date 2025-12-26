@@ -9,14 +9,7 @@ if TYPE_CHECKING:
 class CreatedServiceChat(BaseModel):
     service_id: int
     master_id: int
-    client_id: int
-
-
-class ServiceChatResponse(BaseModel):
-    id: int
-    client_id: int
-    master_id: int
-    created_at: datetime
+    # client_id берется из токена пользователя, не нужно отправлять
 
 
 class SimpleServiceForChatResponse(BaseModel):
@@ -40,7 +33,6 @@ class SimpleMessageForChatResponse(BaseModel):
     created_at: datetime
     sender_id: int
     sender: SimpleUserForChatResponse
-    is_master: bool
 
     @classmethod
     def from_orm_with_chat(cls, message: 'ServiceMessage', chat_master_id: int):
@@ -52,6 +44,20 @@ class SimpleMessageForChatResponse(BaseModel):
             sender=SimpleUserForChatResponse.model_validate(message.sender),
             is_master=message.sender_id == chat_master_id
         )
+
+
+class ServiceChatResponse(BaseModel):
+    id: int
+    service_id: int
+    client_id: int
+    master_id: int
+    created_at: datetime
+    client: SimpleUserForChatResponse | None = None
+    master: SimpleUserForChatResponse | None = None
+    service: SimpleServiceForChatResponse | None = None
+
+    class Config:
+        from_attributes = True
 
 
 class DetailServiceChat(BaseModel):

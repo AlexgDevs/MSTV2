@@ -1,3 +1,5 @@
+from server.websockets.support_chat import support_chat_websocket
+from server.websockets.service_chat import service_chat_websocket
 import uvicorn
 from asyncio import run
 from fastapi import FastAPI
@@ -21,6 +23,9 @@ app.add_middleware(
 )
 
 app.include_router(master_app)
+
+app.websocket("/ws/service-chats/{chat_id}")(service_chat_websocket)
+app.websocket("/ws/support-chats/{chat_id}")(support_chat_websocket)
 
 
 @app.get('/')
