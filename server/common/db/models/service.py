@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from re import M
-from typing import List, Literal
+from typing import List, Literal, TYPE_CHECKING
 
 from sqlalchemy.orm import (
     Mapped,
@@ -16,6 +16,15 @@ from sqlalchemy import (
     Index
 )
 
+if TYPE_CHECKING:
+    from .date import ServiceDate
+    from .user import User
+    from .payment import Payment
+    from .tag import Tag, ServiceTagConnection
+    from .scheduletemplate import ScheduleTemplate
+    from .chats import ServiceChat
+
+
 from .. import Base
 
 
@@ -23,12 +32,12 @@ class ServiceEnroll(Base):
     __tablename__ = 'service_enrolls'
     __table_args__ = (
         Index('ux_service_enrolls_date_slot',
-              'service_date_id', 'slot_time', unique=True),
+            'service_date_id', 'slot_time', unique=True),
     )
 
     slot_time: Mapped[str]
     status: Mapped[Literal['pending', 'confirmed', 'completed',
-                           'cancelled', 'expired']] = mapped_column(default='pending')
+                        'cancelled', 'expired']] = mapped_column(default='pending')
     price: Mapped[int]
     created_at: Mapped[DateTime] = mapped_column(
         DateTime, default=datetime.now(timezone.utc))

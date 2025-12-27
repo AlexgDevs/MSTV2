@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../../stores/auth.store';
 import { paymentsApi } from '../../api/payments/payments.api';
 import type { PaymentResponse } from '../../api/payments/types';
+import { chatsApi, type ServiceChatResponse } from '../../api/chats/chats.api';
+import { ChatList } from '../../components/chats/ChatList';
 import '../../assets/styles/ProfilePage.css'
 
 const priceFormatter = new Intl.NumberFormat('ru-RU', {
@@ -26,7 +28,7 @@ const paymentStatusVariants: Record<string, { class: string; label: string }> = 
     failed: { class: 'status-cancelled', label: 'Ошибка' }
 };
 
-type TabId = 'profile' | 'payments';
+type TabId = 'profile' | 'payments' | 'chats';
 
 export const ProfilePage: React.FC = () => {
     const { user, updateProfile } = useAuthStore();
@@ -45,6 +47,11 @@ export const ProfilePage: React.FC = () => {
     const [isLoadingPayments, setIsLoadingPayments] = useState(false);
     const [paymentsError, setPaymentsError] = useState<string | null>(null);
 
+    // Chats state
+    const [chats, setChats] = useState<ServiceChatResponse[]>([]);
+    const [isLoadingChats, setIsLoadingChats] = useState(false);
+    const [chatsError, setChatsError] = useState<string | null>(null);
+
     useEffect(() => {
         if (user) {
             setFormData({
@@ -58,6 +65,8 @@ export const ProfilePage: React.FC = () => {
     useEffect(() => {
         if (activeTab === 'payments') {
             loadPayments();
+        } else if (activeTab === 'chats') {
+            loadChats();
         }
     }, [activeTab]);
 
@@ -71,6 +80,29 @@ export const ProfilePage: React.FC = () => {
             setPaymentsError(error instanceof Error ? error.message : 'Не удалось загрузить историю покупок');
         } finally {
             setIsLoadingPayments(false);
+        }
+    };
+
+    const loadChats = async () => {
+        if (!user) return;
+        setIsLoadingChats(true);
+        setChatsError(null);
+        try {
+            const response = await chatsApi.getServiceChats();
+            // Проверяем, что response.data существует и является массивом
+            if (response && response.data && Array.isArray(response.data)) {
+                // Фильтруем только чаты где пользователь клиент
+                const clientChats = response.data.filter(chat => chat && chat.client_id === user.id);
+                setChats(clientChats);
+            } else {
+                setChats([]);
+            }
+        } catch (error) {
+            console.error('Error loading chats:', error);
+            setChatsError(error instanceof Error ? error.message : 'Не удалось загрузить чаты');
+            setChats([]);
+        } finally {
+            setIsLoadingChats(false);
         }
     };
 
@@ -331,6 +363,28 @@ export const ProfilePage: React.FC = () => {
                 </div>
     );
 
+    const renderChatsTab = () => (
+        <div className="profile-chats">
+            <div className="profile-card">
+                <div className="profile-card-header">
+                    <h2 className="profile-card-title">Мои чаты</h2>
+                    <p className="profile-card-subtitle">
+                        {chats.length ? `Всего чатов: ${chats.length}` : 'Чатов пока нет'}
+                    </p>
+                </div>
+                <div className="profile-card-content">
+                    <ChatList
+                        chats={chats}
+                        isLoading={isLoadingChats}
+                        error={chatsError}
+                        currentUserId={user?.id || 0}
+                        showMasterInfo={false}
+                    />
+                </div>
+            </div>
+        </div>
+    );
+
     const renderPaymentsTab = () => (
         <div className="profile-payments">
             <div className="profile-card">
@@ -465,10 +519,18 @@ export const ProfilePage: React.FC = () => {
                     >
                         История покупок
                     </button>
+                    <button
+                        className={`profile-tab ${activeTab === 'chats' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('chats')}
+                    >
+                        Чаты
+                    </button>
                 </div>
 
                 {/* Tab Content */}
-                {activeTab === 'profile' ? renderProfileTab() : renderPaymentsTab()}
+                {activeTab === 'profile' && renderProfileTab()}
+                {activeTab === 'payments' && renderPaymentsTab()}
+                {activeTab === 'chats' && renderChatsTab()}
             </div>
         </div>
     );

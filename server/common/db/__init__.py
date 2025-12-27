@@ -43,14 +43,35 @@ class DataBaseConfiguration:
 
         self.db_url = db_url
         self.echo = echo
-        self.engine = create_async_engine(
-            url=self.db_url,
-            echo=self.echo
-        )
+        
+        # Настройки пула соединений для предотвращения исчерпания
+        # Для SQLite используем другие настройки
+        is_sqlite = "sqlite" in db_url.lower()
+        
+        engine_kwargs = {
+            "url": self.db_url,
+            "echo": self.echo,
+        }
+        
+        if not is_sqlite:
+            # Для PostgreSQL/MySQL настраиваем пул соединений
+            engine_kwargs.update({
+                "pool_size": 20,  # Количество соединений в пуле
+                "max_overflow": 10,  # Дополнительные соединения сверх pool_size
+                "pool_timeout": 30,  # Таймаут ожидания свободного соединения (секунды)
+                "pool_recycle": 3600,  # Пересоздавать соединения через час (предотвращает таймауты БД)
+                "pool_pre_ping": True,  # Проверять соединения перед использованием
+            })
+        else:
+            # Для SQLite используем специальные настройки
+            engine_kwargs["connect_args"] = {"check_same_thread": False}
+        
+        self.engine = create_async_engine(**engine_kwargs)
 
         self.Session = async_sessionmaker(
             self.engine,
-            expire_on_commit=False
+            expire_on_commit=False,
+            class_=AsyncSession
         )
 
     async def up(self):

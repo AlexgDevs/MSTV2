@@ -14,6 +14,8 @@ import { PrivacyPolicyPage } from './pages/legal/PrivacyPolicyPage';
 import { TermsOfServicePage } from './pages/legal/TermsOfServicePage';
 import { AboutPage } from './pages/legal/AboutPage';
 import { PaymentSuccessPage } from './pages/payments/PaymentSuccessPage';
+import { ChatDetailPage } from './pages/chats/ChatDetailPage';
+import { ChatsPage } from './pages/chats/ChatsPage';
 
 // Компонент-обертка для инициализации auth
 const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -125,6 +127,22 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <MasterDashboardPage />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/chats" element={
+            <ProtectedRoute>
+              <Layout>
+                <ChatsPage />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/chats/:chatId" element={
+            <ProtectedRoute>
+              <Layout>
+                <ChatDetailPage />
               </Layout>
             </ProtectedRoute>
           } />

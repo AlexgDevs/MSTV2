@@ -156,6 +156,24 @@ async def check_auth_status(user=Depends(JWTManager.auth_required)):
     return {"status": "authenticated", "user_id": user.get('id')}
 
 
+@auth_app.get('/ws-token',
+              summary='get token for websocket',
+              description='endpoint for getting access token for WebSocket connection')
+async def get_ws_token(user=Depends(JWTManager.auth_required)):
+    """
+    Возвращает access token для использования в WebSocket соединениях.
+    Токен можно передать через query параметр ?token=...
+    """
+    # Создаем новый токен для WebSocket (можно использовать существующий из cookies)
+    user_token_data = {
+        'id': user.get('id'),
+        'name': user.get('name'),
+        'role': user.get('role')
+    }
+    access_token = await TokenFactory.create_access_token(user_token_data)
+    return {"access_token": access_token}
+
+
 @auth_app.delete('/logout',
                  summary='logout account',
                  description='endpoint for deleting cookies')
