@@ -102,6 +102,34 @@ class EmailVerfifcation:
             server.login(self._from_email, self._pwd)
             server.send_message(msg)
 
+    async def send_tg_verification_code(
+        self,
+        to_email: str,
+        verification_code: str):
+
+        with SMTP(
+            self._server,
+            self._port
+        ) as server:
+
+            msg = EmailMessage()
+            msg['From'] = self._from_email
+            msg['To'] = to_email
+            msg['Subject'] = 'Привязка телеграмм аккаунта'
+
+            html_content = self._generate_html_for_verfifcation_code(
+                verification_code)
+
+            msg.set_content(
+                f'Ваш код для привязки аккаунта: {verification_code}',
+                subtype='plain'
+            )
+            msg.add_alternative(html_content, subtype='html')
+            server.starttls()
+            server.login(self._from_email, self._pwd)
+            server.send_message(msg)
+
+
     @staticmethod
     def _generate_html_for_verfifcation_code(
         verification_code: str
@@ -221,13 +249,13 @@ class EmailVerfifcation:
 <body>
     <div class="email-container">
         <div class="email-header">
-            <h1>Подтверждение почты</h1>
+            <h1>Привязка телеграмм аккаунта к сайту</h1>
         </div>
         <div class="email-content">
             <h2 class="email-title">Добро пожаловать!</h2>
             <p class="email-text">
-                Спасибо за регистрацию! Для завершения регистрации и подтверждения вашей электронной почты, 
-                пожалуйста, введите следующий код подтверждения:
+                Спасибо за привязку! Для ее завершения, 
+                пожалуйста, введите следующий код подтверждения телеграмм боту без пробелов:
             </p>
             <div class="code-container">
                 <p class="verification-code">{verification_code}</p>
@@ -237,7 +265,7 @@ class EmailVerfifcation:
                 просто проигнорируйте это письмо.
             </p>
             <div class="warning-text">
-                ⚠️ Никому не сообщайте этот код. Мы никогда не попросим вас предоставить его по телефону или email.
+                Никому не сообщайте этот код. Мы никогда не попросим вас предоставить его по телефону или email.
             </div>
         </div>
         <div class="email-footer">

@@ -1,1 +1,1 @@
-from .user_repository import get_user_repository, UserRepository
+from .user_repository import get_user_repository, UserRepository, user_repo_obj

@@ -110,6 +110,7 @@ class PaymentUseCase:
                 'status': 'error',
                 'detail': f'Database error: {str(e)}'
             }
+
         except Exception as e:
             await self._session.rollback()
             logger.error(f'Unexpected payment error: {str(e)}')
