@@ -1,4 +1,5 @@
 import uuid
+from asyncio import create_task
 from datetime import datetime
 from typing import Dict, Any
 from fastapi import Depends
@@ -6,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import select
 
-from ...common import db_config
+from ...common import db_config, Service
 from ...common.db.models.service import ServiceEnroll
 from ...common.db.models.payment import Payment
 from ...common.utils.logger import logger
@@ -14,7 +15,8 @@ from ...common.utils.yookassa import (
     create_payment as yookassa_create_payment,
     get_payment as yookassa_get_payment,
     capture_payment as yookassa_capture_payment,
-    cancel_payment as yookassa_cancel_payment
+    cancel_payment as yookassa_cancel_payment,
+    trafic_orchestrator as yookass_trafic_orchestrator
 )
 from ..repositories import PaymentRepository, get_payment_repository
 from ..schemas import CreatePaymentModel
@@ -68,6 +70,17 @@ class PaymentUseCase:
                         'yookassa_payment_id': existing_payment.yookassa_payment_id
                     }
 
+            service = await self._session.scalar(
+                select(Service)
+                .where(Service.id == enroll.service_id)
+            )
+
+            if not service:
+                return {
+                    'status': 'error',
+                    'detail': 'service not found'
+                }
+
             idempotence_key = str(uuid.uuid4())
             description = f"Enroll #{payment_data.enroll_id}"
 
@@ -78,9 +91,10 @@ class PaymentUseCase:
                 metadata={
                     'enroll_id': str(payment_data.enroll_id),
                     'user_id': str(user_id),
+                    'seller_id': str(service.user_id),
                     'idempotence_key': idempotence_key
                 },
-                capture=True
+                capture=False
             )
 
             payment = await self._payment_repository.create_payment(
@@ -162,7 +176,7 @@ class PaymentUseCase:
             )
 
             if status == 'succeeded' and payment.enroll_id:
-                # ТУТ КАРОЧЕ ЗАКИНУ ОРЕКЕСТРАТОР 
+                create_task(self._background_process_successful_payment(yookassa_payment_id))
                 enroll = await self._session.scalar(
                     select(ServiceEnroll)
                     .where(ServiceEnroll.id == payment.enroll_id)
@@ -193,6 +207,12 @@ class PaymentUseCase:
                 'status': 'error',
                 'detail': f'Webhook processing error: {str(e)}'
             }
+    async def _background_process_successful_payment(self, yookassa_payment_id):
+        try:
+            await yookass_trafic_orchestrator(yookassa_payment_id)
+            logger.info(f"Successfully processed payment {yookassa_payment_id}")
+        except Exception as e:
+            logger.error(f"Error processing payment {yookassa_payment_id}: {str(e)}")
 
     async def get_payment_status(
         self,
