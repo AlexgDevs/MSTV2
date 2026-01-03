@@ -112,5 +112,6 @@ from .models import (
     SupportChat,
     ServiceChat,
     ServiceMessage,
-    SupportMessage
+    SupportMessage,
+    Account
 )

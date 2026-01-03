@@ -12,9 +12,15 @@ from server import (
     db_config,
     RateLimitMiddleware
 )
+
 from server.common.utils.rate_limiter_config import lifespan
 from os import getenv
 from dotenv import load_dotenv
+
+from server.common.db import User, db_config
+from server.common.utils import email_verfification_obj, EmailVerfifcation
+from server.users.repositories import user_repo_obj, UserRepository
+
 
 load_dotenv()
 

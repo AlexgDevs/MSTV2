@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from .tag import Tag
     from .scheduletemplate import ScheduleTemplate
     from .service import ServiceEnroll
+    from .accounts import Account
 
 from .. import Base
 
@@ -31,11 +32,13 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(512))
     verified_email: Mapped[bool] = mapped_column(default=False)
     verified_code: Mapped[str] = mapped_column(String(6), nullable=True)
+    telegram_id: Mapped[int] = mapped_column(nullable=True)
 
     about: Mapped[str] = mapped_column(String(1024), nullable=True)
     joined: Mapped[DateTime] = mapped_column(DateTime, default=datetime.now)
     role: Mapped[Literal['user', 'admin', 'moderator']
                 ] = mapped_column(default='user')
+
 
     templates: Mapped[List['ScheduleTemplate']] = relationship(
         'ScheduleTemplate', back_populates='user')
@@ -60,3 +63,5 @@ class User(Base):
         'ServiceMessage', foreign_keys='ServiceMessage.sender_id', back_populates='sender')
     support_messages: Mapped[List['SupportMessage']] = relationship(
         'SupportMessage', foreign_keys='SupportMessage.sender_id', back_populates='sender')
+
+    account: Mapped['Account'] = relationship('Account', back_populates='user', uselist=False)

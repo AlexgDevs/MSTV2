@@ -43,6 +43,20 @@ class UserRepository:
 
         return user
 
+    async def get_by_email(self, email: str) -> User | None:
+        user = await self._session.scalar(
+            select(User).where(User.email == email)
+        )
+
+        return user
+
+    async def get_by_tg_id(self, tg_id: int) -> User | None:
+        user = await self._session.scalar(
+            select(User).where(User.telegram_id == tg_id)
+        )
+
+        return user
+
     async def get_by_id_detail(
             self,
             user_id: int) -> User | None:
@@ -95,6 +109,7 @@ class UserRepository:
         await self._session.refresh(updating_user)
         return updating_user
 
+user_repo_obj = UserRepository(db_config.session)
 
 def get_user_repository(
     session: AsyncSession = Depends(db_config.session)
