@@ -1,4 +1,5 @@
 from os import getenv
+from decimal import Decimal
 from typing import Optional, Dict, Any
 from dotenv import load_dotenv
 import httpx
@@ -6,6 +7,8 @@ import base64
 import json
 
 from .logger import logger
+from ..db import db_config
+from ...payments.repositories import PaymentRepository
 
 load_dotenv()
 
@@ -18,14 +21,24 @@ YUKASSA_API_TEST_URL = "https://api.yookassa.ru/v3"
 IS_TEST_MODE = YUKASSA_SECRET_KEY and YUKASSA_SECRET_KEY.startswith('test_')
 
 
+def check_yukass_credentials():
+    if not YUKASSA_SHOP_ID or not YUKASSA_SECRET_KEY:
+        raise ValueError("YUKASSA credentials not configured")
+
+    pass 
+
 def get_api_url() -> str:
+    '''
+    we receive the URL API depending on our current development testing or production
+    '''
     return YUKASSA_API_TEST_URL if IS_TEST_MODE else YUKASSA_API_URL
 
 
 def get_auth_header() -> str:
-    if not YUKASSA_SHOP_ID or not YUKASSA_SECRET_KEY:
-        raise ValueError(
-            "YUKASSA_SHOP_ID and YUKASSA_SECRET_KEY not found")
+    '''
+    we create a title to check the availability of this store in Yukassa
+    '''
+    check_yukass_credentials()
 
     credentials = f"{YUKASSA_SHOP_ID}:{YUKASSA_SECRET_KEY}"
     encoded = base64.b64encode(credentials.encode()).decode()
@@ -39,9 +52,11 @@ async def create_payment(
     metadata: Optional[Dict[str, Any]] = None,
     capture: bool = True
 ) -> Dict[str, Any]:
-    if not YUKASSA_SHOP_ID or not YUKASSA_SECRET_KEY:
-        logger.error("YUKASSA_SHOP_ID or YUKASSA_SECRET_KEY not initialized")
-        raise ValueError("YUKASSA credentials not configured")
+    '''
+    created payment by yukassa shop
+    created header and made payload for creating payment
+    '''
+    check_yukass_credentials()
 
     url = f"{get_api_url()}/payments"
     headers = {
@@ -86,8 +101,10 @@ async def create_payment(
 
 
 async def get_payment(payment_id: str) -> Dict[str, Any]:
-    if not YUKASSA_SHOP_ID or not YUKASSA_SECRET_KEY:
-        raise ValueError("YUKASSA credentials not configured")
+    '''
+    get payment for working other functions
+    '''
+    check_yukass_credentials()
 
     url = f"{get_api_url()}/payments/{payment_id}"
     headers = {
@@ -110,8 +127,10 @@ async def get_payment(payment_id: str) -> Dict[str, Any]:
 
 
 async def capture_payment(payment_id: str, amount: Optional[int] = None) -> Dict[str, Any]:
-    if not YUKASSA_SHOP_ID or not YUKASSA_SECRET_KEY:
-        raise ValueError("YUKASSA credentials not configured")
+    '''
+    transferring funds to a Yukassy store
+    '''
+    check_yukass_credentials()
 
     url = f"{get_api_url()}/payments/{payment_id}/capture"
     headers = {
@@ -143,9 +162,7 @@ async def capture_payment(payment_id: str, amount: Optional[int] = None) -> Dict
 
 
 async def cancel_payment(payment_id: str) -> Dict[str, Any]:
-    if not YUKASSA_SHOP_ID or not YUKASSA_SECRET_KEY:
-        raise ValueError("YUKASSA credentials not configured")
-
+    check_yukass_credentials()
     url = f"{get_api_url()}/payments/{payment_id}/cancel"
     headers = {
         "Authorization": get_auth_header(),
@@ -172,8 +189,10 @@ async def create_refund(
     amount: Optional[int] = None,
     description: Optional[str] = None
 ) -> Dict[str, Any]:
-    if not YUKASSA_SHOP_ID or not YUKASSA_SECRET_KEY:
-        raise ValueError("YUKASSA credentials not configured")
+    '''
+    function for arbitration or masters for payment refund
+    '''
+    check_yukass_credentials()
 
     url = f"{get_api_url()}/refunds"
     headers = {
@@ -239,3 +258,129 @@ def verify_webhook_signature(data: Dict[str, Any], signature: Optional[str] = No
     # YooKassa IP ranges should be whitelisted
 
     return True
+
+
+async def process_payout_to_seller(
+    payment_id: int):
+    '''
+    function for transferring funds to the seller
+    '''
+    check_yukass_credentials()
+    try:
+
+        payment = await get_payment(payment_id)
+        if not payment:
+            raise ValueError('Payment not found')
+
+        if payment.get('status') != 'sucessed':
+            raise ValueError('Payment not sucessed')
+
+        agreagate_amounts = await agreagate_amounts(payment.get('amount').get('value'))
+        seller_amount = agreagate_amounts.get('seller_net')
+        master_id = payment.get('metadata').get('seller_id')
+        if not master_id:
+            raise ValueError('seller_id not found')
+
+        payment_repo = PaymentRepository(db_config.Session())
+        master = await payment_repo.get_seller_id(int(master_id))
+        if not master:
+            raise ValueError('Seller not found')
+
+        if not master.account:
+            raise ValueError('Seller not found details account')
+
+        payout_data = {
+                "amount": {
+                    "value": str(seller_amount),
+                    "currency": "RUB"
+                },
+                "payout_destination_data": {
+                    "type": master.account.get_yookassa_payout_data()
+                },
+                "description": f"Выплата за заказ {payment_id}",
+                "metadata": {
+                    "payment_id": payment_id,
+                    "seller_id": master.id,
+                    "purpose": "seller_payout"
+                }
+            }
+            
+        url = f"{get_api_url()}/payouts"
+        headers = {
+            "Authorization": get_auth_header(),
+            "Content-Type": "application/json",
+            "Idempotence-Key": f"payout_seller_{payment_id}"
+        }
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(url, json=payout_data, headers=headers)
+            response.raise_for_status()
+            result = response.json()
+            
+            logger.info(f"Payout to seller {master.id}: {seller_amount} {payment.get('amount').get('currency', 'None')}")
+            return {"success": True, "data": result}
+                
+    except Exception as e:
+        logger.error(f"Error in process_payout_to_seller: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+
+async def process_payout_to_country():
+    '''
+    function for transferring funds to the country
+    '''
+    check_yukass_credentials()
+    pass
+
+
+async def process_payout_to_developer():
+    '''
+    function for transferring funds to the developer
+    '''
+    check_yukass_credentials()
+    pass
+
+
+async def agregate_amount(
+    amount: float,
+    NP: bool = True,
+    SEMP: bool = False) -> Dict[str, int]:
+    '''
+    Splitting the amount of funds between three parts: developer, service provider, and country.
+    90% - the service provider receives
+    10% - the developer receives
+    n% (depending on the type of sole proprietor) of the percentage
+    if it's a sole proprietor, then
+    n% of the percentage the developer receives
+    if it's a self-employed person, then n% of the total cost
+    '''
+    100
+
+    total = Decimal(amount)
+    
+    platform_percent = Decimal('0.10')
+    platform_amount = (total * platform_percent).quantize(Decimal('0.01'))
+    
+    seller_gross_percent = Decimal('0.90')
+    seller_gross = (total * seller_gross_percent).quantize(Decimal('0.01'))
+    
+    tax_percent = Decimal('0.06')
+    tax_amount = (seller_gross * tax_percent).quantize(Decimal('0.01'))
+    
+    seller_net = seller_gross - tax_amount
+    
+    return {
+        "total": total,
+        "platform_amount": platform_amount,
+        "seller_gross": seller_gross,
+        "tax_amount": tax_amount,
+        "seller_net": seller_net
+    }
+
+
+async def trafic_orkestrator():
+    '''
+    distribution of all translations in one place
+    '''
+    check_yukass_credentials()
+    pass

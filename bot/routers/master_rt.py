@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from ..keyboards import main_menu_keyboard
 from .. import User, db_config, UserRepository, user_repo_obj, email_verfification_obj, EmailVerfifcation
 
 
@@ -40,6 +41,12 @@ async def give_main_root(
     if not user:
         await message.answer('Добро пожаловать в бота MSTV2! Поскольку вы у нас впервые давайте зарегистрируемся! Введите почту котороя принадлежит вам на нашем сайте')
         await state.set_state(UserState.email)
+
+    if user.role not in ['admin', 'moderator', 'manager', 'user']:
+        await message.answer('У вас недостаточно прав для использования данного бота')
+        return
+
+    await message.answer('Здравствуй!', reply_markup=main_menu_keyboard())
 
 
 @master_router.message(UserState.email)
@@ -96,6 +103,6 @@ async def check_code(
         await session.merge(User(id=user.id, telegram_id=message.from_user.id))
         await session.flush()
 
-    await message.answer('Телеграмм аккаунт успешно привязан!')
+    await message.answer('Телеграмм аккаунт успешно привязан!', reply_markup=main_menu_keyboard())
     await state.clear()
     # Keyboards coming soon 

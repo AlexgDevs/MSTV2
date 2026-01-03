@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from .tag import Tag, ServiceTagConnection
     from .scheduletemplate import ScheduleTemplate
     from .chats import ServiceChat
+    from .accounts import Account
 
 
 from .. import Base
@@ -86,3 +87,4 @@ class Service(Base):
 
     chats: Mapped[List['ServiceChat']] = relationship(
         'ServiceChat', back_populates='service', cascade="all, delete-orphan")
+

@@ -162,6 +162,7 @@ class PaymentUseCase:
             )
 
             if status == 'succeeded' and payment.enroll_id:
+                # ТУТ КАРОЧЕ ЗАКИНУ ОРЕКЕСТРАТОР 
                 enroll = await self._session.scalar(
                     select(ServiceEnroll)
                     .where(ServiceEnroll.id == payment.enroll_id)

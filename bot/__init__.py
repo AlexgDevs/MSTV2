@@ -4,7 +4,7 @@ from run_server import User, db_config, user_repo_obj, UserRepository, EmailVerf
 from aiogram import Bot, Dispatcher
 from dotenv import load_dotenv
 
-from .routers import master_router
+from .routers import master_router, main_keyboard_actions_router
 
 load_dotenv()
 
@@ -13,6 +13,7 @@ NOTIFICATION_BOT_TOKEN = getenv('NOTIFICATION_BOT_TOKEN')
 bot = Bot(NOTIFICATION_BOT_TOKEN)
 dp = Dispatcher()
 dp.include_router(master_router)
+dp.include_router(main_keyboard_actions_router)
 
 async def main():
     await dp.start_polling(bot)
