@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import select
 
-from ...common import db_config, Service
-from ...common.db.models.service import ServiceEnroll
+from ...common import db_config
+from ...common.db.models.service import ServiceEnroll, Service
 from ...common.db.models.payment import Payment
 from ...common.utils.logger import logger
 from ...common.utils.yookassa import (
