@@ -37,7 +37,7 @@ class ServiceEnroll(Base):
     )
 
     slot_time: Mapped[str]
-    status: Mapped[Literal['pending', 'confirmed', 'completed',
+    status: Mapped[Literal['pending', 'confirmed', 'ready', 'completed',
                         'cancelled', 'expired']] = mapped_column(default='pending')
     price: Mapped[int]
     created_at: Mapped[DateTime] = mapped_column(

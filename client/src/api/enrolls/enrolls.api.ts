@@ -12,5 +12,9 @@ export const enrollsApi = {
         API.post<{ status: string; enroll_status: string }>(`/enrolls/${enrollId}/process/${action}`, { reason }),
     getByService: (serviceId: number) =>
         API.get<EnrollResponse[]>(`/enrolls/service/${serviceId}`),
+    complete: (enrollId: number) =>
+        API.post<{ status: string; enroll_status: string }>(`/enrolls/${enrollId}/complete`),
+    confirm: (enrollId: number) =>
+        API.post<{ status: string; enroll_status: string }>(`/enrolls/${enrollId}/confirm`),
 };
 

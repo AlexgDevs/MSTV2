@@ -4,7 +4,9 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -23,13 +25,13 @@
 }
 
 .payment-modal-content {
-    background: #1e1e1e;
-    border-radius: 12px;
+    background: #FFFFFF;
+    border-radius: 0.75rem;
     width: 100%;
     max-width: 500px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
     animation: slideUp 0.3s ease-out;
-    border: 1px solid #3e3e42;
+    border: none;
 }
 
 @keyframes slideUp {
@@ -47,33 +49,34 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 24px;
-    border-bottom: 1px solid #3e3e42;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #F5F5F5;
 }
 
 .payment-modal-title {
-    font-size: 24px;
-    font-weight: 600;
-    color: #ffffff;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0A0A0A;
     margin: 0;
+    letter-spacing: -0.01em;
 }
 
 .payment-modal-close {
     background: transparent;
     border: none;
-    color: #cccccc;
+    color: #737373;
     cursor: pointer;
     padding: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 6px;
+    border-radius: 0.5rem;
     transition: all 0.2s;
 }
 
 .payment-modal-close:hover:not(:disabled) {
-    background: #3e3e42;
-    color: #ffffff;
+    background: #F5F5F5;
+    color: #0A0A0A;
 }
 
 .payment-modal-close:disabled {
@@ -82,7 +85,7 @@
 }
 
 .payment-modal-body {
-    padding: 24px;
+    padding: 2rem;
 }
 
 .payment-info {
@@ -96,27 +99,27 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px;
-    background: #252526;
-    border-radius: 8px;
-    border: 1px solid #3e3e42;
+    padding: 1rem;
+    background: #FAFAFA;
+    border-radius: 0.5rem;
+    border: 1px solid #E5E5E5;
 }
 
 .payment-info-label {
-    font-size: 14px;
-    color: #cccccc;
+    font-size: 0.875rem;
+    color: #737373;
     font-weight: 500;
 }
 
 .payment-info-value {
-    font-size: 16px;
-    color: #ffffff;
+    font-size: 1rem;
+    color: #0A0A0A;
     font-weight: 600;
 }
 
 .payment-amount {
-    font-size: 20px;
-    color: #4caf50;
+    font-size: 1.25rem;
+    color: #16A34A;
 }
 
 .payment-error {
@@ -124,11 +127,11 @@
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
-    background: #3d1f1f;
-    border: 1px solid #5a2a2a;
-    border-radius: 8px;
-    color: #ff6b6b;
-    font-size: 14px;
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    border-radius: 0.5rem;
+    color: #DC2626;
+    font-size: 0.875rem;
     margin-bottom: 16px;
 }
 
@@ -141,11 +144,11 @@
     align-items: flex-start;
     gap: 12px;
     padding: 12px 16px;
-    background: #1e3a3a;
-    border: 1px solid #2d5a5a;
-    border-radius: 8px;
-    color: #4dd0e1;
-    font-size: 13px;
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    border-radius: 0.5rem;
+    color: #2563EB;
+    font-size: 0.8125rem;
     line-height: 1.5;
 }
 
@@ -156,25 +159,28 @@
 
 .payment-modal-footer {
     display: flex;
-    gap: 12px;
-    padding: 24px;
-    border-top: 1px solid #3e3e42;
+    gap: 0.75rem;
+    padding: 1rem 2rem 1.5rem;
+    border-top: 1px solid #F5F5F5;
     justify-content: flex-end;
+    background: #FFFFFF;
 }
 
 .payment-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-size: 16px;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
     border: none;
     min-width: 120px;
+    white-space: nowrap;
+    font-family: inherit;
 }
 
 .payment-btn:disabled {
@@ -183,21 +189,23 @@
 }
 
 .payment-btn-cancel {
-    background: #3e3e42;
-    color: #ffffff;
+    background: transparent;
+    color: #404040;
+    border: 1px solid #E5E5E5;
 }
 
 .payment-btn-cancel:hover:not(:disabled) {
-    background: #4e4e52;
+    background: #F5F5F5;
+    border-color: #D4D4D4;
 }
 
 .payment-btn-primary {
-    background: #007acc;
-    color: #ffffff;
+    background: #007ACC;
+    color: #FFFFFF;
 }
 
 .payment-btn-primary:hover:not(:disabled) {
-    background: #0098ff;
+    background: #0052A3;
 }
 
 .payment-btn-primary svg {

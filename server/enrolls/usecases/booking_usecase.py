@@ -32,6 +32,7 @@ from ...dates.repositories import (
 )
 
 from ...payments.repositories import PaymentRepository, get_payment_repository
+from ...payments.usecases import PaymentUseCase, get_payment_usecase
 from ...common.utils.yookassa import (
     cancel_payment as yookassa_cancel_payment,
     create_refund as yookassa_create_refund,
@@ -47,12 +48,14 @@ class BookingUseCase:
             session: AsyncSession,
             enroll_repository: EnrollRepository,
             service_date_repository: ServiceDateRepository,
-            payment_repository: PaymentRepository) -> None:
+            payment_repository: PaymentRepository,
+            payment_usecase: PaymentUseCase = None) -> None:
 
         self._session = session
         self._enroll_repository = enroll_repository
         self._service_date_repository = service_date_repository
         self._payment_repository = payment_repository
+        self._payment_usecase = payment_usecase
         self._slot_time_pattern = re.compile(r"^(?:[01]\d|2[0-3]):[0-5]\d$")
 
     def _is_valid_slot_time_format(self, slot_time: str) -> bool:
@@ -371,17 +374,110 @@ class BookingUseCase:
                 'error', f'failed changing enroll status, detail: {str(e)}')
             return {'status': 'failed', 'detail': str(e)}
 
+    async def mark_enroll_as_completed(
+        self,
+        enroll_id: int,
+        master_id: int
+    ):
+        '''
+        The technician marks the service as completed.
+        Chges the enrollment status to 'completed'
+        '''
+        enroll = await self._enroll_repository.get_by_id(enroll_id)
+
+        if not enroll:
+            return {'status': 'failed', 'detail': 'enroll not found'}
+
+        service = await self._session.scalar(
+            select(Service).where(Service.id == enroll.service_id)
+        )
+
+        if not service:
+            return {'status': 'failed', 'detail': 'service not found'}
+
+        if service.user_id != master_id:
+            return {'status': 'failed', 'detail': 'permission denied'}
+
+        if enroll.status != 'confirmed':
+            return {
+                'status': 'failed',
+                'detail': f'enroll status is {enroll.status}, only confirmed enrolls can be marked as ready'
+            }
+
+        try:
+            await self._session.merge(ServiceEnroll(id=enroll_id, status='ready'))
+            await self._session.commit()
+
+            if self._payment_usecase:
+                payout_result = await self._payment_usecase.process_payout_for_completed_enroll(enroll_id)
+                if payout_result.get('status') == 'error':
+                    logger.error(
+                        f'Failed to process payout for enroll {enroll_id}: {payout_result.get("detail")}')
+
+            updated_enroll = await self._enroll_repository.get_by_id(enroll_id)
+            return updated_enroll
+
+        except SQLAlchemyError as e:
+            await self._session.rollback()
+            logger.error(f'Failed to mark enroll as completed: {str(e)}')
+            return {'status': 'failed', 'detail': str(e)}
+
+    async def confirm_enroll_by_client(
+        self,
+        enroll_id: int,
+        client_id: int
+    ):
+        '''
+        The client confirms that the service has been completed.
+        Changes the enrollment status to 'completed' and starts the orchestrator.
+        '''
+        enroll = await self._enroll_repository.get_by_id(enroll_id)
+
+        if not enroll:
+            return {'status': 'failed', 'detail': 'enroll not found'}
+
+        if enroll.user_id != client_id:
+            return {'status': 'failed', 'detail': 'permission denied'}
+
+        if enroll.status != 'ready':
+            return {
+                'status': 'failed',
+                'detail': f'enroll status is {enroll.status}, only ready enrolls can be confirmed by client'
+            }
+
+        try:
+            await self._session.merge(ServiceEnroll(id=enroll_id, status='completed'))
+            await self._session.commit()
+
+            self._session.expire_all()
+
+            if self._payment_usecase:
+                payout_result = await self._payment_usecase.process_payout_for_completed_enroll(enroll_id)
+                if payout_result.get('status') == 'error':
+                    logger.error(
+                        f'Failed to process payout for enroll {enroll_id}: {payout_result.get("detail")}')
+
+            updated_enroll = await self._enroll_repository.get_by_id(enroll_id)
+            return updated_enroll
+
+        except SQLAlchemyError as e:
+            await self._session.rollback()
+            logger.error(f'Failed to confirm enroll by client: {str(e)}')
+            return {'status': 'failed', 'detail': str(e)}
+
 
 def get_booking_usecase(
     session: AsyncSession = Depends(db_config.session),
     enroll_repository: EnrollRepository = Depends(get_enroll_repository),
     service_date_repository: ServiceDateRepository = Depends(
         get_service_date_repository),
-    payment_repository: PaymentRepository = Depends(get_payment_repository)
+    payment_repository: PaymentRepository = Depends(get_payment_repository),
+    payment_usecase: PaymentUseCase = Depends(get_payment_usecase)
 ) -> BookingUseCase:
     return BookingUseCase(
         session,
         enroll_repository,
         service_date_repository,
-        payment_repository
+        payment_repository,
+        payment_usecase
     )

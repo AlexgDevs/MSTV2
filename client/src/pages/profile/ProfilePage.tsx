@@ -4,6 +4,7 @@ import { paymentsApi } from '../../api/payments/payments.api';
 import type { PaymentResponse } from '../../api/payments/types';
 import { chatsApi, type ServiceChatResponse } from '../../api/chats/chats.api';
 import { ChatList } from '../../components/chats/ChatList';
+import { enrollsApi } from '../../api/enrolls/enrolls.api';
 import '../../assets/styles/ProfilePage.css'
 
 const priceFormatter = new Intl.NumberFormat('ru-RU', {
@@ -15,6 +16,7 @@ const priceFormatter = new Intl.NumberFormat('ru-RU', {
 const statusVariants: Record<string, { class: string; label: string }> = {
     pending: { class: 'status-pending', label: 'Ожидание' },
     confirmed: { class: 'status-confirmed', label: 'Подтверждено' },
+    ready: { class: 'status-ready', label: 'Готово к подтверждению' },
     completed: { class: 'status-completed', label: 'Завершено' },
     cancelled: { class: 'status-cancelled', label: 'Отменено' },
     expired: { class: 'status-expired', label: 'Истекло' }
@@ -31,7 +33,7 @@ const paymentStatusVariants: Record<string, { class: string; label: string }> = 
 type TabId = 'profile' | 'payments' | 'chats';
 
 export const ProfilePage: React.FC = () => {
-    const { user, updateProfile } = useAuthStore();
+    const { user, updateProfile, refreshUser } = useAuthStore();
     const [activeTab, setActiveTab] = useState<TabId>('profile');
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
@@ -352,6 +354,23 @@ export const ProfilePage: React.FC = () => {
                                                     <p className="booking-price">
                                                         {priceFormatter.format(enroll.price)}
                                                     </p>
+                                                    {enroll.status === 'ready' && (
+                                                        <button
+                                                            onClick={async () => {
+                                                                try {
+                                                                    await enrollsApi.confirm(enroll.id);
+                                                                    // Обновляем данные пользователя для обновления списка записей
+                                                                    await refreshUser();
+                                                                } catch (error: any) {
+                                                                    alert(error?.response?.data?.detail || 'Не удалось подтвердить заказ');
+                                                                }
+                                                            }}
+                                                            className="btn btn-primary"
+                                                            style={{ marginTop: '8px', width: '100%' }}
+                                                        >
+                                                            Подтвердить заказ
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         );

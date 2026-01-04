@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import httpx
 import base64
 import json
-from datetime import time
+import time
 
 from .logger import logger
 from ..db import db_config
@@ -26,7 +26,8 @@ def check_yukass_credentials():
     if not YUKASSA_SHOP_ID or not YUKASSA_SECRET_KEY:
         raise ValueError("YUKASSA credentials not configured")
 
-    pass 
+    pass
+
 
 def get_api_url() -> str:
     '''
@@ -274,49 +275,51 @@ async def process_payout_to_seller(payment_id: str):
         if payment.get('status') != 'succeeded':
             raise ValueError('Payment not succeeded')
 
-        aggregated = await aggregate_amount(float(payment.get('amount').get('value'))) 
+        aggregated = await aggregate_amount(float(payment.get('amount').get('value')))
         seller_amount = aggregated.get('seller_net')
         master_id = payment.get('metadata').get('seller_id')
         if not master_id:
             raise ValueError('seller_id not found')
 
-        payment_repo = PaymentRepository(db_config.Session())
-        master = await payment_repo.get_seller_id(int(master_id))
-        if not master:
-            raise ValueError('Seller not found')
+        async with db_config.Session() as session:
+            payment_repo = PaymentRepository(session)
+            master = await payment_repo.get_seller_id(int(master_id))
+            if not master:
+                raise ValueError('Seller not found')
 
-        if not master.account:
-            raise ValueError('Seller not found details account')
+            if not master.account:
+                raise ValueError('Seller not found details account')
 
-        payout_data = {
-            "amount": {
-                "value": str(seller_amount),
-                "currency": "RUB"
-            },
-            "payout_destination_data": master.account.get_yookassa_payout_data(),
-            "description": f"Выплата за заказ {payment_id}",
-            "metadata": {
-                "payment_id": payment_id,
-                "seller_id": master.id,
-                "purpose": "seller_payout"
+            payout_data = {
+                "amount": {
+                    "value": str(seller_amount),
+                    "currency": "RUB"
+                },
+                "payout_destination_data": master.account.get_yookassa_payout_data(),
+                "description": f"Выплата за заказ {payment_id}",
+                "metadata": {
+                    "payment_id": payment_id,
+                    "seller_id": master.id,
+                    "purpose": "seller_payout"
+                }
             }
-        }
-        
-        url = f"{get_api_url()}/payouts"
-        headers = {
-            "Authorization": get_auth_header(),
-            "Content-Type": "application/json",
-            "Idempotence-Key": f"payout_seller_{payment_id}_{int(time.time())}"
-        }
-        
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(url, json=payout_data, headers=headers)
-            response.raise_for_status()
-            result = response.json()
-            
-            logger.info(f"Payout to seller {master.id}: {seller_amount} {payment.get('amount').get('currency', 'None')}")
-            return {"success": True, "data": result}
-                
+
+            url = f"{get_api_url()}/payouts"
+            headers = {
+                "Authorization": get_auth_header(),
+                "Content-Type": "application/json",
+                "Idempotence-Key": f"payout_seller_{payment_id}_{int(time.time())}"
+            }
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(url, json=payout_data, headers=headers)
+                response.raise_for_status()
+                result = response.json()
+
+                logger.info(
+                    f"Payout to seller {master.id}: {seller_amount} {payment.get('amount').get('currency', 'None')}")
+                return {"success": True, "data": result}
+
     except Exception as e:
         logger.error(f"Error in process_payout_to_seller: {str(e)}")
         return {"success": False, "error": str(e)}
@@ -332,12 +335,12 @@ async def process_payout_to_developer(payment_id: str):
         if not payment:
             raise ValueError('Payment not found')
 
-        if payment.get('status') != 'succeeded':  
+        if payment.get('status') != 'succeeded':
             raise ValueError('Payment not succeeded')
 
-        aggregated = await aggregate_amount(float(payment.get('amount').get('value'))) 
+        aggregated = await aggregate_amount(float(payment.get('amount').get('value')))
         developer_amount = aggregated.get('platform_amount')
-        
+
         developer_card = getenv('DEVELOPER_CARD')
         if not developer_card:
             raise ValueError('DEVELOPER_CARD not configured')
@@ -357,22 +360,22 @@ async def process_payout_to_developer(payment_id: str):
                 "purpose": "platform_fee"
             }
         }
-        
+
         url = f"{get_api_url()}/payouts"
         headers = {
             "Authorization": get_auth_header(),
             "Content-Type": "application/json",
             "Idempotence-Key": f"payout_dev_{payment_id}_{int(time.time())}"
         }
-        
+
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(url, json=payout_data, headers=headers)
             response.raise_for_status()
             result = response.json()
-            
+
             logger.info(f"Platform fee payout: {developer_amount} RUB")
             return {"success": True, "data": result}
-                
+
     except Exception as e:
         logger.error(f"Error in process_payout_to_developer: {str(e)}")
         return {"success": False, "error": str(e)}
@@ -385,23 +388,23 @@ async def aggregate_amount(amount: float) -> Dict[str, float]:
     10% - the developer receives
     '''
     total = float(amount)
-    
+
     platform_percent = 0.10
     platform_amount = round(total * platform_percent, 2)
-    
+
     seller_gross_percent = 0.90
     seller_gross = round(total * seller_gross_percent, 2)
-    
+
     tax_percent = 0.06
     tax_amount = round(seller_gross * tax_percent, 2)
-    
+
     seller_net = round(seller_gross - tax_amount, 2)
-    
+
     return {
         "total": total,
         "platform_amount": platform_amount,
         "seller_gross": seller_gross,
-        "tax_amount": tax_amount, 
+        "tax_amount": tax_amount,
         "seller_net": seller_net
     }
 
@@ -415,11 +418,11 @@ async def trafic_orchestrator(payment_id: str):
         seller_result = await process_payout_to_seller(payment_id)
         if not seller_result.get('success'):
             return {"success": False, "error": "Seller payout failed", "details": seller_result}
-        
+
         developer_result = await process_payout_to_developer(payment_id)
         if not developer_result.get('success'):
             return {"success": False, "error": "Developer payout failed", "details": developer_result}
-        
+
         return {
             "success": True,
             "payment_id": payment_id,
@@ -427,7 +430,7 @@ async def trafic_orchestrator(payment_id: str):
             "developer_payout": developer_result,
             "message": "All payouts completed successfully"
         }
-                
+
     except Exception as e:
         logger.error(f"Error in trafic_orchestrator: {str(e)}")
         return {"success": False, "error": str(e)}

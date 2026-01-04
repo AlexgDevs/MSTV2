@@ -10,13 +10,14 @@ import type { EnrollResponse } from '../../api/enrolls/types';
 import { getCurrentWeekDays } from '../../utils/helpers';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { CancelReasonModal } from '../../components/enrolls/CancelReasonModal';
+import { CreateAccountModal } from '../../components/accounts/CreateAccountModal';
 import { CalendarIcon, WarningIcon, ClipboardIcon, UsersIcon } from '../../components/icons/Icons';
 import { CATEGORIES } from '../../components/categories/CategoriesSection';
 import { chatsApi, type ServiceChatResponse } from '../../api/chats/chats.api';
 import { ChatList } from '../../components/chats/ChatList';
 import '../../assets/styles/MasterDashboardPage.css';
 
-type TabId = 'services' | 'schedule' | 'templates' | 'bookings' | 'clients';
+type TabId = 'services' | 'schedule' | 'templates' | 'bookings' | 'clients' | 'account';
 
 const tabs: { id: TabId; label: string }[] = [
     { id: 'services', label: 'Мои услуги' },
@@ -24,6 +25,7 @@ const tabs: { id: TabId; label: string }[] = [
     { id: 'templates', label: 'Шаблоны расписания' },
     { id: 'bookings', label: 'Бронирования' },
     { id: 'clients', label: 'Клиенты' },
+    { id: 'account', label: 'Счет' },
 ];
 
 const priceFormatter = new Intl.NumberFormat('ru-RU', {
@@ -134,6 +136,9 @@ export const MasterDashboardPage: React.FC = () => {
         id: null,
         title: ''
     });
+
+    // Состояние для модального окна создания счета
+    const [isCreateAccountModalOpen, setIsCreateAccountModalOpen] = useState(false);
 
     // Шаблоны - новые состояния
     const [templateServiceFilter, setTemplateServiceFilter] = useState<number | 'all'>('all');
@@ -1606,6 +1611,7 @@ export const MasterDashboardPage: React.FC = () => {
                         const statusLabels: Record<string, string> = {
                             pending: 'Ожидает',
                             confirmed: 'Подтверждено',
+                            ready: 'Готово к подтверждению',
                             completed: 'Завершено',
                             cancelled: 'Отменено',
                             expired: 'Истекло'
@@ -1613,6 +1619,7 @@ export const MasterDashboardPage: React.FC = () => {
                         const statusColors: Record<string, string> = {
                             pending: 'btn-warning',
                             confirmed: 'btn-success',
+                            ready: 'btn-info',
                             completed: 'btn-info',
                             cancelled: 'btn-danger',
                             expired: 'btn-secondary'
@@ -1656,7 +1663,25 @@ export const MasterDashboardPage: React.FC = () => {
                                             </button>
                                         </>
                                     )}
-                                    {enroll.status !== 'pending' && (
+                                    {enroll.status === 'confirmed' && (
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    await enrollsApi.complete(enroll.id);
+                                                    if (bookingsServiceFilter) {
+                                                        const response = await enrollsApi.getByService(bookingsServiceFilter);
+                                                        setEnrolls(response.data);
+                                                    }
+                                                } catch (error: any) {
+                                                    alert(error?.response?.data?.detail || 'Не удалось подтвердить готовность');
+                                                }
+                                            }}
+                                            className="btn btn-primary"
+                                        >
+                                            Подтвердить готовность
+                                        </button>
+                                    )}
+                                    {enroll.status !== 'pending' && enroll.status !== 'confirmed' && (
                                         <span className="booking-status-text">
                                             {statusLabels[enroll.status] || enroll.status}
                                         </span>
@@ -1692,6 +1717,107 @@ export const MasterDashboardPage: React.FC = () => {
         </div>
     );
 
+    const renderAccountTab = () => (
+        <div className="dashboard-account">
+            <div className="dashboard-section">
+                <div className="section-header">
+                    <h2 className="section-title">Счет для выплат</h2>
+                    <p className="section-subtitle">
+                        Настройте способ получения выплат за выполненные услуги
+                    </p>
+                </div>
+                <div className="section-content">
+                    <div className="account-info">
+                        <div className="info-card">
+                            <h3 className="info-card-title">Информация о счете</h3>
+                            <div className="info-card-content">
+                                <p className="info-text">
+                                    Для получения выплат необходимо настроить счет.
+                                </p>
+                                <p className="info-text">
+                                    После подтверждения клиентом выполненной услуги, 
+                                    средства будут автоматически переведены на указанный счет.
+                                </p>
+                                <div className="account-status">
+                                    <span className="status-label">Статус счета:</span>
+                                    <span className="status-value pending">Требуется настройка</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="info-card">
+                            <h3 className="info-card-title">Способы выплат</h3>
+                            <div className="info-card-content">
+                                <ul className="payout-methods">
+                                    <li>
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                                            <line x1="1" y1="10" x2="23" y2="10"/>
+                                        </svg>
+                                        <span>Банковская карта</span>
+                                    </li>
+                                    <li>
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <path d="M12 6v6l4 2"/>
+                                        </svg>
+                                        <span>ЮMoney кошелек</span>
+                                    </li>
+                                    <li>
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                        </svg>
+                                        <span>СБП (Система быстрых платежей)</span>
+                                    </li>
+                                    <li>
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                            <line x1="16" y1="2" x2="16" y2="6"/>
+                                            <line x1="8" y1="2" x2="8" y2="6"/>
+                                            <line x1="3" y1="10" x2="21" y2="10"/>
+                                        </svg>
+                                        <span>Банковский счет</span>
+                                    </li>
+                                    <li>
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                            <line x1="16" y1="13" x2="8" y2="13"/>
+                                            <line x1="16" y1="17" x2="8" y2="17"/>
+                                            <polyline points="10 9 9 9 8 9"/>
+                                        </svg>
+                                        <span>Самозанятый</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div className="info-card">
+                            <h3 className="info-card-title">Как это работает</h3>
+                            <div className="info-card-content">
+                                <ol className="workflow-steps">
+                                    <li>Клиент оплачивает услугу → деньги удерживаются на счете платформы</li>
+                                    <li>Вы выполняете услугу и отмечаете её как выполненную</li>
+                                    <li>Клиент подтверждает выполнение услуги</li>
+                                    <li>Средства автоматически переводятся на ваш счет</li>
+                                </ol>
+                            </div>
+                        </div>
+
+                        <div className="action-buttons">
+                            <button 
+                                className="btn btn-primary"
+                                onClick={() => setIsCreateAccountModalOpen(true)}
+                            >
+                                Настроить счет
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
     const renderBody = () => {
         switch (activeTab) {
             case 'schedule':
@@ -1702,6 +1828,8 @@ export const MasterDashboardPage: React.FC = () => {
                 return renderBookingsTab();
             case 'clients':
                 return renderClientsTab();
+            case 'account':
+                return renderAccountTab();
             default:
                 return renderServicesTab();
         }
@@ -1798,6 +1926,16 @@ export const MasterDashboardPage: React.FC = () => {
                         clientName: '',
                         serviceTitle: ''
                     });
+                }}
+            />
+
+            {/* Модальное окно создания счета */}
+            <CreateAccountModal
+                isOpen={isCreateAccountModalOpen}
+                onClose={() => setIsCreateAccountModalOpen(false)}
+                onSuccess={() => {
+                    refreshUser();
+                    setIsCreateAccountModalOpen(false);
                 }}
             />
         </div>
