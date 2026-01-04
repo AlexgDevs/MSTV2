@@ -167,6 +167,13 @@ class PaymentUseCase:
                 status = 'canceled'
             elif yookassa_status == 'waiting_for_capture':
                 status = 'processing'
+                try:
+                    await yookassa_capture_payment(yookassa_payment_id)
+                    logger.info(
+                        f"Payment {yookassa_payment_id} captured automatically")
+                except Exception as e:
+                    logger.error(
+                        f"Failed to capture payment {yookassa_payment_id}: {str(e)}")
 
             await self._payment_repository.update_payment(
                 payment_id=payment.id,
@@ -176,7 +183,7 @@ class PaymentUseCase:
             )
 
             if status == 'succeeded' and payment.enroll_id:
-                create_task(self._background_process_successful_payment(yookassa_payment_id))
+
                 enroll = await self._session.scalar(
                     select(ServiceEnroll)
                     .where(ServiceEnroll.id == payment.enroll_id)
@@ -207,12 +214,83 @@ class PaymentUseCase:
                 'status': 'error',
                 'detail': f'Webhook processing error: {str(e)}'
             }
+
     async def _background_process_successful_payment(self, yookassa_payment_id):
         try:
             await yookass_trafic_orchestrator(yookassa_payment_id)
-            logger.info(f"Successfully processed payment {yookassa_payment_id}")
+            logger.info(
+                f"Successfully processed payment {yookassa_payment_id}")
         except Exception as e:
-            logger.error(f"Error processing payment {yookassa_payment_id}: {str(e)}")
+            logger.error(
+                f"Error processing payment {yookassa_payment_id}: {str(e)}")
+
+    async def process_payout_for_completed_enroll(self, enroll_id: int) -> Dict[str, Any]:
+        """
+        Запускает оркестратор для распределения средств после подтверждения клиентом
+        Вызывается когда enroll.status становится 'completed'
+        """
+        try:
+            payment = await self._payment_repository.get_by_enroll_id(enroll_id)
+            if not payment:
+                return {
+                    'status': 'error',
+                    'detail': 'Payment not found for this enroll'
+                }
+
+            if not payment.yookassa_payment_id:
+                return {
+                    'status': 'error',
+                    'detail': 'YooKassa payment ID not found'
+                }
+
+            yookassa_payment = await yookassa_get_payment(payment.yookassa_payment_id)
+            yookassa_status = yookassa_payment.get('status')
+
+            if yookassa_status == 'waiting_for_capture':
+                logger.info(
+                    f'Capturing payment {payment.yookassa_payment_id} for enroll {enroll_id}')
+                try:
+                    capture_result = await yookassa_capture_payment(payment.yookassa_payment_id)
+                    logger.info(
+                        f'Payment {payment.yookassa_payment_id} captured successfully')
+
+                    await self._payment_repository.update_payment(
+                        payment_id=payment.id,
+                        yookassa_status=capture_result.get(
+                            'status', 'succeeded'),
+                        status='succeeded',
+                        paid_at=capture_result.get('paid_at')
+                    )
+                    await self._session.commit()
+                except Exception as e:
+                    logger.error(
+                        f'Failed to capture payment {payment.yookassa_payment_id}: {str(e)}')
+                    return {
+                        'status': 'error',
+                        'detail': f'Failed to capture payment: {str(e)}'
+                    }
+            elif yookassa_status != 'succeeded':
+                return {
+                    'status': 'error',
+                    'detail': f'Payment not succeeded, current status: {yookassa_status}'
+                }
+
+            # TODO: 
+            create_task(self._background_process_successful_payment(
+                payment.yookassa_payment_id))
+
+            return {
+                'status': 'success',
+                'message': 'Payout process started'
+            }
+
+        except Exception as e:
+            logger.error(
+                f'Error processing payout for enroll {enroll_id}: {str(e)}')
+            return {
+                'status': 'error',
+                'detail': f'Error: {str(e)}'
+            }
 
     async def get_payment_status(
         self,

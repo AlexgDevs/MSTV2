@@ -1,0 +1,237 @@
+.account-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.account-modal-content {
+    background: #FFFFFF;
+    border-radius: 0.75rem;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    animation: slideUp 0.3s ease-out;
+    border: none;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.account-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #F5F5F5;
+    position: sticky;
+    top: 0;
+    background: #FFFFFF;
+    z-index: 10;
+}
+
+.account-modal-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0A0A0A;
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.account-modal-close {
+    background: transparent;
+    border: none;
+    color: #737373;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+}
+
+.account-modal-close:hover:not(:disabled) {
+    background: #F5F5F5;
+    color: #0A0A0A;
+}
+
+.account-modal-close:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.account-modal-body {
+    padding: 2rem;
+}
+
+.account-form-group {
+    margin-bottom: 20px;
+}
+
+.account-form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #404040;
+    margin-bottom: 0.5rem;
+}
+
+.account-form-label .required {
+    color: #DC2626;
+}
+
+.account-form-input,
+.account-form-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: #FFFFFF;
+    border: 1px solid #E5E5E5;
+    border-radius: 0.5rem;
+    color: #0A0A0A;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box;
+}
+
+.account-form-input:focus,
+.account-form-select:focus {
+    outline: none;
+    border-color: #007ACC;
+    box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.1);
+}
+
+.account-form-input:disabled,
+.account-form-select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.account-form-input::placeholder {
+    color: #A3A3A3;
+}
+
+.account-error {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    border-radius: 0.5rem;
+    color: #DC2626;
+    font-size: 0.875rem;
+    margin-bottom: 16px;
+}
+
+.account-error svg {
+    flex-shrink: 0;
+}
+
+.account-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    border-radius: 0.5rem;
+    color: #2563EB;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+.account-note svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.account-modal-footer {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem 2rem 1.5rem;
+    border-top: 1px solid #F5F5F5;
+    justify-content: flex-end;
+    position: sticky;
+    bottom: 0;
+    background: #FFFFFF;
+}
+
+.account-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    min-width: 120px;
+    white-space: nowrap;
+    font-family: inherit;
+}
+
+.account-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.account-btn-cancel {
+    background: transparent;
+    color: #404040;
+    border: 1px solid #E5E5E5;
+}
+
+.account-btn-cancel:hover:not(:disabled) {
+    background: #F5F5F5;
+    border-color: #D4D4D4;
+}
+
+.account-btn-primary {
+    background: #007ACC;
+    color: #FFFFFF;
+}
+
+.account-btn-primary:hover:not(:disabled) {
+    background: #0052A3;
+}
+
+.account-btn-primary svg {
+    width: 20px;
+    height: 20px;
+}
+

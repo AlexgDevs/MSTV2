@@ -6,8 +6,7 @@ from ..schemas import (
     CreatePaymentModel,
     PaymentResponse,
     PaymentStatusResponse,
-    PaymentServiceInfo,
-    YooKassaWebhookModel
+    PaymentServiceInfo
 )
 from ...common.utils.yookassa import verify_webhook_signature
 from ..usecases import PaymentUseCase, get_payment_usecase

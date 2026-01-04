@@ -34,7 +34,7 @@ export interface SimpleServiceInfo {
 export interface SimpleServiceEnroll {
     id: number;
     slot_time: string;
-    status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'expired';
+    status: 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled' | 'expired';
     price: number;
     service_id: number;
     service_date_id: number;

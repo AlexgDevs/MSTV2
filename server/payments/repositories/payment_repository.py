@@ -60,19 +60,17 @@ class PaymentRepository:
         )
         return list(payments.all())
 
-
     async def get_seller_id(
-        self,
-        seller_id: int):
+            self,
+            seller_id: int):
 
         seller = await self._session.scalar(
             select(User)
             .where(User.id == seller_id)
-            .join(User.account)
+            .options(selectinload(User.account))
         )
 
         return seller
-
 
     async def create_payment(
         self,

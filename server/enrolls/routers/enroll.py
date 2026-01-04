@@ -69,10 +69,10 @@ async def get_enrolls_by_service(
     enroll_repo: EnrollRepository = Depends(get_enroll_repository),
     service_repo: ServiceRepository = Depends(get_service_repository)
 ):
-    """
-    Получает все записи для указанной услуги.
-    Доступно только владельцу услуги.
-    """
+    '''
+    Gets all records for the specified service.
+    Only available to the service owner.
+    '''
     service = await service_repo.get_by_id(service_id)
 
     if not service:
@@ -103,6 +103,52 @@ async def change_enroll_status(
         int(user.get('id')),
         action,
         reason
+    )
+
+    if isinstance(result, dict):
+        await Exceptions400.creating_error(str(result.get('detail')))
+
+    return {'status': 'success', 'enroll_status': result.status}
+
+
+@enroll_app.post('/{enroll_id}/complete',
+                 summary='Mark enroll as completed by master',
+                 description='Master marks the service as completed')
+async def mark_enroll_completed(
+    enroll_id: int,
+    user=Depends(JWTManager.auth_required),
+    booking_usecase: BookingUseCase = Depends(get_booking_usecase)
+):
+    '''
+    The technician marks the service as completed
+    The client can then confirm the order or open a dispute
+    '''
+    result = await booking_usecase.mark_enroll_as_completed(
+        enroll_id,
+        int(user.get('id'))
+    )
+
+    if isinstance(result, dict):
+        await Exceptions400.creating_error(str(result.get('detail')))
+
+    return {'status': 'success', 'enroll_status': result.status}
+
+
+@enroll_app.post('/{enroll_id}/confirm',
+                summary='Confirm enroll by client',
+                description='Client confirms that the service is completed')
+async def confirm_enroll_by_client(
+    enroll_id: int,
+    user=Depends(JWTManager.auth_required),
+    booking_usecase: BookingUseCase = Depends(get_booking_usecase)
+):
+    '''
+    The client confirms that the service has been completed.
+    After confirmation, the orchestrator is launched to distribute funds.
+    '''
+    result = await booking_usecase.confirm_enroll_by_client(
+        enroll_id,
+        int(user.get('id'))
     )
 
     if isinstance(result, dict):

@@ -1443,3 +1443,203 @@
         justify-content: flex-start;
     }
 }
+
+/* Account Tab Styles */
+.dashboard-account {
+    padding: 1.5rem 0;
+}
+
+.dashboard-account .dashboard-section {
+    background: #FFFFFF;
+    border-radius: 0.75rem;
+    padding: 2rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.dashboard-account .section-header {
+    margin-bottom: 2rem;
+}
+
+.dashboard-account .section-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0A0A0A;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
+}
+
+.dashboard-account .section-subtitle {
+    font-size: 0.875rem;
+    color: #737373;
+    line-height: 1.6;
+}
+
+.dashboard-account .account-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.dashboard-account .info-card {
+    background: #FAFAFA;
+    border: 1px solid #E5E5E5;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dashboard-account .info-card:hover {
+    border-color: #D4D4D4;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.dashboard-account .info-card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #0A0A0A;
+    margin-bottom: 1rem;
+}
+
+.dashboard-account .info-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.dashboard-account .info-text {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #404040;
+    margin: 0;
+}
+
+.dashboard-account .account-status {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: #FFFFFF;
+    border-radius: 0.5rem;
+    border: 1px solid #E5E5E5;
+}
+
+.dashboard-account .status-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #737373;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.dashboard-account .status-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.375rem;
+}
+
+.dashboard-account .status-value.pending {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.dashboard-account .status-value.verified {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.dashboard-account .payout-methods {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.dashboard-account .payout-methods li {
+    font-size: 0.875rem;
+    color: #404040;
+    padding: 0.75rem;
+    border-bottom: 1px solid #E5E5E5;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 0.5rem;
+}
+
+.dashboard-account .payout-methods li:hover {
+    background: #F5F5F5;
+}
+
+.dashboard-account .payout-methods li svg {
+    flex-shrink: 0;
+    color: #737373;
+}
+
+.dashboard-account .payout-methods li:last-child {
+    border-bottom: none;
+}
+
+.dashboard-account .workflow-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    counter-reset: step-counter;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.dashboard-account .workflow-steps li {
+    counter-increment: step-counter;
+    font-size: 0.875rem;
+    color: #404040;
+    line-height: 1.6;
+    padding-left: 2rem;
+    position: relative;
+}
+
+.dashboard-account .workflow-steps li::before {
+    content: counter(step-counter);
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: #0A0A0A;
+    color: #FFFFFF;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.dashboard-account .action-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .dashboard-account .account-info {
+        gap: 1rem;
+    }
+
+    .dashboard-account .info-card {
+        padding: 1rem;
+    }
+
+    .dashboard-account .workflow-steps li {
+        padding-left: 1.75rem;
+    }
+
+    .dashboard-account .workflow-steps li::before {
+        width: 1.25rem;
+        height: 1.25rem;
+        font-size: 0.6875rem;
+    }
+}
