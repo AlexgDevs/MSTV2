@@ -33,11 +33,16 @@ def make_sync_url(async_url: str) -> str:
 def run_migrations_offline() -> None:
     url = make_sync_url(db_config.db_url)
     config.set_main_option("sqlalchemy.url", url)
+    
+    # Используем batch mode для SQLite
+    is_sqlite = url.startswith("sqlite://")
+    
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        render_as_batch=is_sqlite,
     )
 
     with context.begin_transaction():
@@ -53,11 +58,15 @@ def run_migrations_online() -> None:
         poolclass=pool.NullPool,
     )
 
+    # Используем batch mode для SQLite
+    is_sqlite = url.startswith("sqlite://")
+
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
+            render_as_batch=is_sqlite,
         )
 
         with context.begin_transaction():

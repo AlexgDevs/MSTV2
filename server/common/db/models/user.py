@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from .scheduletemplate import ScheduleTemplate
     from .service import ServiceEnroll
     from .accounts import Account
+    from .dispute import Dispute
 
 from .. import Base
 
@@ -63,5 +64,12 @@ class User(Base):
         'ServiceMessage', foreign_keys='ServiceMessage.sender_id', back_populates='sender')
     support_messages: Mapped[List['SupportMessage']] = relationship(
         'SupportMessage', foreign_keys='SupportMessage.sender_id', back_populates='sender')
+
+    client_disputes: Mapped[List['Dispute']] = relationship(
+        'Dispute', foreign_keys='Dispute.client_id', back_populates='client')
+    master_disputes: Mapped[List['Dispute']] = relationship(
+        'Dispute', foreign_keys='Dispute.master_id', back_populates='master')
+    arbitr_disputes: Mapped[List['Dispute']] = relationship(
+        'Dispute', foreign_keys='Dispute.arbitr_id', back_populates='arbitr')
 
     account: Mapped['Account'] = relationship('Account', back_populates='user', uselist=False)

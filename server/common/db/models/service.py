@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from .scheduletemplate import ScheduleTemplate
     from .chats import ServiceChat
     from .accounts import Account
+    from .dispute import Dispute
 
 
 from .. import Base
@@ -57,6 +58,9 @@ class ServiceEnroll(Base):
 
     payment: Mapped['Payment'] = relationship(
         'Payment', back_populates='enroll', uselist=False, cascade="all, delete-orphan")
+
+    disputes: Mapped[List['Dispute']] = relationship(
+        'Dispute', foreign_keys='Dispute.enroll_id', back_populates='enroll')
 
 
 class Service(Base):
