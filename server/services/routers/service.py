@@ -6,6 +6,7 @@ from ..schemas import ServiceResponse, CreateServiceModel, PatchServiceModel, De
 from ..usecases import get_service_usecase, ServiceUseCase
 from ..repositories import get_service_repository, ServiceRepository
 from ...users.repositories import get_user_repository, UserRepository
+from ...accounts.repositories import get_account_repository, AccountRepository
 
 from ...common.utils import (
     JWTManager,
@@ -78,7 +79,8 @@ async def create_service(
     custom_tags: Optional[str] = Form(None),
     user=Depends(JWTManager.auth_required),
     service_usecase: ServiceUseCase = Depends(get_service_usecase),
-    user_repo: UserRepository = Depends(get_user_repository)
+    user_repo: UserRepository = Depends(get_user_repository),
+    account_repo: AccountRepository = Depends(get_account_repository)
 ):
 
     user_exit = await user_repo.get_by_id(
@@ -87,6 +89,11 @@ async def create_service(
 
     if not user_exit.verified_email:
         await Exceptions403.email_not_verified()
+
+    # Check if user has an account for receiving payments
+    account = await account_repo.get_by_user_id(int(user.get('id')))
+    if not account:
+        await Exceptions400.creating_error('Для создания услуги необходимо сначала создать счет для получения денег')
 
     photo_data = None
     if photo and photo.filename:
@@ -103,7 +110,7 @@ async def create_service(
         photo=photo_data or ''
     )
 
-    # Парсим тэги
+    # Parse tags
     existing_tags_list = []
     custom_tags_list = []
 
@@ -153,7 +160,7 @@ async def create_service(
 #     if photo and photo.filename:
 #         photo_data = await process_to_base64(photo, max_size_mb=4)
 #         if not photo_data:
-#             await Exceptions400.creating_error('Неверный формат изображения или размер превышает 4 МБ')
+#             await Exceptions400.creating_error('Invalid image format or size exceeds 4 MB')
 #     elif photo_url:
 #         photo_data = photo_url
 
@@ -182,7 +189,7 @@ async def create_service(
 
 
 @service_app.get('/by/{category_name}',
-                response_model=List[ServiceResponse])
+                 response_model=List[ServiceResponse])
 async def get_by_category(
     category_name: str,
     service_repo: ServiceRepository = Depends(get_service_repository)
@@ -210,5 +217,3 @@ async def delete_service(
         await Exceptions400.creating_error(str(result.get('detail')))
 
     return {'status': 'deleted'}
-
-

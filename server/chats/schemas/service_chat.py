@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 class CreatedServiceChat(BaseModel):
     service_id: int
     master_id: int
-    # client_id берется из токена пользователя, не нужно отправлять
+    # client_id is taken from user token, no need to send
 
 
 class SimpleServiceForChatResponse(BaseModel):
@@ -24,7 +24,7 @@ class SimpleUserForChatResponse(BaseModel):
     id: int
     name: str
     about: str | None = None
-    role: Literal['user', 'admin', 'moderator']
+    role: Literal['user', 'admin', 'moderator', 'arbitr']
 
 
 class SimpleMessageForChatResponse(BaseModel):

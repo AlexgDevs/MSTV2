@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/auth.store';
 import { useMasterSchedule } from '../../features/master/hooks/useMasterData';
 import { servicesApi } from '../../api/services/services.api';
@@ -13,8 +12,11 @@ import { CancelReasonModal } from '../../components/enrolls/CancelReasonModal';
 import { CreateAccountModal } from '../../components/accounts/CreateAccountModal';
 import { CalendarIcon, WarningIcon, ClipboardIcon, UsersIcon } from '../../components/icons/Icons';
 import { CATEGORIES } from '../../components/categories/CategoriesSection';
-import { chatsApi, type ServiceChatResponse } from '../../api/chats/chats.api';
+import { chatsApi } from '../../api/chats/chats.api';
+import { disputeChatApi } from '../../api/disputes/disputeChat.api';
 import { ChatList } from '../../components/chats/ChatList';
+import { accountsApi } from '../../api/accounts/accounts.api';
+import type { UnifiedChatItem } from '../chats/ChatsPage';
 import '../../assets/styles/MasterDashboardPage.css';
 
 type TabId = 'services' | 'schedule' | 'templates' | 'bookings' | 'clients' | 'account';
@@ -80,7 +82,6 @@ const formatDate = (value: string) => {
 
 export const MasterDashboardPage: React.FC = () => {
     const { user, refreshUser, isLoading: isAuthLoading } = useAuthStore();
-    const navigate = useNavigate();
     const services = user?.services ?? [];
     const serviceIds = useMemo(() => services.map(service => service.id), [services]);
 
@@ -118,9 +119,10 @@ export const MasterDashboardPage: React.FC = () => {
     const [servicePhotoPreview, setServicePhotoPreview] = useState<string | null>(null);
     const [serviceFormError, setServiceFormError] = useState<string | null>(null);
     const [isServiceSubmitting, setIsServiceSubmitting] = useState(false);
+    const [showAccountRequiredModal, setShowAccountRequiredModal] = useState(false);
 
     // Chats state
-    const [chats, setChats] = useState<ServiceChatResponse[]>([]);
+    const [chats, setChats] = useState<UnifiedChatItem[]>([]);
     const [isLoadingChats, setIsLoadingChats] = useState(false);
     const [chatsError, setChatsError] = useState<string | null>(null);
 
@@ -170,15 +172,29 @@ export const MasterDashboardPage: React.FC = () => {
         setIsLoadingChats(true);
         setChatsError(null);
         try {
-            const response = await chatsApi.getServiceChats();
-            // Проверяем, что response.data существует и является массивом
-            if (response && response.data && Array.isArray(response.data)) {
-                // Фильтруем только чаты где пользователь мастер
-                const masterChats = response.data.filter(chat => chat && chat.master_id === user.id);
-                setChats(masterChats);
-            } else {
-                setChats([]);
-            }
+            // Load both service and dispute chats
+            const [serviceChatsResponse, disputeChatsResponse] = await Promise.all([
+                chatsApi.getServiceChats().catch(() => ({ data: [] })),
+                disputeChatApi.getAll().catch(() => ({ data: [] }))
+            ]);
+
+            const serviceChats: UnifiedChatItem[] = 
+                (serviceChatsResponse.data || [])
+                    .filter(chat => chat && chat.master_id === user.id)
+                    .map(chat => ({ ...chat, type: 'service' as const }));
+
+            const disputeChats: UnifiedChatItem[] = 
+                (disputeChatsResponse.data || [])
+                    .filter(chat => chat && chat.master_id === user.id)
+                    .map(chat => ({ ...chat, type: 'dispute' as const }));
+
+            const allChats = [...serviceChats, ...disputeChats].sort((a, b) => {
+                const dateA = new Date(a.created_at).getTime();
+                const dateB = new Date(b.created_at).getTime();
+                return dateB - dateA;
+            });
+
+            setChats(allChats);
         } catch (error) {
             console.error('Error loading chats:', error);
             setChatsError(error instanceof Error ? error.message : 'Не удалось загрузить чаты');
@@ -395,6 +411,24 @@ export const MasterDashboardPage: React.FC = () => {
             return;
         }
 
+        // Check if user has an account (only for creating new service, not editing)
+        if (!editingService) {
+            try {
+                await accountsApi.get();
+            } catch (error: any) {
+                // If account doesn't exist (404) or other error
+                if (error?.response?.status === 404 || !error?.response) {
+                    setServiceFormError('Для создания услуги необходимо сначала создать счет для получения денег');
+                    setShowAccountRequiredModal(true);
+                    return;
+                }
+                // If it's another error, show it
+                const message = error?.response?.data?.detail || 'Ошибка при проверке счета';
+                setServiceFormError(message);
+                return;
+            }
+        }
+
         setIsServiceSubmitting(true);
         try {
             if (editingService) {
@@ -416,7 +450,7 @@ export const MasterDashboardPage: React.FC = () => {
                         title: serviceForm.title.trim(),
                         description: serviceForm.description.trim(),
                         price,
-                        photo: serviceForm.photo.trim() || null,
+                        photo: serviceForm.photo.trim() || '',
                         existing_tags: selectedTags.length > 0 ? JSON.stringify(selectedTags) : undefined,
                         custom_tags: customTags.trim() ? JSON.stringify(customTags.split(',').map(t => t.trim()).filter(t => t.length > 0)) : undefined
                     },
@@ -1936,7 +1970,24 @@ export const MasterDashboardPage: React.FC = () => {
                 onSuccess={() => {
                     refreshUser();
                     setIsCreateAccountModalOpen(false);
+                    setShowAccountRequiredModal(false);
                 }}
+            />
+
+            {/* Модальное окно о необходимости счета */}
+            <ConfirmModal
+                isOpen={showAccountRequiredModal}
+                title="Необходим счет для получения денег"
+                message="Для создания услуги необходимо сначала создать счет для получения денег. Перейдите на вкладку 'Счет' и создайте его."
+                confirmText="Создать счет"
+                cancelText="Отмена"
+                variant="warning"
+                onConfirm={() => {
+                    setShowAccountRequiredModal(false);
+                    setActiveTab('account');
+                    setIsCreateAccountModalOpen(true);
+                }}
+                onCancel={() => setShowAccountRequiredModal(false)}
             />
         </div>
     );

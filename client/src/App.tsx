@@ -15,6 +15,8 @@ import { TermsOfServicePage } from './pages/legal/TermsOfServicePage';
 import { AboutPage } from './pages/legal/AboutPage';
 import { PaymentSuccessPage } from './pages/payments/PaymentSuccessPage';
 import { ChatDetailPage } from './pages/chats/ChatDetailPage';
+import { DisputeChatDetailPage } from './pages/chats/DisputeChatDetailPage';
+import { ArbitragePage } from './pages/arbitrage/ArbitragePage';
 import { ChatsPage } from './pages/chats/ChatsPage';
 
 // Компонент-обертка для инициализации auth
@@ -61,6 +63,17 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
   return isAuthenticated ? <>{children}</> : <Navigate to="/auth/login" replace />;
+};
+
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, user } = useAuthStore();
+  if (!isAuthenticated) {
+    return <Navigate to="/auth/login" replace />;
+  }
+  if (user && (user.role === 'admin' || user.role === 'arbitr')) {
+    return <>{children}</>;
+  }
+  return <Navigate to="/" replace />;
 };
 
 function App() {
@@ -143,6 +156,22 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <ChatDetailPage />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/arbitrage" element={
+            <AdminRoute>
+              <Layout>
+                <ArbitragePage />
+              </Layout>
+            </AdminRoute>
+          } />
+          
+          <Route path="/dispute-chats/:chatId" element={
+            <ProtectedRoute>
+              <Layout>
+                <DisputeChatDetailPage />
               </Layout>
             </ProtectedRoute>
           } />

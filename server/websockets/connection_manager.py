@@ -107,7 +107,7 @@ class NotificationManager:
         self.users_connections: Dict[int, WebSocket] = {}
 
     async def connect(self, websocket: WebSocket, user_id: int):
-        # Закрываем старое соединение если есть
+        # Close old connection if exists
         if user_id in self.users_connections:
             old_websocket = self.users_connections[user_id]
             if old_websocket is not websocket:
@@ -157,4 +157,5 @@ class NotificationManager:
 
 service_chat_manager = ConnectionManager()
 support_chat_manager = ConnectionManager()
+dispute_chat_manager = ConnectionManager()
 notification_manager = NotificationManager()

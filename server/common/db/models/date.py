@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, TYPE_CHECKING
 
 from sqlalchemy.orm import (
     Mapped,
@@ -12,6 +12,9 @@ from sqlalchemy import (
 )
 
 from .. import Base
+
+if TYPE_CHECKING:
+    from .service import ServiceEnroll, Service
 
 
 class ServiceDate(Base):

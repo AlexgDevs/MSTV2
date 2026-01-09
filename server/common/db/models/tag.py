@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from re import M
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from sqlalchemy.orm import (
     Mapped,
@@ -16,6 +16,10 @@ from sqlalchemy import (
 )
 
 from .. import Base, AssociationBase
+
+if TYPE_CHECKING:
+    from .service import Service
+    from .user import User
 
 
 class ServiceTagConnection(AssociationBase):

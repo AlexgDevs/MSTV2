@@ -194,7 +194,11 @@ export const ChatDetailPage: React.FC = () => {
     }
 
     const isMaster = user?.id === chat.master.id;
-    const otherUser = isMaster ? chat.client : chat.master;
+    const isClient = user?.id === chat.client.id;
+    const isArbitrator = user?.role === 'arbitr' || user?.role === 'admin';
+    
+    // Для арбитра показываем обоих участников, для остальных - только другого участника
+    const showBothUsers = isArbitrator && !isMaster && !isClient;
 
     return (
         <div className="chat-detail-page">
@@ -206,17 +210,43 @@ export const ChatDetailPage: React.FC = () => {
                         </svg>
                         Назад
                     </button>
-                    <div className="chat-header-info">
-                        <div className="chat-header-avatar">
-                            {otherUser.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                            <h1 className="chat-header-name">{otherUser.name}</h1>
+                    {showBothUsers ? (
+                        <div className="chat-header-info chat-header-arbitrator">
+                            <div className="chat-header-users">
+                                <div className="chat-header-user-item">
+                                    <div className="chat-header-avatar">
+                                        {chat.client.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <h2 className="chat-header-name-small">Клиент: {chat.client.name}</h2>
+                                    </div>
+                                </div>
+                                <div className="chat-header-user-item">
+                                    <div className="chat-header-avatar">
+                                        {chat.master.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <h2 className="chat-header-name-small">Мастер: {chat.master.name}</h2>
+                                    </div>
+                                </div>
+                            </div>
                             <p className="chat-header-service">
                                 Услуга: {chat.service.title}
                             </p>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="chat-header-info">
+                            <div className="chat-header-avatar">
+                                {(isMaster ? chat.client : chat.master).name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <h1 className="chat-header-name">{isMaster ? chat.client.name : chat.master.name}</h1>
+                                <p className="chat-header-service">
+                                    Услуга: {chat.service.title}
+                                </p>
+                            </div>
+                        </div>
+                    )}
                     <div className="chat-header-status">
                         {isConnected ? (
                             <span className="status-online">Онлайн</span>
@@ -229,12 +259,31 @@ export const ChatDetailPage: React.FC = () => {
                 <div className="chat-messages">
                     {messages.map((message) => {
                         const isOwnMessage = message.sender_id === user?.id;
+                        const isFromClient = message.sender_id === chat.client.id;
+                        const isFromMaster = message.sender_id === chat.master.id;
+                        const isFromArbitrator = !isFromClient && !isFromMaster;
+                        
+                        // Для арбитра показываем метку отправителя
+                        let senderLabel = '';
+                        if (showBothUsers) {
+                            if (isFromClient) {
+                                senderLabel = 'Клиент';
+                            } else if (isFromMaster) {
+                                senderLabel = 'Мастер';
+                            } else if (isFromArbitrator) {
+                                senderLabel = 'Арбитр';
+                            }
+                        }
+                        
                         return (
                             <div
                                 key={message.id}
-                                className={`message ${isOwnMessage ? 'message-own' : 'message-other'}`}
+                                className={`message ${isOwnMessage ? 'message-own' : 'message-other'} ${isFromArbitrator ? 'message-arbitrator' : ''}`}
                             >
                                 <div className="message-content">
+                                    {showBothUsers && senderLabel && (
+                                        <span className="message-sender-label">{senderLabel}</span>
+                                    )}
                                     <p>{message.content}</p>
                                     <span className="message-time">
                                         {formatTime(message.created_at)}

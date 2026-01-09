@@ -1,10 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ServiceChatResponse } from '../../api/chats/chats.api';
+import type { DisputeChatResponse } from '../../api/disputes/disputeChat.api';
+import type { UnifiedChatItem } from '../../pages/chats/ChatsPage';
 import './ChatList.css';
 
 interface ChatListProps {
-    chats: ServiceChatResponse[];
+    chats: UnifiedChatItem[];
     isLoading?: boolean;
     error?: string | null;
     currentUserId: number;
@@ -41,8 +43,12 @@ export const ChatList: React.FC<ChatListProps> = ({
         }
     };
 
-    const handleChatClick = (chatId: number) => {
-        navigate(`/chats/${chatId}`);
+    const handleChatClick = (chat: UnifiedChatItem) => {
+        if (chat.type === 'dispute') {
+            navigate(`/dispute-chats/${chat.id}`);
+        } else {
+            navigate(`/chats/${chat.id}`);
+        }
     };
 
     if (isLoading) {
@@ -77,42 +83,80 @@ export const ChatList: React.FC<ChatListProps> = ({
 
     return (
         <div className="chat-list">
-            {chats.map((chat) => (
-                <div
-                    key={chat.id}
-                    className="chat-item"
-                    onClick={() => handleChatClick(chat.id)}
-                >
-                    <div className="chat-item-avatar">
-                        {showMasterInfo 
-                            ? (chat.client?.name || 'К').charAt(0).toUpperCase()
-                            : (chat.master?.name || 'М').charAt(0).toUpperCase()
-                        }
-                    </div>
-                    <div className="chat-item-content">
-                        <div className="chat-item-header">
-                            <h3 className="chat-item-name">
-                                {showMasterInfo 
-                                    ? chat.client?.name || `Клиент #${chat.client_id}`
-                                    : chat.master?.name || `Мастер #${chat.master_id}`
-                                }
-                            </h3>
-                            <span className="chat-item-date">
-                                {formatDate(chat.created_at)}
-                            </span>
+            {chats.map((chat) => {
+                const isDispute = chat.type === 'dispute';
+                const disputeChat = isDispute ? chat as DisputeChatResponse & { type: 'dispute' } : null;
+                const serviceChat = !isDispute ? chat as ServiceChatResponse & { type: 'service' } : null;
+
+                // Определяем собеседника
+                let otherUserName = '';
+                let otherUserInitial = '';
+                if (isDispute && disputeChat) {
+                    if (currentUserId === disputeChat.client_id) {
+                        otherUserName = disputeChat.master?.name || `Мастер #${disputeChat.master_id}`;
+                        otherUserInitial = (disputeChat.master?.name || 'М').charAt(0).toUpperCase();
+                    } else if (currentUserId === disputeChat.master_id) {
+                        otherUserName = disputeChat.client?.name || `Клиент #${disputeChat.client_id}`;
+                        otherUserInitial = (disputeChat.client?.name || 'К').charAt(0).toUpperCase();
+                    } else if (disputeChat.arbitr_id === currentUserId) {
+                        otherUserName = 'Спор';
+                        otherUserInitial = 'С';
+                    }
+                } else if (serviceChat) {
+                    otherUserName = showMasterInfo 
+                        ? serviceChat.client?.name || `Клиент #${serviceChat.client_id}`
+                        : serviceChat.master?.name || `Мастер #${serviceChat.master_id}`;
+                    otherUserInitial = showMasterInfo 
+                        ? (serviceChat.client?.name || 'К').charAt(0).toUpperCase()
+                        : (serviceChat.master?.name || 'М').charAt(0).toUpperCase();
+                }
+
+                // Определяем описание
+                let description = '';
+                if (isDispute && disputeChat) {
+                    if (disputeChat.enroll?.service) {
+                        description = `Спор по записи: ${disputeChat.enroll.service.title}`;
+                    } else {
+                        description = `Спор #${disputeChat.dispute_id}`;
+                    }
+                } else if (serviceChat) {
+                    description = serviceChat.service 
+                        ? `Услуга: ${serviceChat.service.title}`
+                        : serviceChat.service_id 
+                            ? `Услуга ID: ${serviceChat.service_id}`
+                            : '';
+                }
+
+                return (
+                    <div
+                        key={`${chat.type}-${chat.id}`}
+                        className={`chat-item ${isDispute ? 'chat-item-dispute' : ''}`}
+                        onClick={() => handleChatClick(chat)}
+                    >
+                        <div className="chat-item-avatar">
+                            {otherUserInitial}
                         </div>
-                        {chat.service ? (
-                            <p className="chat-item-service">
-                                Услуга: {chat.service.title}
-                            </p>
-                        ) : chat.service_id ? (
-                            <p className="chat-item-service">
-                                Услуга ID: {chat.service_id}
-                            </p>
-                        ) : null}
+                        <div className="chat-item-content">
+                            <div className="chat-item-header">
+                                <h3 className="chat-item-name">
+                                    {otherUserName}
+                                    {isDispute && (
+                                        <span className="chat-item-badge">Спор</span>
+                                    )}
+                                </h3>
+                                <span className="chat-item-date">
+                                    {formatDate(chat.created_at)}
+                                </span>
+                            </div>
+                            {description && (
+                                <p className="chat-item-service">
+                                    {description}
+                                </p>
+                            )}
+                        </div>
                     </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 };

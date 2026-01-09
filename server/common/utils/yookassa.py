@@ -434,3 +434,159 @@ async def trafic_orchestrator(payment_id: str):
     except Exception as e:
         logger.error(f"Error in trafic_orchestrator: {str(e)}")
         return {"success": False, "error": str(e)}
+
+
+async def dispute_orchestrator(payment_id: str, winner_type: str):
+    '''
+    Distribution of funds based on dispute resolution
+    winner_type: 'client' - full refund to client
+                 'master' - full payout to master (without platform fee)
+                 'split' - 50% refund to client, 50% payout to master
+    '''
+    check_yukass_credentials()
+    try:
+        payment = await get_payment(payment_id)
+        if not payment:
+            raise ValueError('Payment not found')
+
+        if payment.get('status') != 'succeeded':
+            raise ValueError('Payment not succeeded')
+
+        payment_amount = float(payment.get('amount').get('value'))
+        results = {}
+
+        if winner_type == 'client':
+            # Full refund to client
+            refund_result = await create_refund(
+                payment_id=payment_id,
+                description=f'Полный возврат по решению арбитража'
+            )
+            results['refund'] = {"success": True, "data": refund_result}
+            results['message'] = "Full refund to client completed"
+            logger.info(
+                f"Dispute resolution: Full refund to client for payment {payment_id}")
+
+        elif winner_type == 'master':
+            # Full payout to master (100% of amount, including platform fee)
+            # Get master data
+            master_id = payment.get('metadata', {}).get('seller_id')
+            if not master_id:
+                raise ValueError('seller_id not found in payment metadata')
+
+            async with db_config.Session() as session:
+                payment_repo = PaymentRepository(session)
+                master = await payment_repo.get_seller_id(int(master_id))
+                if not master or not master.account:
+                    raise ValueError('Master account not found')
+
+                # Payout full amount to master (100%)
+                # Format amount with 2 decimal places for YooKassa API
+                payout_data = {
+                    "amount": {
+                        # Format with 2 decimal places
+                        "value": f"{payment_amount:.2f}",
+                        "currency": "RUB"
+                    },
+                    "payout_destination_data": master.account.get_yookassa_payout_data(),
+                    "description": f"Полная выплата за заказ {payment_id} по решению арбитража",
+                    "metadata": {
+                        "payment_id": payment_id,
+                        "seller_id": master.id,
+                        "purpose": "dispute_master_full_payout"
+                    }
+                }
+
+                url = f"{get_api_url()}/payouts"
+                headers = {
+                    "Authorization": get_auth_header(),
+                    "Content-Type": "application/json",
+                    "Idempotence-Key": f"payout_dispute_master_{payment_id}_{int(time.time())}"
+                }
+
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.post(url, json=payout_data, headers=headers)
+                    response.raise_for_status()
+                    payout_result = response.json()
+
+                    results['master_payout'] = {
+                        "success": True, "data": payout_result}
+                    results['message'] = "Full payout to master completed (100% including platform fee)"
+                    logger.info(
+                        f"Dispute resolution: Full payout to master for payment {payment_id} - {payment_amount} RUB")
+
+        elif winner_type == 'split':
+            # 50% to client (refund), 50% to master (payout)
+            # Calculate half amount with precision to kopecks
+            half_amount = round(payment_amount / 2, 2)
+
+            # For refund use floor rounding to whole rubles
+            # (to avoid issues with kopecks in refund API)
+            refund_amount_rubles = int(half_amount)
+
+            # For payout use remaining amount (including kopecks)
+            # This guarantees that refund + payout = payment_amount exactly
+            payout_amount = round(payment_amount - refund_amount_rubles, 2)
+
+            # Refund 50% to client (rounded down to rubles)
+            refund_result = await create_refund(
+                payment_id=payment_id,
+                amount=refund_amount_rubles,  # In rubles (int)
+                description=f'Частичный возврат 50% по решению арбитража'
+            )
+            results['refund'] = {"success": True, "data": refund_result}
+
+            master_id = payment.get('metadata', {}).get('seller_id')
+            if not master_id:
+                raise ValueError('seller_id not found in payment metadata')
+
+            async with db_config.Session() as session:
+                from ...payments.repositories import PaymentRepository
+                payment_repo = PaymentRepository(session)
+                master = await payment_repo.get_seller_id(int(master_id))
+                if not master or not master.account:
+                    raise ValueError('Master account not found')
+
+                payout_data = {
+                    "amount": {
+                        "value": f"{payout_amount:.2f}",
+                        "currency": "RUB"
+                    },
+                    "payout_destination_data": master.account.get_yookassa_payout_data(),
+                    "description": f"Выплата 50% за заказ {payment_id} по решению арбитража",
+                    "metadata": {
+                        "payment_id": payment_id,
+                        "seller_id": master.id,
+                        "purpose": "dispute_split_payout"
+                    }
+                }
+
+                url = f"{get_api_url()}/payouts"
+                headers = {
+                    "Authorization": get_auth_header(),
+                    "Content-Type": "application/json",
+                    "Idempotence-Key": f"payout_dispute_split_{payment_id}_{int(time.time())}"
+                }
+
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.post(url, json=payout_data, headers=headers)
+                    response.raise_for_status()
+                    payout_result = response.json()
+
+                    results['master_payout'] = {
+                        "success": True, "data": payout_result}
+                    results['message'] = "Split payment completed: 50% refund to client, 50% payout to master"
+                    logger.info(
+                        f"Dispute resolution: Split payment for {payment_id} - 50% refund, 50% payout")
+        else:
+            raise ValueError(f'Invalid winner_type: {winner_type}')
+
+        return {
+            "success": True,
+            "payment_id": payment_id,
+            "winner_type": winner_type,
+            **results
+        }
+
+    except Exception as e:
+        logger.error(f"Error in dispute_orchestrator: {str(e)}")
+        return {"success": False, "error": str(e)}

@@ -74,6 +74,32 @@
     flex: 1;
 }
 
+.chat-header-arbitrator {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.chat-header-users {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.chat-header-user-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.chat-header-name-small {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #0A0A0A;
+    margin: 0;
+}
+
 .chat-header-avatar {
     width: 3rem;
     height: 3rem;
@@ -237,6 +263,51 @@
 
 .message-own .message-time {
     color: rgba(255, 255, 255, 0.6);
+}
+
+.message-sender-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #525252;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.message-arbitrator .message-content {
+    background: #FEF3C7;
+    border: 1px solid #FCD34D;
+    color: #92400E;
+}
+
+.message-arbitrator .message-content p {
+    color: #92400E;
+}
+
+.message-arbitrator .message-sender-label {
+    color: #78350F;
+}
+
+.message-arbitrator .message-time {
+    color: #A16207;
+}
+
+.message-arbitrator.message-own .message-content {
+    background: #DBEAFE;
+    border: 1px solid #60A5FA;
+    color: #1E40AF;
+}
+
+.message-arbitrator.message-own .message-content p {
+    color: #1E40AF;
+}
+
+.message-arbitrator.message-own .message-sender-label {
+    color: #1E3A8A;
+}
+
+.message-arbitrator.message-own .message-time {
+    color: #2563EB;
 }
 
 .chat-input-container {

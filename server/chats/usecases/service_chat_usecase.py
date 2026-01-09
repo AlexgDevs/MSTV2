@@ -28,7 +28,7 @@ class ServiceChatUsecase:
 
     async def create_service_chat(self, chat_data: CreatedServiceChat, client_id: int) -> ServiceChat:
         try:
-            # Сначала проверяем, не существует ли уже такой чат
+            # First check if such chat already exists
             existing_chat = await self._service_chat_repository.get_by_service_master_client(
                 chat_data.service_id,
                 chat_data.master_id,
@@ -36,15 +36,15 @@ class ServiceChatUsecase:
             )
 
             if existing_chat:
-                # Чат уже существует, возвращаем его
+                # Chat already exists, return it
                 return existing_chat
 
-            # Создаем новый чат
+            # Create new chat
             new_chat = await self._service_chat_repository.create_chat(chat_data, client_id)
             await self._session.commit()
             return new_chat
         except IntegrityError as e:
-            # Если все же возникла ошибка уникальности (race condition), пытаемся найти существующий чат
+            # If uniqueness error still occurred (race condition), try to find existing chat
             await self._session.rollback()
             existing_chat = await self._service_chat_repository.get_by_service_master_client(
                 chat_data.service_id,

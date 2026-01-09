@@ -25,7 +25,7 @@ class AccountUseCase:
         account_data: CreateAccountModel
     ) -> Dict[str, Any]:
         try:
-            # Проверяем, есть ли уже счет у пользователя
+            # Check if user already has an account
             existing_account = await self._account_repository.get_by_user_id(user_id)
             if existing_account:
                 return {
@@ -33,7 +33,7 @@ class AccountUseCase:
                     'detail': 'Account already exists for this user'
                 }
 
-            # Валидация полей в зависимости от метода выплаты
+            # Validate fields depending on payout method
             validation_error = self._validate_account_data(account_data)
             if validation_error:
                 return validation_error
@@ -107,7 +107,7 @@ class AccountUseCase:
                     'detail': 'Account not found'
                 }
 
-            # Валидация полей в зависимости от метода выплаты
+            # Validate fields depending on payout method
             if account_data.payout_method:
                 validation_error = self._validate_account_data(
                     CreateAccountModel(
@@ -163,7 +163,7 @@ class AccountUseCase:
             }
 
     def _validate_account_data(self, account_data: CreateAccountModel) -> Dict[str, Any] | None:
-        """Валидация данных счета в зависимости от метода выплаты"""
+        """Validate account data depending on payout method"""
         if account_data.payout_method == 'bank_card':
             if not account_data.card_number:
                 return {
@@ -203,4 +203,3 @@ def get_account_usecase(
     account_repository: AccountRepository = Depends(get_account_repository)
 ) -> AccountUseCase:
     return AccountUseCase(session, account_repository)
-

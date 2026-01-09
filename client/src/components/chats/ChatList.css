@@ -82,6 +82,23 @@
     font-weight: 400;
 }
 
+.chat-item-dispute {
+    border-left: 3px solid #F59E0B;
+}
+
+.chat-item-badge {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    margin-left: 0.5rem;
+    background: #FEF3C7;
+    color: #92400E;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
 .chat-list-loading,
 .chat-list-error,
 .chat-list-empty {
