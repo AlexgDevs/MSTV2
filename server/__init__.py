@@ -8,7 +8,9 @@ from .enrolls import enroll_app
 from .tags import tag_app
 from .payments import payment_app
 from .accounts import account_app
-from .chats import service_chat_app, support_chat_app
+from .chats import service_chat_app, support_chat_app, dispute_chat_app
+from .dispute import dispute_app
+from .arbitrage import arbitrage_app
 from .websockets.routers import websocket_router
 from .websockets.notification_routes import notification_routes
 
@@ -27,6 +29,7 @@ master_app.include_router(payment_app)
 master_app.include_router(account_app)
 master_app.include_router(service_chat_app)
 master_app.include_router(support_chat_app)
+master_app.include_router(dispute_chat_app)
 master_app.include_router(notification_routes)
-
-
+master_app.include_router(dispute_app)
+master_app.include_router(arbitrage_app)

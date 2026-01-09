@@ -58,7 +58,15 @@ async def get_detail_service_chat(
         get_service_chat_repository),
     user: dict = Depends(JWTManager.auth_required)
 ) -> dict:
-    chat = await service_chat_repository.get_detail_by_user_chat_id(int(user.get('id')), chat_id)
+    user_role = user.get('role')
+    chat = await service_chat_repository.get_detail_by_user_chat_id(
+        int(user.get('id')),
+        chat_id,
+        user_role
+    )
+    if not chat:
+        from ...common.utils import NotFoundException404
+        await NotFoundException404.not_found('Chat not found or access denied')
     return chat
 
 
@@ -85,10 +93,10 @@ async def check_master_online_status(
     """
     Проверяет, есть ли у мастера активные WebSocket соединения в каких-либо чатах.
     """
-    # Проверяем все активные соединения мастера
+    # Check all active connections of the master
     is_online = False
 
-    # Проходим по всем активным чатам и проверяем, подключен ли мастер
+    # Iterate through all active chats and check if master is connected
     for chat_id, users in service_chat_manager.active_connections.items():
         if master_id in users:
             is_online = True

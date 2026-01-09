@@ -41,7 +41,7 @@ class ScheduleTemplateResponse(BaseModel):
 class SimpleScheduleTemplateUserResponse(BaseModel):
     id: int
     name: str
-    role: Literal['admin', 'user', 'moderator']
+    role: Literal['admin', 'user', 'moderator', 'arbitr']
 
     class Config:
         from_attributes = True

@@ -164,7 +164,7 @@ async def get_ws_token(user=Depends(JWTManager.auth_required)):
     Возвращает access token для использования в WebSocket соединениях.
     Токен можно передать через query параметр ?token=...
     """
-    # Создаем новый токен для WebSocket (можно использовать существующий из cookies)
+    # Create new token for WebSocket (can use existing one from cookies)
     user_token_data = {
         'id': user.get('id'),
         'name': user.get('name'),

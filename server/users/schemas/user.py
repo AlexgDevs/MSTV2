@@ -111,7 +111,7 @@ class CreateUserModel(BaseModel):
     password: str
     email: str
     about: str | None = None
-    recaptcha_token: str | None = None  # Токен Cloudflare Turnstile
+    recaptcha_token: str | None = None  # Cloudflare Turnstile token
 
 
 class PatchUserModel(BaseModel):
@@ -130,7 +130,7 @@ class UserResponse(BaseModel):
     id: int
     name: str
     about: str | None
-    role: Literal['user', 'admin', 'moderator']
+    role: Literal['user', 'admin', 'moderator', 'arbitr']
 
     class Config:
         from_attributes = True
@@ -141,7 +141,7 @@ class DetailUserResponse(BaseModel):
     name: str
     email: str
     about: str | None = None
-    role: Literal['user', 'admin', 'moderator']
+    role: Literal['user', 'admin', 'moderator', 'arbitr']
     verified_email: bool
     templates: List[SimpleUserScheduleTemplate]
     services: List[SimpleUserService]

@@ -76,7 +76,7 @@ class SimpleServiceUserResponse(BaseModel):
     id: int
     name: str
     about: str | None
-    role: Literal['user', 'admin', 'moderator']
+    role: Literal['user', 'admin', 'moderator', 'arbitr']
 
     class Config:
         from_attributes = True

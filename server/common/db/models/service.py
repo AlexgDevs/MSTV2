@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from .payment import Payment
     from .tag import Tag, ServiceTagConnection
     from .scheduletemplate import ScheduleTemplate
-    from .chats import ServiceChat
+    from .chats import ServiceChat, DisputeChat
     from .accounts import Account
     from .dispute import Dispute
 
@@ -34,12 +34,12 @@ class ServiceEnroll(Base):
     __tablename__ = 'service_enrolls'
     __table_args__ = (
         Index('ux_service_enrolls_date_slot',
-            'service_date_id', 'slot_time', unique=True),
+              'service_date_id', 'slot_time', unique=True),
     )
 
     slot_time: Mapped[str]
     status: Mapped[Literal['pending', 'confirmed', 'ready', 'completed',
-                        'cancelled', 'expired']] = mapped_column(default='pending')
+                           'cancelled', 'expired']] = mapped_column(default='pending')
     price: Mapped[int]
     created_at: Mapped[DateTime] = mapped_column(
         DateTime, default=datetime.now(timezone.utc))
@@ -61,6 +61,9 @@ class ServiceEnroll(Base):
 
     disputes: Mapped[List['Dispute']] = relationship(
         'Dispute', foreign_keys='Dispute.enroll_id', back_populates='enroll')
+
+    dispute_chat: Mapped['DisputeChat'] = relationship(
+        'DisputeChat', foreign_keys='DisputeChat.enroll_id', back_populates='enroll', uselist=False)
 
 
 class Service(Base):
@@ -91,4 +94,3 @@ class Service(Base):
 
     chats: Mapped[List['ServiceChat']] = relationship(
         'ServiceChat', back_populates='service', cascade="all, delete-orphan")
-

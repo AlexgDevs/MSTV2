@@ -18,6 +18,8 @@ from .. import Base
 if TYPE_CHECKING:
     from .user import User
     from .service import ServiceEnroll
+    from .chats import DisputeChat
+
 
 DisputeStatus = Literal[
     'wait_for_arbitr',
@@ -65,6 +67,13 @@ class Dispute(Base):
         'ServiceEnroll',
         foreign_keys=[enroll_id],
         back_populates='disputes',
+        uselist=False
+    )
+
+    dispute_chat: Mapped['DisputeChat'] = relationship(
+        'DisputeChat',
+        foreign_keys='DisputeChat.dispute_id',
+        back_populates='dispute',
         uselist=False
     )
 

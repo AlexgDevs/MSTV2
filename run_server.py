@@ -1,5 +1,6 @@
 from server.websockets.support_chat import support_chat_websocket
 from server.websockets.service_chat import service_chat_websocket
+from server.websockets.dispute_chat import dispute_chat_websocket
 from server.websockets.notfifcations import notifications_websocket
 import uvicorn
 from asyncio import run
@@ -50,6 +51,8 @@ app.add_middleware(
 )
 
 # Global exception handlers
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(
@@ -72,6 +75,7 @@ app.include_router(master_app)
 
 app.websocket("/ws/service-chats/{chat_id}")(service_chat_websocket)
 app.websocket("/ws/support-chats/{chat_id}")(support_chat_websocket)
+app.websocket("/ws/dispute-chats/{chat_id}")(dispute_chat_websocket)
 app.websocket("/ws/notifications")(notifications_websocket)
 
 

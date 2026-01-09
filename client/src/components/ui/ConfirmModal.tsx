@@ -4,12 +4,15 @@ import './ConfirmModal.css';
 interface ConfirmModalProps {
     isOpen: boolean;
     title: string;
-    message: string;
+    message?: string;
     confirmText?: string;
     cancelText?: string;
     onConfirm: () => void;
-    onCancel: () => void;
+    onCancel?: () => void;
+    onClose?: () => void;
     variant?: 'danger' | 'warning';
+    isLoading?: boolean;
+    children?: React.ReactNode;
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -20,31 +23,38 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     cancelText = 'Отмена',
     onConfirm,
     onCancel,
-    variant = 'danger'
+    onClose,
+    variant = 'danger',
+    isLoading = false,
+    children
 }) => {
     if (!isOpen) return null;
 
+    const handleCancel = onCancel || onClose || (() => {});
+
     return (
-        <div className="modal-overlay" onClick={onCancel}>
+        <div className="modal-overlay" onClick={handleCancel}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <h3 className="modal-title">{title}</h3>
                 </div>
                 <div className="modal-body">
-                    <p className="modal-message">{message}</p>
+                    {children ? children : message && <p className="modal-message">{message}</p>}
                 </div>
                 <div className="modal-footer">
                     <button
                         className="btn btn-outline"
-                        onClick={onCancel}
+                        onClick={handleCancel}
+                        disabled={isLoading}
                     >
                         {cancelText}
                     </button>
                     <button
                         className={`btn ${variant === 'danger' ? 'btn-danger' : 'btn-warning'}`}
                         onClick={onConfirm}
+                        disabled={isLoading}
                     >
-                        {confirmText}
+                        {isLoading ? 'Обработка...' : confirmText}
                     </button>
                 </div>
             </div>

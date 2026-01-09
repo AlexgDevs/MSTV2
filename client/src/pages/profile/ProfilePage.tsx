@@ -2,9 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../../stores/auth.store';
 import { paymentsApi } from '../../api/payments/payments.api';
 import type { PaymentResponse } from '../../api/payments/types';
-import { chatsApi, type ServiceChatResponse } from '../../api/chats/chats.api';
+import { chatsApi } from '../../api/chats/chats.api';
 import { ChatList } from '../../components/chats/ChatList';
+import type { UnifiedChatItem } from '../chats/ChatsPage';
 import { enrollsApi } from '../../api/enrolls/enrolls.api';
+import { disputesApi } from '../../api/disputes/disputes.api';
+import type { DisputeResponse } from '../../api/disputes/types';
+import { ComplainModal } from '../../components/enrolls/ComplainModal';
+import { BookingMenu } from '../../components/enrolls/BookingMenu';
 import '../../assets/styles/ProfilePage.css'
 
 const priceFormatter = new Intl.NumberFormat('ru-RU', {
@@ -50,9 +55,19 @@ export const ProfilePage: React.FC = () => {
     const [paymentsError, setPaymentsError] = useState<string | null>(null);
 
     // Chats state
-    const [chats, setChats] = useState<ServiceChatResponse[]>([]);
+    const [chats, setChats] = useState<UnifiedChatItem[]>([]);
     const [isLoadingChats, setIsLoadingChats] = useState(false);
     const [chatsError, setChatsError] = useState<string | null>(null);
+
+    // Complain modal state
+    const [selectedEnrollForComplain, setSelectedEnrollForComplain] = useState<{
+        enrollId: number;
+        masterId: number;
+    } | null>(null);
+    const [isComplainModalOpen, setIsComplainModalOpen] = useState(false);
+
+    // Disputes state
+    const [userDisputes, setUserDisputes] = useState<DisputeResponse[]>([]);
 
     useEffect(() => {
         if (user) {
@@ -69,8 +84,10 @@ export const ProfilePage: React.FC = () => {
             loadPayments();
         } else if (activeTab === 'chats') {
             loadChats();
+        } else if (activeTab === 'profile') {
+            loadUserDisputes();
         }
-    }, [activeTab]);
+    }, [activeTab, user]);
 
     const loadPayments = async () => {
         setIsLoadingPayments(true);
@@ -94,7 +111,9 @@ export const ProfilePage: React.FC = () => {
             // Проверяем, что response.data существует и является массивом
             if (response && response.data && Array.isArray(response.data)) {
                 // Фильтруем только чаты где пользователь клиент
-                const clientChats = response.data.filter(chat => chat && chat.client_id === user.id);
+                const clientChats = response.data
+                    .filter(chat => chat && chat.client_id === user.id)
+                    .map(chat => ({ ...chat, type: 'service' as const }));
                 setChats(clientChats);
             } else {
                 setChats([]);
@@ -105,6 +124,17 @@ export const ProfilePage: React.FC = () => {
             setChats([]);
         } finally {
             setIsLoadingChats(false);
+        }
+    };
+
+    const loadUserDisputes = async () => {
+        if (!user) return;
+        try {
+            const response = await disputesApi.getByClient();
+            setUserDisputes(response.data);
+        } catch (error) {
+            console.error('Error loading disputes:', error);
+            setUserDisputes([]);
         }
     };
 
@@ -331,8 +361,42 @@ export const ProfilePage: React.FC = () => {
                                             ? `${formattedDate}, ${enroll.slot_time}` 
                                             : enroll.slot_time;
 
+                                        const masterId = enroll.service?.user?.id;
+                                        // Проверяем, есть ли уже спор для этого enroll
+                                        const hasExistingDispute = userDisputes.some(
+                                            dispute => dispute.enroll_id === enroll.id
+                                        );
+                                        const canComplain = (enroll.status === 'ready' || enroll.status === 'completed') && masterId && !hasExistingDispute;
+                                        
+                                        // Получаем существующий спор, если есть
+                                        const existingDispute = userDisputes.find(
+                                            dispute => dispute.enroll_id === enroll.id
+                                        );
+
                                         return (
                                             <div key={enroll.id} className="booking-item">
+                                                {canComplain && (
+                                                    <div className="booking-menu-wrapper">
+                                                        <BookingMenu
+                                                            onComplain={() => {
+                                                                setSelectedEnrollForComplain({
+                                                                    enrollId: enroll.id,
+                                                                    masterId: masterId!
+                                                                });
+                                                                setIsComplainModalOpen(true);
+                                                            }}
+                                                        />
+                                                    </div>
+                                                )}
+                                                {hasExistingDispute && existingDispute && (
+                                                    <div className="booking-dispute-badge">
+                                                        <span className={`dispute-status-badge dispute-status-${existingDispute.disput_status}`}>
+                                                            {existingDispute.disput_status === 'wait_for_arbitr' && 'Жалоба подана'}
+                                                            {existingDispute.disput_status === 'in_process' && 'Жалоба рассматривается'}
+                                                            {existingDispute.disput_status === 'closed' && 'Жалоба закрыта'}
+                                                        </span>
+                                                    </div>
+                                                )}
                                                 <div className="booking-info">
                                                     <p className="booking-time">{dateTimeDisplay}</p>
                                                     <h3 className="booking-title">{serviceTitle}</h3>
@@ -551,6 +615,23 @@ export const ProfilePage: React.FC = () => {
                 {activeTab === 'payments' && renderPaymentsTab()}
                 {activeTab === 'chats' && renderChatsTab()}
             </div>
+
+            {/* Complain Modal */}
+            {selectedEnrollForComplain && (
+                <ComplainModal
+                    isOpen={isComplainModalOpen}
+                    onClose={() => {
+                        setIsComplainModalOpen(false);
+                        setSelectedEnrollForComplain(null);
+                    }}
+                    enrollId={selectedEnrollForComplain.enrollId}
+                    masterId={selectedEnrollForComplain.masterId}
+                    onSuccess={() => {
+                        refreshUser();
+                        loadUserDisputes();
+                    }}
+                />
+            )}
         </div>
     );
 };

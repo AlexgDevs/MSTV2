@@ -42,7 +42,7 @@ class Payment(Base):
     )
 
     description: Mapped[str] = mapped_column(Text, nullable=True)
-    # JSON строка для дополнительных данных
+    # JSON string for additional data
     payment_metadata: Mapped[str] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[DateTime] = mapped_column(

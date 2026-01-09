@@ -44,7 +44,7 @@ class Account(Base):
     inn: Mapped[Optional[str]] = mapped_column(String(12), nullable=True)
     
     status: Mapped[AccountStatus] = mapped_column(
-        default='pending'
+        default='verified'
     )
     
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

@@ -8,6 +8,8 @@ from ...common.db import (
     select,
     selectinload,
     ServiceChat,
+    Dispute,
+    ServiceEnroll,
 )
 
 from ..schemas import CreatedServiceChat
@@ -63,7 +65,8 @@ class ServiceChatRepository:
         chats['master_chats'] = master_chats.all()
         return chats
 
-    async def get_detail_by_user_chat_id(self, user_id: int, chat_id: int) -> ServiceChat | None:
+    async def get_detail_by_user_chat_id(self, user_id: int, chat_id: int, user_role: str | None = None) -> ServiceChat | None:
+        # Check if user is a client
         client_chat = await self._session.scalar(
             select(ServiceChat)
             .where(
@@ -78,25 +81,60 @@ class ServiceChatRepository:
             )
         )
 
-        if not client_chat:
-            master_chat = await self._session.scalar(
-                select(ServiceChat)
-                .where(
-                    ServiceChat.id == chat_id,
-                    ServiceChat.master_id == user_id
-                )
-                .options(
-                    selectinload(ServiceChat.client),
-                    selectinload(ServiceChat.master),
-                    selectinload(ServiceChat.service),
-                    selectinload(ServiceChat.messages)
-                )
+        if client_chat:
+            return client_chat
+
+        # Check if user is a master
+        master_chat = await self._session.scalar(
+            select(ServiceChat)
+            .where(
+                ServiceChat.id == chat_id,
+                ServiceChat.master_id == user_id
             )
-            if not master_chat:
-                return None
+            .options(
+                selectinload(ServiceChat.client),
+                selectinload(ServiceChat.master),
+                selectinload(ServiceChat.service),
+                selectinload(ServiceChat.messages)
+            )
+        )
+
+        if master_chat:
             return master_chat
 
-        return client_chat
+        # If user is arbitrator or admin, check if there's a dispute for this chat
+        if user_role in ('arbitr', 'admin'):
+            # Get chat without user check
+            chat = await self.get_by_id(chat_id)
+            if chat:
+                # Check if there's a dispute where this chat is linked through enroll
+                dispute = await self._session.scalar(
+                    select(Dispute)
+                    .join(ServiceEnroll, Dispute.enroll_id == ServiceEnroll.id)
+                    .where(
+                        ServiceEnroll.service_id == chat.service_id,
+                        Dispute.client_id == chat.client_id,
+                        Dispute.master_id == chat.master_id
+                    )
+                )
+                if dispute:
+                    # If user is arbitrator, check that they are assigned to this dispute
+                    if user_role == 'arbitr' and dispute.arbitr_id != user_id:
+                        return None
+                    # Load chat with relations
+                    chat_with_relations = await self._session.scalar(
+                        select(ServiceChat)
+                        .where(ServiceChat.id == chat_id)
+                        .options(
+                            selectinload(ServiceChat.client),
+                            selectinload(ServiceChat.master),
+                            selectinload(ServiceChat.service),
+                            selectinload(ServiceChat.messages)
+                        )
+                    )
+                    return chat_with_relations
+
+        return None
 
     async def get_by_service_master_client(
         self,

@@ -4,12 +4,12 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .connection_manager import service_chat_manager
 from .auth import get_user_from_websocket
-from ..common.db import db_config, ServiceChat, select, AsyncSession
+from ..common.db import db_config, ServiceChat, select, AsyncSession, Dispute, ServiceEnroll
 from ..messages.usecases import get_service_message_use_case, ServiceMessageUseCase
 from starlette.websockets import WebSocketState
 
-MAX_MESSAGE_LENGTH = 1024  # Соответствует лимиту в БД
-MAX_WEBSOCKET_MESSAGE_SIZE = 10000  # 10KB лимит на размер JSON
+MAX_MESSAGE_LENGTH = 1024  # Matches DB limit
+MAX_WEBSOCKET_MESSAGE_SIZE = 10000  # 10KB limit for JSON size
 
 
 async def service_chat_websocket(websocket: WebSocket, chat_id: int):
@@ -38,7 +38,31 @@ async def service_chat_websocket(websocket: WebSocket, chat_id: int):
                     pass
                 return
 
-            if chat.client_id != user_id and chat.master_id != user_id:
+            user_role = user.get('role')
+            # Check access: client, master, or arbitrator/admin with dispute
+            has_access = False
+
+            if chat.client_id == user_id or chat.master_id == user_id:
+                has_access = True
+            elif user_role in ('arbitr', 'admin'):
+                # Check if there's a dispute related to this chat
+                dispute = await session.scalar(
+                    select(Dispute)
+                    .join(ServiceEnroll, Dispute.enroll_id == ServiceEnroll.id)
+                    .where(
+                        ServiceEnroll.service_id == chat.service_id,
+                        Dispute.client_id == chat.client_id,
+                        Dispute.master_id == chat.master_id
+                    )
+                )
+                if dispute:
+                    # If user is arbitrator, check that they are assigned to this dispute
+                    if user_role == 'arbitr' and dispute.arbitr_id != user_id:
+                        has_access = False
+                    else:
+                        has_access = True
+
+            if not has_access:
                 try:
                     await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
                 except:

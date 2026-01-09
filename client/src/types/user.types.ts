@@ -77,7 +77,7 @@ export interface UserResponse {
     id: number;
     name: string;
     about: string | null;
-    role: 'user' | 'admin' | 'moderator';
+    role: 'user' | 'admin' | 'moderator' | 'arbitr';
 }
 
 export interface DetailUserResponse {
@@ -85,7 +85,7 @@ export interface DetailUserResponse {
     name: string;
     email: string;
     about: string | null;
-    role: 'user' | 'admin' | 'moderator';
+    role: 'user' | 'admin' | 'moderator' | 'arbitr';
     verified_email: boolean;
     templates: SimpleUserScheduleTemplate[];
     services: SimpleUserService[];

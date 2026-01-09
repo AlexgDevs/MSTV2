@@ -13,8 +13,8 @@ from sqlalchemy import (
 )
 
 if TYPE_CHECKING:
-    from .messages import ServiceMessage, SupportMessage
-    from .chats import ServiceChat, SupportChat
+    from .messages import ServiceMessage, SupportMessage, DisputeMessage
+    from .chats import ServiceChat, SupportChat, DisputeChat
     from .service import Service
     from .tag import Tag
     from .scheduletemplate import ScheduleTemplate
@@ -37,9 +37,8 @@ class User(Base):
 
     about: Mapped[str] = mapped_column(String(1024), nullable=True)
     joined: Mapped[DateTime] = mapped_column(DateTime, default=datetime.now)
-    role: Mapped[Literal['user', 'admin', 'moderator']
-                ] = mapped_column(default='user')
-
+    role: Mapped[Literal['user', 'admin', 'moderator', 'arbitr']
+                 ] = mapped_column(default='arbitr')
 
     templates: Mapped[List['ScheduleTemplate']] = relationship(
         'ScheduleTemplate', back_populates='user')
@@ -64,6 +63,15 @@ class User(Base):
         'ServiceMessage', foreign_keys='ServiceMessage.sender_id', back_populates='sender')
     support_messages: Mapped[List['SupportMessage']] = relationship(
         'SupportMessage', foreign_keys='SupportMessage.sender_id', back_populates='sender')
+    dispute_messages: Mapped[List['DisputeMessage']] = relationship(
+        'DisputeMessage', foreign_keys='DisputeMessage.sender_id', back_populates='sender')
+
+    master_dispute_chats: Mapped[List['DisputeChat']] = relationship(
+        'DisputeChat', foreign_keys='DisputeChat.master_id', back_populates='master')
+    client_dispute_chats: Mapped[List['DisputeChat']] = relationship(
+        'DisputeChat', foreign_keys='DisputeChat.client_id', back_populates='client')
+    arbitr_dispute_chats: Mapped[List['DisputeChat']] = relationship(
+        'DisputeChat', foreign_keys='DisputeChat.arbitr_id', back_populates='arbitr')
 
     client_disputes: Mapped[List['Dispute']] = relationship(
         'Dispute', foreign_keys='Dispute.client_id', back_populates='client')
@@ -72,4 +80,5 @@ class User(Base):
     arbitr_disputes: Mapped[List['Dispute']] = relationship(
         'Dispute', foreign_keys='Dispute.arbitr_id', back_populates='arbitr')
 
-    account: Mapped['Account'] = relationship('Account', back_populates='user', uselist=False)
+    account: Mapped['Account'] = relationship(
+        'Account', back_populates='user', uselist=False)

@@ -4,7 +4,7 @@ from .service import Service, ServiceEnroll
 from .date import ServiceDate
 from .scheduletemplate import ScheduleTemplate
 from .payment import Payment
-from .chats import ServiceChat, SupportChat
-from .messages import ServiceMessage, SupportMessage
+from .chats import ServiceChat, SupportChat, DisputeChat
+from .messages import ServiceMessage, SupportMessage, DisputeMessage
 from .accounts import Account
 from .dispute import Dispute

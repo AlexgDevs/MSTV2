@@ -1,0 +1,1 @@
+from .arbitrage_reposiotoy import ArbitrageRepository, get_arbitrage_repository

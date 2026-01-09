@@ -276,7 +276,7 @@ class BookingUseCase:
         elif action == 'reject':
             new_status = 'cancelled'
 
-            # Отправляем письмо пользователю с причиной отмены
+            # Send email to user with cancellation reason
             if reason:
                 try:
                     user = await self._session.scalar(
