@@ -1,27 +1,24 @@
-from server.websockets.support_chat import support_chat_websocket
-from server.websockets.service_chat import service_chat_websocket
-from server.websockets.dispute_chat import dispute_chat_websocket
-from server.websockets.notfifcations import notifications_websocket
 import uvicorn
 from asyncio import run
+from os import getenv
+
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
+from sqlalchemy import text
+
 from server import (
-    master_app,
     db_config,
-    RateLimitMiddleware
+    dispute_chat_websocket,
+    lifespan,
+    master_app,
+    notifications_websocket,
+    RateLimitMiddleware,
+    service_chat_websocket,
+    support_chat_websocket,
 )
-
-from server.common.utils.rate_limiter_config import lifespan
-from os import getenv
-from dotenv import load_dotenv
-
-from server.common.db import User, db_config
-from server.common.utils import email_verfification_obj, EmailVerfifcation
-from server.users.repositories import user_repo_obj, UserRepository
-
 
 load_dotenv()
 
@@ -39,7 +36,6 @@ app.add_middleware(RateLimitMiddleware)
 # CORS configuration
 ALLOWED_ORIGINS = getenv('ALLOWED_ORIGINS', 'http://localhost:5173').split(',')
 if ENVIRONMENT == 'production':
-    # In production, add your actual domain
     ALLOWED_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS]
 
 app.add_middleware(
@@ -51,8 +47,6 @@ app.add_middleware(
 )
 
 # Global exception handlers
-
-
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(
@@ -68,7 +62,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": "Internal server error" if ENVIRONMENT ==
-                 'production' else str(exc)}
+                'production' else str(exc)}
     )
 
 app.include_router(master_app)
@@ -86,10 +80,8 @@ async def root():
 
 @app.get('/health')
 async def health_check():
-    """Health check endpoint for monitoring"""
+    '''Health check endpoint for monitoring'''
     try:
-        # Check database connection
-        from sqlalchemy import text
         async with db_config.Session() as session:
             await session.execute(text("SELECT 1"))
 

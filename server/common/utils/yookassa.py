@@ -440,8 +440,8 @@ async def dispute_orchestrator(payment_id: str, winner_type: str):
     '''
     Distribution of funds based on dispute resolution
     winner_type: 'client' - full refund to client
-                 'master' - full payout to master (without platform fee)
-                 'split' - 50% refund to client, 50% payout to master
+                'master' - full payout to master (without platform fee)
+                'split' - 50% refund to client, 50% payout to master
     '''
     check_yukass_credentials()
     try:
@@ -540,7 +540,6 @@ async def dispute_orchestrator(payment_id: str, winner_type: str):
                 raise ValueError('seller_id not found in payment metadata')
 
             async with db_config.Session() as session:
-                from ...payments.repositories import PaymentRepository
                 payment_repo = PaymentRepository(session)
                 master = await payment_repo.get_seller_id(int(master_id))
                 if not master or not master.account:

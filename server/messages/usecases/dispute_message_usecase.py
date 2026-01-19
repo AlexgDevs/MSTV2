@@ -38,6 +38,7 @@ class DisputeMessageUseCase:
             await self._session.commit()
             return new_message
         except SQLAlchemyError as e:
+            await self._session.rollback()
             logger.error(
                 'error', f'failed creating dispute message, detail: {str(e)}')
             return {'status': 'failed creating dispute message', 'detail': str(e)}

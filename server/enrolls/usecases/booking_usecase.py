@@ -1,6 +1,7 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta, timezone
 from typing import List
 import re
+from os import getenv
 
 from dotenv.main import logger
 from fastapi import Depends
@@ -464,6 +465,65 @@ class BookingUseCase:
             await self._session.rollback()
             logger.error(f'Failed to confirm enroll by client: {str(e)}')
             return {'status': 'failed', 'detail': str(e)}
+
+    async def expire_pending_enrolls(self, timeout_minutes: int = 15) -> dict:
+        try:
+            timeout_delta = timedelta(minutes=timeout_minutes)
+            cutoff_time = datetime.now(timezone.utc) - timeout_delta
+
+            # Находим все pending записи старше cutoff_time
+            pending_enrolls = await self._session.scalars(
+                select(ServiceEnroll)
+                .where(
+                    ServiceEnroll.status == 'pending',
+                    ServiceEnroll.created_at < cutoff_time
+                )
+            )
+            enrolls_list = pending_enrolls.all()
+
+            if not enrolls_list:
+                return {
+                    'status': 'success',
+                    'expired_count': 0,
+                    'message': 'No pending enrolls to expire'
+                }
+
+            expired_count = 0
+            slots_to_update = {}  # {service_date_id: updated_slots_dict}
+
+            for enroll in enrolls_list:
+                enroll.status = 'expired'
+                expired_count += 1
+
+                if enroll.service_date_id not in slots_to_update:
+                    date_obj = await self._service_date_repository.get_by_id(enroll.service_date_id)
+                    if date_obj:
+                        slots_to_update[enroll.service_date_id] = date_obj.slots.copy(
+                        )
+
+                if enroll.service_date_id in slots_to_update:
+                    slots_to_update[enroll.service_date_id][enroll.slot_time] = 'available'
+
+            for service_date_id, updated_slots in slots_to_update.items():
+                await self._session.merge(
+                    ServiceDate(id=service_date_id, slots=updated_slots)
+                )
+
+            await self._session.commit()
+
+            return {
+                'status': 'success',
+                'expired_count': expired_count,
+                'expired_ids': [e.id for e in enrolls_list]
+            }
+
+        except SQLAlchemyError as e:
+            await self._session.rollback()
+            logger.error(f'Failed to expire pending enrolls: {str(e)}')
+            return {
+                'status': 'failed',
+                'detail': str(e)
+            }
 
 
 def get_booking_usecase(
