@@ -168,13 +168,6 @@ class PaymentUseCase:
                 status = 'canceled'
             elif yookassa_status == 'waiting_for_capture':
                 status = 'processing'
-                try:
-                    await yookassa_capture_payment(yookassa_payment_id)
-                    logger.info(
-                        f"Payment {yookassa_payment_id} captured automatically")
-                except Exception as e:
-                    logger.error(
-                        f"Failed to capture payment {yookassa_payment_id}: {str(e)}")
 
             await self._payment_repository.update_payment(
                 payment_id=payment.id,
@@ -276,7 +269,7 @@ class PaymentUseCase:
                     'detail': f'Payment not succeeded, current status: {yookassa_status}'
                 }
 
-            # TODO: 
+            # TODO:
             create_task(self._background_process_successful_payment(
                 payment.yookassa_payment_id))
 

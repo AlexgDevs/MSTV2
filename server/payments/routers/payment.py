@@ -129,12 +129,13 @@ async def get_payment_status(
 async def yookassa_webhook(
     request: Request,
     payment_usecase: PaymentUseCase = Depends(get_payment_usecase),
-    yookassa_signature: Optional[str] = Header(None, alias="X-Yookassa-Signature")
+    yookassa_signature: Optional[str] = Header(
+        None, alias="X-Yookassa-Signature")
 ):
     webhook_data = await request.json()
 
     # Verify webhook signature
-    if not verify_webhook_signature(webhook_data):
+    if not verify_webhook_signature(webhook_data, yookassa_signature):
         await Exceptions400.creating_error('Invalid webhook signature')
 
     result = await payment_usecase.handle_webhook(webhook_data)
