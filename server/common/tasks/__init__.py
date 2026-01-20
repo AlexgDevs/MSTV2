@@ -27,9 +27,22 @@ app.conf.beat_schedule = {
     'expire-pending-enrolls-every-minute': {
         'task': 'server.common.tasks.task_expire_pending_enrolls.expire_pending_enrolls',
         'schedule': timedelta(minutes=1),
+    },
+    'auto-cancel-unaccepted-orders-hourly': {
+        'task': 'server.common.tasks.task_auto_cancel_unaccepted.auto_cancel_unaccepted_orders',
+        'schedule': timedelta(hours=1),
+    },
+    'auto-capture-ready-orders-hourly': {
+        'task': 'server.common.tasks.task_auto_capture_ready.auto_capture_ready_orders',
+        'schedule': timedelta(hours=1),
     }
 }
 
 app.conf.timezone = 'UTC'
-
-from . import task_schedule, task_check_dates, task_expire_pending_enrolls
+from . import (
+    task_schedule,
+    task_check_dates,
+    task_expire_pending_enrolls,
+    task_auto_cancel_unaccepted,
+    task_auto_capture_ready,
+)
