@@ -1,3 +1,6 @@
+import json
+import hmac
+import hashlib
 from os import getenv
 from decimal import Decimal
 from typing import Optional, Dict, Any
@@ -18,6 +21,8 @@ YUKASSA_SECRET_KEY = getenv('YUKASSA_SECRET_KEY')
 
 YUKASSA_API_URL = "https://api.yookassa.ru/v3"
 YUKASSA_API_TEST_URL = "https://api.yookassa.ru/v3"
+
+PLATFORM_FEE_PERCENT = Decimal(getenv('PLATFORM_FEE_PERCENT', '0.10'))
 
 IS_TEST_MODE = YUKASSA_SECRET_KEY and YUKASSA_SECRET_KEY.startswith('test_')
 
@@ -234,32 +239,64 @@ async def create_refund(
         raise
 
 
-def verify_webhook_signature(data: Dict[str, Any], signature: Optional[str] = None) -> bool:
-    # Basic validation - check required fields
-    if not data:
+def verify_webhook_signature(
+    data: Dict[str, Any], 
+    signature: str,
+    webhook_secret: Optional[str] = None
+) -> bool:
+    '''
+    Verify YooKassa webhook signature using HMAC-SHA256
+    '''
+    
+    # base check
+    if not data or not signature:
         return False
-
+    
+    if webhook_secret is None:
+        webhook_secret = getenv('YUKASSA_WEBHOOK_SECRET')
+    
+    if not webhook_secret:
+        logger.error("YUKASSA_WEBHOOK_SECRET not configured")
+        return False
+    
+    # check data structur
     event = data.get('event')
     payment_object = data.get('object', {})
-
-    # Validate required webhook structure
+    
     if not event or not payment_object:
         return False
-
-    # Validate event type
-    valid_events = ['payment.succeeded',
-                    'payment.canceled', 'payment.waiting_for_capture']
+    
+    # check event type
+    valid_events = [
+        'payment.succeeded',
+        'payment.canceled', 
+        'payment.waiting_for_capture',
+        'refund.succeeded'
+    ]
+    
     if event not in valid_events:
+        logger.warning(f"Invalid webhook event type: {event}")
         return False
-
-    # Validate payment object has required fields
+    
+    # check required fields
     if not payment_object.get('id'):
         return False
-
-    # TODO: Add IP whitelist check for production
-    # YooKassa IP ranges should be whitelisted
-
-    return True
+    
+    # check gennuin
+    try:
+        data_string = json.dumps(data, separators=(',', ':'), sort_keys=False)
+        
+        expected_signature = hmac.new(
+            webhook_secret.encode('utf-8'),
+            data_string.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+        
+        return hmac.compare_digest(signature, expected_signature)
+        
+    except Exception as e:
+        logger.error(f"Webhook signature verification error: {str(e)}")
+        return False
 
 
 async def process_payout_to_seller(payment_id: str):
@@ -276,7 +313,7 @@ async def process_payout_to_seller(payment_id: str):
             raise ValueError('Payment not succeeded')
 
         aggregated = await aggregate_amount(float(payment.get('amount').get('value')))
-        seller_amount = aggregated.get('seller_net')
+        seller_amount = aggregated.get('seller_amount')
         master_id = payment.get('metadata').get('seller_id')
         if not master_id:
             raise ValueError('seller_id not found')
@@ -384,28 +421,16 @@ async def process_payout_to_developer(payment_id: str):
 async def aggregate_amount(amount: float) -> Dict[str, float]:
     '''
     Splitting the amount of funds between developer and service provider
-    90% - the service provider receives
-    10% - the developer receives
     '''
-    total = float(amount)
-
-    platform_percent = 0.10
-    platform_amount = round(total * platform_percent, 2)
-
-    seller_gross_percent = 0.90
-    seller_gross = round(total * seller_gross_percent, 2)
-
-    tax_percent = 0.06
-    tax_amount = round(seller_gross * tax_percent, 2)
-
-    seller_net = round(seller_gross - tax_amount, 2)
+    total = Decimal(str(amount))
+    platform_amount = round(total * PLATFORM_FEE_PERCENT, 2)
+    seller_amount = round(total - platform_amount, 2)
 
     return {
-        "total": total,
-        "platform_amount": platform_amount,
-        "seller_gross": seller_gross,
-        "tax_amount": tax_amount,
-        "seller_net": seller_net
+        "total": float(total),
+        "platform_fee_percent": float(PLATFORM_FEE_PERCENT),
+        'platform_amount': float(platform_amount),
+        'seller_amount': float(seller_amount)
     }
 
 

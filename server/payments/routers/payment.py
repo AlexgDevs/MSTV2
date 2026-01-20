@@ -1,4 +1,6 @@
 from datetime import datetime
+from fastapi import Header
+from typing import Optional
 from fastapi import APIRouter, Depends, Request, status
 from jose import jwt
 
@@ -126,7 +128,8 @@ async def get_payment_status(
 )
 async def yookassa_webhook(
     request: Request,
-    payment_usecase: PaymentUseCase = Depends(get_payment_usecase)
+    payment_usecase: PaymentUseCase = Depends(get_payment_usecase),
+    yookassa_signature: Optional[str] = Header(None, alias="X-Yookassa-Signature")
 ):
     webhook_data = await request.json()
 

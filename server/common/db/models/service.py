@@ -34,12 +34,18 @@ class ServiceEnroll(Base):
     __tablename__ = 'service_enrolls'
     __table_args__ = (
         Index('ux_service_enrolls_date_slot',
-              'service_date_id', 'slot_time', unique=True),
+            'service_date_id', 'slot_time', unique=True),
     )
-
+    # pending - when user booked the slot and waiting for confirmation
+    # waiting_payment - when user booked the slot and waiting for payment
+    # confirmed - when service owner confirmed the slot
+    # ready - when service owner is ready to perform the service
+    # completed - when service owner completed the service
+    # cancelled - when user cancelled the slot
+    # expired - when slot expired
     slot_time: Mapped[str]
     status: Mapped[Literal['pending', 'confirmed', 'ready', 'completed',
-                           'cancelled', 'expired']] = mapped_column(default='pending')
+                        'cancelled', 'expired', 'waiting_payment']] = mapped_column(default='waiting_payment')
     price: Mapped[int]
     created_at: Mapped[DateTime] = mapped_column(
         DateTime, default=datetime.now(timezone.utc))

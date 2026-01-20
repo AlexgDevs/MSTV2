@@ -471,11 +471,10 @@ class BookingUseCase:
             timeout_delta = timedelta(minutes=timeout_minutes)
             cutoff_time = datetime.now(timezone.utc) - timeout_delta
 
-            # Находим все pending записи старше cutoff_time
             pending_enrolls = await self._session.scalars(
                 select(ServiceEnroll)
                 .where(
-                    ServiceEnroll.status == 'pending',
+                    ServiceEnroll.status == 'waiting_payment',
                     ServiceEnroll.created_at < cutoff_time
                 )
             )

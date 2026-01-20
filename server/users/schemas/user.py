@@ -66,7 +66,7 @@ class SimpleServiceEnroll(BaseModel):
     id: int
     slot_time: str
     status: Literal['pending', 'confirmed',
-                    'completed', 'cancelled', 'expired', 'ready']
+                    'completed', 'cancelled', 'expired', 'ready', 'waiting_payment']
     price: int
     service_id: int
     service_date_id: int

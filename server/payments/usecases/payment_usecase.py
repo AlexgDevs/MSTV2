@@ -108,6 +108,7 @@ class PaymentUseCase:
                 payment_metadata=str(yookassa_response.get('metadata', {}))
             )
 
+            enroll.status = 'pending'
             await self._session.commit()
 
             return {
