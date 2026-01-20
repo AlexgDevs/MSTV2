@@ -24,7 +24,10 @@ dependencies = [
     "fastapi-limiter (>=0.1.6,<0.2.0)",
     "httpx (>=0.27.0,<0.28.0)",
     "websockets (>=15.0.1,<16.0.0)",
-    "aiogram (==3.12.0)"
+    "aiogram (==3.12.0)",
+    "card-validator (>=1.0.0,<2.0.0)",
+    "phonenumbers (>=9.0.22,<10.0.0)",
+    "python-stdnum (>=2.2,<3.0)"
 ]
 
 

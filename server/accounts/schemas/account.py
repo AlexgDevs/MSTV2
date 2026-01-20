@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 
 PayoutMethod = Literal['bank_card', 'yoo_money',
-                       'sbp', 'bank_account', 'self_employed']
+                    'sbp', 'bank_account', 'self_employed']
 AccountStatus = Literal['pending', 'verified', 'rejected']
 
 
