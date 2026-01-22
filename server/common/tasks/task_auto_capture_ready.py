@@ -9,10 +9,9 @@ from ...payments.repositories import PaymentRepository
 from ...common.utils.yookassa import (
     capture_payment as yookassa_capture_payment,
     get_payment as yookassa_get_payment,
-    trafic_orchestrator as yookass_trafic_orchestrator,
+    process_deal_closure as yookassa_process_deal_closure,
 )
 from ...common.utils.logger import logger
-
 
 @app.task
 def auto_capture_ready_orders():
@@ -63,22 +62,22 @@ def auto_capture_ready_orders():
                                 paid_at=capture_result.get("paid_at"),
                             )
 
-                            payout_result = await yookass_trafic_orchestrator(payment.yookassa_payment_id)
+                            payout_result = await yookassa_process_deal_closure(payment.yookassa_payment_id)
                             if payout_result.get("success"):
                                 payouts += 1
                             else:
                                 logger.error(
-                                    f"Payout failed for payment {payment.yookassa_payment_id}: {payout_result}")
+                                    f"Deal closure failed for payment {payment.yookassa_payment_id}: {payout_result}")
                         except Exception as e:
                             logger.error(
                                 f"Auto-capture failed for {payment.yookassa_payment_id}: {e}")
                     elif y_status == "succeeded":
-                        payout_result = await yookass_trafic_orchestrator(payment.yookassa_payment_id)
+                        payout_result = await yookassa_process_deal_closure(payment.yookassa_payment_id)
                         if payout_result.get("success"):
                             payouts += 1
                         else:
                             logger.error(
-                                f"Payout failed for payment {payment.yookassa_payment_id}: {payout_result}")
+                                f"Deal closure failed for payment {payment.yookassa_payment_id}: {payout_result}")
 
                     enroll.status = "completed"
                 except Exception as e:

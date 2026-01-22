@@ -171,12 +171,13 @@ class BookingUseCase:
                     self._session.add(booked_enroll)
                     await self._session.flush()
 
-                new_slots = date_row.slots.copy()
-                new_slots[enroll_data.slot_time] = 'booked'
-                await self._session.merge(
-                    ServiceDate(
-                        id=enroll_data.service_date_id,
-                        slots=new_slots))
+                if booked_enroll.status != 'waiting_payment':
+                    new_slots = date_row.slots.copy()
+                    new_slots[enroll_data.slot_time] = 'booked'
+                    await self._session.merge(
+                        ServiceDate(
+                            id=enroll_data.service_date_id,
+                            slots=new_slots))
 
                 return booked_enroll
 
@@ -408,12 +409,6 @@ class BookingUseCase:
         try:
             await self._session.merge(ServiceEnroll(id=enroll_id, status='ready'))
             await self._session.commit()
-
-            if self._payment_usecase:
-                payout_result = await self._payment_usecase.process_payout_for_completed_enroll(enroll_id)
-                if payout_result.get('status') == 'error':
-                    logger.error(
-                        f'Failed to process payout for enroll {enroll_id}: {payout_result.get("detail")}')
 
             updated_enroll = await self._enroll_repository.get_by_id(enroll_id)
             return updated_enroll

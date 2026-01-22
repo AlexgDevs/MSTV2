@@ -12,6 +12,7 @@ from ...common.db import (
     selectinload,
     Service,
     ServiceEnroll,
+    ServiceDate,
     Tag,
     ServiceTagConnection
 )
@@ -102,10 +103,45 @@ class ServiceRepository:
                 selectinload(Service.templates),
                 selectinload(Service.tag_connections).selectinload(
                     ServiceTagConnection.tag),
-                selectinload(Service.dates),
+                selectinload(Service.dates).selectinload(
+                    ServiceDate.enrolls),
                 selectinload(Service.user)
             )
         )
+
+        if service:
+            for date_obj in service.dates:
+                if not date_obj.slots:
+                    continue
+
+                recalculated_slots = date_obj.slots.copy()
+
+                active_enrolls = [
+                    enroll for enroll in date_obj.enrolls
+                    if enroll.status not in ('waiting_payment', 'cancelled', 'expired')
+                ]
+
+                for enroll in active_enrolls:
+                    if enroll.slot_time in recalculated_slots:
+                        if recalculated_slots[enroll.slot_time] == 'available':
+                            recalculated_slots[enroll.slot_time] = 'booked'
+
+                waiting_payment_enrolls = [
+                    enroll for enroll in date_obj.enrolls
+                    if enroll.status == 'waiting_payment'
+                ]
+                for enroll in waiting_payment_enrolls:
+                    if enroll.slot_time in recalculated_slots:
+                        has_other_active = any(
+                            e.slot_time == enroll.slot_time and
+                            e.status not in (
+                                'waiting_payment', 'cancelled', 'expired')
+                            for e in date_obj.enrolls
+                        )
+                        if not has_other_active and recalculated_slots[enroll.slot_time] == 'booked':
+                            recalculated_slots[enroll.slot_time] = 'available'
+
+                date_obj.slots = recalculated_slots
 
         return service
 

@@ -9,7 +9,7 @@ from ...common import db_config
 from ...common.db.models.service import ServiceEnroll
 from ...common.db.models.payment import Payment
 from ...common.utils.logger import logger
-from ...common.utils.yookassa import trafic_orchestrator, dispute_orchestrator
+from ...common.utils.yookassa import dispute_orchestrator
 from ..repositories import ArbitrageRepository, get_arbitrage_repository
 from ..schemas import TakeDisputeModel, ResolveDisputeModel
 

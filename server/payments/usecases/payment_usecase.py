@@ -12,11 +12,12 @@ from ...common.db.models.service import ServiceEnroll, Service
 from ...common.db.models.payment import Payment
 from ...common.utils.logger import logger
 from ...common.utils.yookassa import (
-    create_payment as yookassa_create_payment,
+    process_payment_with_deal as yookassa_create_payment_with_deal,
     get_payment as yookassa_get_payment,
     capture_payment as yookassa_capture_payment,
     cancel_payment as yookassa_cancel_payment,
-    trafic_orchestrator as yookass_trafic_orchestrator
+    process_deal_closure as yookassa_process_deal_closure,
+    aggregate_amount as yookassa_aggregate_amount
 )
 from ..repositories import PaymentRepository, get_payment_repository
 from ..schemas import CreatePaymentModel
@@ -84,10 +85,14 @@ class PaymentUseCase:
             idempotence_key = str(uuid.uuid4())
             description = f"Enroll #{payment_data.enroll_id}"
 
-            yookassa_response = await yookassa_create_payment(
+            aggregated = await yookassa_aggregate_amount(float(enroll.price))
+            seller_amount = float(aggregated.get('seller_amount', 0))
+
+            yookassa_result = await yookassa_create_payment_with_deal(
                 amount=enroll.price,
                 description=description,
                 return_url=return_url,
+                seller_amount=seller_amount,
                 metadata={
                     'enroll_id': str(payment_data.enroll_id),
                     'user_id': str(user_id),
@@ -97,15 +102,26 @@ class PaymentUseCase:
                 capture=False
             )
 
+            yookassa_payment = yookassa_result.get('payment', {})
+            yookassa_deal = yookassa_result.get('deal', {})
+
+            payment_metadata = {
+                'yookassa_metadata': yookassa_payment.get('metadata', {}),
+                'deal_id': yookassa_deal.get('id'),
+                'deal_status': yookassa_deal.get('status'),
+                'seller_amount': seller_amount,
+                'platform_fee': aggregated.get('platform_amount')
+            }
+
             payment = await self._payment_repository.create_payment(
                 enroll_id=payment_data.enroll_id,
                 amount=enroll.price,
-                yookassa_payment_id=yookassa_response.get('id'),
-                yookassa_status=yookassa_response.get('status'),
+                yookassa_payment_id=yookassa_payment.get('id'),
+                yookassa_status=yookassa_payment.get('status'),
                 description=description,
-                confirmation_url=yookassa_response.get(
+                confirmation_url=yookassa_payment.get(
                     'confirmation', {}).get('confirmation_url'),
-                payment_metadata=str(yookassa_response.get('metadata', {}))
+                payment_metadata=str(payment_metadata)
             )
 
             enroll.status = 'pending'
@@ -168,6 +184,20 @@ class PaymentUseCase:
                 status = 'canceled'
             elif yookassa_status == 'waiting_for_capture':
                 status = 'processing'
+                try:
+                    logger.info(
+                        f'Auto-capturing payment {yookassa_payment_id} after payment')
+                    capture_result = await yookassa_capture_payment(yookassa_payment_id)
+                    yookassa_status = capture_result.get(
+                        'status', yookassa_status)
+                    if capture_result.get('paid_at'):
+                        paid_at = capture_result.get('paid_at')
+                    status = 'succeeded'
+                    logger.info(
+                        f'Payment {yookassa_payment_id} captured successfully')
+                except Exception as e:
+                    logger.error(
+                        f'Failed to auto-capture payment {yookassa_payment_id}: {str(e)}')
 
             await self._payment_repository.update_payment(
                 payment_id=payment.id,
@@ -177,14 +207,32 @@ class PaymentUseCase:
             )
 
             if status == 'succeeded' and payment.enroll_id:
-
                 enroll = await self._session.scalar(
                     select(ServiceEnroll)
                     .where(ServiceEnroll.id == payment.enroll_id)
                 )
-                if enroll and enroll.status == 'pending':
-                    enroll.status = 'confirmed'
-                    await self._session.flush()
+                if enroll:
+                    if enroll.status == 'waiting_payment':
+                        enroll.status = 'pending'
+                        await self._session.flush()
+
+                        if enroll.service_date_id:
+                            from ...common.db import ServiceDate
+                            service_date = await self._session.scalar(
+                                select(ServiceDate)
+                                .where(ServiceDate.id == enroll.service_date_id)
+                            )
+                            if service_date and service_date.slots:
+                                new_slots = service_date.slots.copy()
+                                if enroll.slot_time in new_slots:
+                                    new_slots[enroll.slot_time] = 'booked'
+                                    await self._session.merge(
+                                        ServiceDate(
+                                            id=enroll.service_date_id,
+                                            slots=new_slots
+                                        )
+                                    )
+                                    await self._session.flush()
 
             await self._session.commit()
 
@@ -209,14 +257,24 @@ class PaymentUseCase:
                 'detail': f'Webhook processing error: {str(e)}'
             }
 
-    async def _background_process_successful_payment(self, yookassa_payment_id):
+    async def _background_process_deal_closure(self, yookassa_payment_id):
+        """
+        Закрытие сделки в фоновом режиме после подтверждения клиентом
+        При закрытии сделки автоматически распределяются средства:
+        - Продавцу переводится его доля
+        - Платформе начисляется комиссия (10%)
+        """
         try:
-            await yookass_trafic_orchestrator(yookassa_payment_id)
-            logger.info(
-                f"Successfully processed payment {yookassa_payment_id}")
+            result = await yookassa_process_deal_closure(yookassa_payment_id)
+            if result.get('success'):
+                logger.info(
+                    f"Successfully closed deal for payment {yookassa_payment_id}")
+            else:
+                logger.error(
+                    f"Failed to close deal for payment {yookassa_payment_id}: {result.get('error')}")
         except Exception as e:
             logger.error(
-                f"Error processing payment {yookassa_payment_id}: {str(e)}")
+                f"Error closing deal for payment {yookassa_payment_id}: {str(e)}")
 
     async def process_payout_for_completed_enroll(self, enroll_id: int) -> Dict[str, Any]:
         """
@@ -269,13 +327,12 @@ class PaymentUseCase:
                     'detail': f'Payment not succeeded, current status: {yookassa_status}'
                 }
 
-            # TODO:
-            create_task(self._background_process_successful_payment(
+            create_task(self._background_process_deal_closure(
                 payment.yookassa_payment_id))
 
             return {
                 'status': 'success',
-                'message': 'Payout process started'
+                'message': 'Deal closure process started. Funds will be distributed automatically.'
             }
 
         except Exception as e:
