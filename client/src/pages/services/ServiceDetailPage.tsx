@@ -8,6 +8,7 @@ import { cn } from '../../utils/cn';
 import { CheckIcon, XIcon } from '../../components/icons/Icons';
 import { canBookSlot, validateBookingData, isValidTimeSlot } from '../../utils/bookingValidation';
 import { PaymentModal } from '../../components/payments/PaymentModal';
+import { ContinuePaymentModal } from '../../components/payments/ContinuePaymentModal';
 import { ServiceChatWidget } from '../../components/chats/ServiceChatWidget';
 import { chatsApi } from '../../api/chats/chats.api';
 import '../../assets/styles/ServiceDetailPage.css';
@@ -58,7 +59,14 @@ export const ServiceDetailPage: React.FC = () => {
     const [bookingError, setBookingError] = useState<string | null>(null);
     const [bookingSuccess, setBookingSuccess] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [showContinuePaymentModal, setShowContinuePaymentModal] = useState(false);
     const [createdEnrollId, setCreatedEnrollId] = useState<number | null>(null);
+    const [pendingEnrollForPayment, setPendingEnrollForPayment] = useState<{
+        enrollId: number;
+        amount: number;
+        slotTime: string;
+        dateString?: string;
+    } | null>(null);
     
     // Состояния для редактирования
     const [isEditing, setIsEditing] = useState(false);
@@ -204,6 +212,32 @@ export const ServiceDetailPage: React.FC = () => {
             setBookingError(reason || 'Этот слот недоступен для бронирования');
             return;
         }
+
+        // Проверяем, есть ли у пользователя запись со статусом waiting_payment для этого слота
+        if (user && service) {
+            const userEnrolls = user.services_enroll || [];
+            const existingEnroll = userEnrolls.find(
+                (enroll) =>
+                    enroll.service_id === service.id &&
+                    enroll.service_date_id === dateId &&
+                    enroll.slot_time === slotTime &&
+                    enroll.status === 'waiting_payment'
+            );
+
+            if (existingEnroll) {
+                // Показываем модальное окно для продолжения оплаты
+                setPendingEnrollForPayment({
+                    enrollId: existingEnroll.id,
+                    amount: existingEnroll.price,
+                    slotTime: existingEnroll.slot_time,
+                    dateString: dateString
+                });
+                setShowContinuePaymentModal(true);
+                setBookingError(null);
+                setBookingSuccess(false);
+                return;
+            }
+        }
         
         setBookingSlot({ dateId, slotTime });
         setBookingError(null);
@@ -289,6 +323,27 @@ export const ServiceDetailPage: React.FC = () => {
     const handleClosePaymentModal = () => {
         setShowPaymentModal(false);
         setCreatedEnrollId(null);
+    };
+
+    const handleCloseContinuePaymentModal = () => {
+        setShowContinuePaymentModal(false);
+        setPendingEnrollForPayment(null);
+    };
+
+    const handleContinuePaymentSuccess = async (confirmationUrl: string) => {
+        setShowContinuePaymentModal(false);
+        setPendingEnrollForPayment(null);
+        // Обновляем данные пользователя перед перенаправлением
+        if (user) {
+            try {
+                const { refreshUser } = useAuthStore.getState();
+                await refreshUser();
+            } catch (error) {
+                console.error('Error refreshing user data:', error);
+            }
+        }
+        // Перенаправляем на страницу оплаты ЮKassa
+        window.location.href = confirmationUrl;
     };
 
     if (loading) {
@@ -695,6 +750,20 @@ export const ServiceDetailPage: React.FC = () => {
                     serviceName={service.title}
                     onClose={handleClosePaymentModal}
                     onSuccess={handlePaymentSuccess}
+                />
+            )}
+
+            {/* Модальное окно для продолжения оплаты */}
+            {showContinuePaymentModal && pendingEnrollForPayment && service && (
+                <ContinuePaymentModal
+                    isOpen={showContinuePaymentModal}
+                    enrollId={pendingEnrollForPayment.enrollId}
+                    amount={pendingEnrollForPayment.amount}
+                    serviceName={service.title}
+                    slotTime={pendingEnrollForPayment.slotTime}
+                    dateString={pendingEnrollForPayment.dateString}
+                    onClose={handleCloseContinuePaymentModal}
+                    onSuccess={handleContinuePaymentSuccess}
                 />
             )}
 

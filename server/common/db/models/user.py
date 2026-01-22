@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from .accounts import Account
     from .dispute import Dispute
 
+
 from .. import Base
 
 
@@ -38,7 +39,7 @@ class User(Base):
     about: Mapped[str] = mapped_column(String(1024), nullable=True)
     joined: Mapped[DateTime] = mapped_column(DateTime, default=datetime.now)
     role: Mapped[Literal['user', 'admin', 'moderator', 'arbitr']
-                 ] = mapped_column(default='arbitr')
+                ] = mapped_column(default='arbitr')
 
     templates: Mapped[List['ScheduleTemplate']] = relationship(
         'ScheduleTemplate', back_populates='user')

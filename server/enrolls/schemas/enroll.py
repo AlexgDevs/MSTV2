@@ -4,7 +4,7 @@ from typing import Any, List, Literal, Dict
 from pydantic import BaseModel
 
 EnrollStatus = Literal['pending', 'confirmed',
-                       'completed', 'cancelled', 'expired', 'ready']
+                       'completed', 'cancelled', 'expired', 'ready', 'waiting_payment']
 
 
 class CreateEnrollModel(BaseModel):

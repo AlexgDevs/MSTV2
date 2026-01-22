@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuthStore } from '../../stores/auth.store';
 import { useMasterSchedule } from '../../features/master/hooks/useMasterData';
 import { servicesApi } from '../../api/services/services.api';
@@ -16,6 +16,7 @@ import { chatsApi } from '../../api/chats/chats.api';
 import { disputeChatApi } from '../../api/disputes/disputeChat.api';
 import { ChatList } from '../../components/chats/ChatList';
 import { accountsApi } from '../../api/accounts/accounts.api';
+import type { AccountResponse, PayoutMethod } from '../../api/accounts/types';
 import type { UnifiedChatItem } from '../chats/ChatsPage';
 import '../../assets/styles/MasterDashboardPage.css';
 
@@ -141,6 +142,12 @@ export const MasterDashboardPage: React.FC = () => {
 
     // Состояние для модального окна создания счета
     const [isCreateAccountModalOpen, setIsCreateAccountModalOpen] = useState(false);
+    const [accountModalMode, setAccountModalMode] = useState<'create' | 'edit'>('create');
+
+    // Счет (account)
+    const [account, setAccount] = useState<AccountResponse | null>(null);
+    const [isAccountLoading, setIsAccountLoading] = useState(false);
+    const [accountError, setAccountError] = useState<string | null>(null);
 
     // Шаблоны - новые состояния
     const [templateServiceFilter, setTemplateServiceFilter] = useState<number | 'all'>('all');
@@ -165,6 +172,28 @@ export const MasterDashboardPage: React.FC = () => {
     const [isScheduleSubmitting, setIsScheduleSubmitting] = useState(false);
     const [scheduleFormError, setScheduleFormError] = useState<string | null>(null);
     const weekDays = useMemo(() => getCurrentWeekDays(), []);
+
+    const loadAccount = useCallback(async () => {
+        setIsAccountLoading(true);
+        setAccountError(null);
+
+        try {
+            const response = await accountsApi.get();
+            setAccount(response.data);
+        } catch (error: any) {
+            if (error?.response?.status === 404) {
+                // аккаунт еще не создан
+                setAccount(null);
+            } else {
+                setAccountError(
+                    error?.response?.data?.detail || 'Не удалось загрузить счет'
+                );
+                setAccount(null);
+            }
+        } finally {
+            setIsAccountLoading(false);
+        }
+    }, []);
 
     // Загрузка чатов при переключении на вкладку "Клиенты"
     const loadChats = async () => {
@@ -208,7 +237,10 @@ export const MasterDashboardPage: React.FC = () => {
         if (activeTab === 'clients') {
             loadChats();
         }
-    }, [activeTab, user]);
+        if (activeTab === 'account') {
+            loadAccount();
+        }
+    }, [activeTab, user, loadAccount]);
 
     useEffect(() => {
         if (services.length && bookingsServiceFilter === null) {
@@ -355,6 +387,17 @@ export const MasterDashboardPage: React.FC = () => {
                     }))
             );
     }, [schedule, bookingsServiceFilter]);
+
+    const handleOpenAccountModal = (mode: 'create' | 'edit') => {
+        setAccountModalMode(mode);
+        setIsCreateAccountModalOpen(true);
+    };
+
+    const handleAccountSaved = async () => {
+        await loadAccount();
+        setIsCreateAccountModalOpen(false);
+        setShowAccountRequiredModal(false);
+    };
 
     // Фильтрация шаблонов по услуге
     const filteredTemplates = useMemo(() => {
@@ -1757,96 +1800,155 @@ export const MasterDashboardPage: React.FC = () => {
                 <div className="section-header">
                     <h2 className="section-title">Счет для выплат</h2>
                     <p className="section-subtitle">
-                        Настройте способ получения выплат за выполненные услуги
+                        Создайте счет один раз и редактируйте реквизиты при необходимости
                     </p>
                 </div>
                 <div className="section-content">
-                    <div className="account-info">
-                        <div className="info-card">
-                            <h3 className="info-card-title">Информация о счете</h3>
-                            <div className="info-card-content">
-                                <p className="info-text">
-                                    Для получения выплат необходимо настроить счет.
-                                </p>
-                                <p className="info-text">
-                                    После подтверждения клиентом выполненной услуги, 
-                                    средства будут автоматически переведены на указанный счет.
-                                </p>
-                                <div className="account-status">
-                                    <span className="status-label">Статус счета:</span>
-                                    <span className="status-value pending">Требуется настройка</span>
+                    {isAccountLoading ? (
+                        <div className="empty-state">
+                            <div className="spinner"></div>
+                            <p className="empty-state-title">Загружаем данные счета...</p>
+                        </div>
+                    ) : accountError ? (
+                        <div className="empty-state">
+                            <div className="empty-state-icon">
+                                <WarningIcon size={48} color="currentColor" />
+                            </div>
+                            <p className="empty-state-title">Не удалось загрузить счет</p>
+                            <p className="empty-state-description">{accountError}</p>
+                            <button
+                                className="btn btn-outline"
+                                onClick={loadAccount}
+                            >
+                                Повторить
+                            </button>
+                        </div>
+                    ) : account ? (
+                        <div className="card">
+                            <div className="card-header" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <h3 className="card-title" style={{ marginBottom: 4 }}>Текущий счет</h3>
+                                    <p className="card-description">Реквизиты, которые используются для выплат</p>
+                                </div>
+                                <span className={`status-badge ${
+                                    account.status === 'verified'
+                                        ? 'btn-success'
+                                        : account.status === 'pending'
+                                            ? 'btn-warning'
+                                            : 'btn-danger'
+                                }`}>
+                                    {account.status === 'verified'
+                                        ? 'Подтвержден'
+                                        : account.status === 'pending'
+                                            ? 'На проверке'
+                                            : 'Отклонен'}
+                                </span>
+                            </div>
+
+                            <div className="card-content">
+                                <div className="info-grid">
+                                    <div className="info-item">
+                                        <div className="info-label">ФИО</div>
+                                        <div className="info-value">{account.full_name || '—'}</div>
+                                    </div>
+                                    <div className="info-item">
+                                        <div className="info-label">Способ выплат</div>
+                                        <div className="info-value">
+                                            {({
+                                                bank_card: 'Банковская карта',
+                                                yoo_money: 'ЮMoney кошелек',
+                                                sbp: 'СБП',
+                                                bank_account: 'Банковский счет',
+                                                self_employed: 'Самозанятый'
+                                            } as Record<PayoutMethod, string>)[account.payout_method]}
+                                        </div>
+                                    </div>
+                                    {account.payout_method === 'bank_card' && (
+                                        <div className="info-item">
+                                            <div className="info-label">Карта</div>
+                                            <div className="info-value">
+                                                {account.card_number
+                                                    ? `${account.card_number.slice(0, 6)}******${account.card_number.slice(-4)}`
+                                                    : '—'}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {account.payout_method === 'yoo_money' && (
+                                        <div className="info-item">
+                                            <div className="info-label">ЮMoney</div>
+                                            <div className="info-value">{account.yoomoney_wallet || '—'}</div>
+                                        </div>
+                                    )}
+                                    {account.payout_method === 'sbp' && (
+                                        <div className="info-item">
+                                            <div className="info-label">Телефон (СБП)</div>
+                                            <div className="info-value">{account.phone || '—'}</div>
+                                        </div>
+                                    )}
+                                    {account.payout_method === 'bank_account' && (
+                                        <div className="info-item">
+                                            <div className="info-label">Банковский счет</div>
+                                            <div className="info-value">{account.bank_account || '—'}</div>
+                                        </div>
+                                    )}
+                                    {account.payout_method === 'self_employed' && (
+                                        <div className="info-item">
+                                            <div className="info-label">ИНН</div>
+                                            <div className="info-value">{account.inn || '—'}</div>
+                                        </div>
+                                    )}
+                                    <div className="info-item">
+                                        <div className="info-label">Статус активности</div>
+                                        <div className="info-value">
+                                            {account.is_active ? 'Активен' : 'Отключен'}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="form-actions" style={{ marginTop: 16 }}>
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={() => handleOpenAccountModal('edit')}
+                                    >
+                                        Редактировать счет
+                                    </button>
+                                    <button
+                                        className="btn btn-outline"
+                                        onClick={loadAccount}
+                                    >
+                                        Обновить данные
+                                    </button>
                                 </div>
                             </div>
                         </div>
-
-                        <div className="info-card">
-                            <h3 className="info-card-title">Способы выплат</h3>
-                            <div className="info-card-content">
-                                <ul className="payout-methods">
-                                    <li>
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-                                            <line x1="1" y1="10" x2="23" y2="10"/>
-                                        </svg>
-                                        <span>Банковская карта</span>
-                                    </li>
-                                    <li>
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <circle cx="12" cy="12" r="10"/>
-                                            <path d="M12 6v6l4 2"/>
-                                        </svg>
-                                        <span>ЮMoney кошелек</span>
-                                    </li>
-                                    <li>
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                                        </svg>
-                                        <span>СБП (Система быстрых платежей)</span>
-                                    </li>
-                                    <li>
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                            <line x1="16" y1="2" x2="16" y2="6"/>
-                                            <line x1="8" y1="2" x2="8" y2="6"/>
-                                            <line x1="3" y1="10" x2="21" y2="10"/>
-                                        </svg>
-                                        <span>Банковский счет</span>
-                                    </li>
-                                    <li>
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                            <polyline points="14 2 14 8 20 8"/>
-                                            <line x1="16" y1="13" x2="8" y2="13"/>
-                                            <line x1="16" y1="17" x2="8" y2="17"/>
-                                            <polyline points="10 9 9 9 8 9"/>
-                                        </svg>
-                                        <span>Самозанятый</span>
-                                    </li>
-                                </ul>
+                    ) : (
+                        <div className="card">
+                            <div className="card-header">
+                                <h3 className="card-title">Счет не создан</h3>
+                                <p className="card-description">
+                                    Создайте счет один раз, чтобы принимать выплаты.
+                                </p>
+                            </div>
+                            <div className="card-content">
+                                <div className="info-grid">
+                                    <div className="info-item">
+                                        <div className="info-label">Доступные способы</div>
+                                        <div className="info-value">
+                                            Банковская карта, ЮMoney, СБП, Банковский счет, Самозанятый
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="form-actions" style={{ marginTop: 16 }}>
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={() => handleOpenAccountModal('create')}
+                                    >
+                                        Создать счет
+                                    </button>
+                                </div>
                             </div>
                         </div>
-
-                        <div className="info-card">
-                            <h3 className="info-card-title">Как это работает</h3>
-                            <div className="info-card-content">
-                                <ol className="workflow-steps">
-                                    <li>Клиент оплачивает услугу → деньги удерживаются на счете платформы</li>
-                                    <li>Вы выполняете услугу и отмечаете её как выполненную</li>
-                                    <li>Клиент подтверждает выполнение услуги</li>
-                                    <li>Средства автоматически переводятся на ваш счет</li>
-                                </ol>
-                            </div>
-                        </div>
-
-                        <div className="action-buttons">
-                            <button 
-                                className="btn btn-primary"
-                                onClick={() => setIsCreateAccountModalOpen(true)}
-                            >
-                                Настроить счет
-                            </button>
-                        </div>
-                    </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -1967,11 +2069,9 @@ export const MasterDashboardPage: React.FC = () => {
             <CreateAccountModal
                 isOpen={isCreateAccountModalOpen}
                 onClose={() => setIsCreateAccountModalOpen(false)}
-                onSuccess={() => {
-                    refreshUser();
-                    setIsCreateAccountModalOpen(false);
-                    setShowAccountRequiredModal(false);
-                }}
+                onSuccess={handleAccountSaved}
+                mode={accountModalMode}
+                account={account}
             />
 
             {/* Модальное окно о необходимости счета */}
@@ -1985,6 +2085,7 @@ export const MasterDashboardPage: React.FC = () => {
                 onConfirm={() => {
                     setShowAccountRequiredModal(false);
                     setActiveTab('account');
+                    setAccountModalMode('create');
                     setIsCreateAccountModalOpen(true);
                 }}
                 onCancel={() => setShowAccountRequiredModal(false)}

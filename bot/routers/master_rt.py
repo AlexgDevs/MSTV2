@@ -42,7 +42,7 @@ async def give_main_root(
         await message.answer('Добро пожаловать в бота MSTV2! Поскольку вы у нас впервые давайте зарегистрируемся! Введите почту котороя принадлежит вам на нашем сайте')
         await state.set_state(UserState.email)
 
-    if user.role not in ['admin', 'moderator', 'manager', 'user']:
+    if user.role not in ['admin', 'arbitr', 'moderator']:
         await message.answer('У вас недостаточно прав для использования данного бота')
         return
 

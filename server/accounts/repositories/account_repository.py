@@ -48,7 +48,7 @@ class AccountRepository:
             yoomoney_wallet=yoomoney_wallet,
             phone=phone,
             inn=inn,
-            status='pending',
+            status='verified',
             is_active=True
         )
         self._session.add(new_account)

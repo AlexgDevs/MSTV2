@@ -45,73 +45,85 @@ async def support_chat_websocket(websocket: WebSocket, chat_id: int):
                     pass
                 return
 
-            await support_chat_manager.connect(websocket, chat_id, user_id)
+        await support_chat_manager.connect(websocket, chat_id, user_id)
 
+        try:
+            await websocket.send_json({
+                "type": "connected",
+                "chat_id": chat_id,
+                "user_id": user_id
+            })
+        except:
+            return
+
+        while True:
             try:
-                await websocket.send_json({
-                    "type": "connected",
-                    "chat_id": chat_id,
-                    "user_id": user_id
-                })
-            except:
+                raw_data = await websocket.receive_text()
+                if len(raw_data) > MAX_WEBSOCKET_MESSAGE_SIZE:
+                    await websocket.close(code=status.WS_1009_MESSAGE_TOO_BIG)
+                    return
+
+                data = json.loads(raw_data)
+            except WebSocketDisconnect:
+                return
+            except json.JSONDecodeError:
+                try:
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": "Invalid JSON format"
+                    })
+                except:
+                    return
+                continue
+            except Exception as receive_error:
                 return
 
-            support_message_repo = SupportMessageRepository(session)
-            support_message_usecase = SupportMessageUseCase(
-                session, support_message_repo)
+            try:
+                if data.get("type") == "message":
+                    content = data.get("content", "").strip()
 
-            while True:
-                try:
-                    raw_data = await websocket.receive_text()
-                    if len(raw_data) > MAX_WEBSOCKET_MESSAGE_SIZE:
-                        await websocket.close(code=status.WS_1009_MESSAGE_TOO_BIG)
-                        return
-
-                    data = json.loads(raw_data)
-                except WebSocketDisconnect:
-                    return
-                except json.JSONDecodeError:
-                    try:
-                        await websocket.send_json({
-                            "type": "error",
-                            "message": "Invalid JSON format"
-                        })
-                    except:
-                        return
-                    continue
-                except Exception as receive_error:
-                    return
-
-                try:
-                    if data.get("type") == "message":
-                        content = data.get("content", "").strip()
-
-                        if not content:
-                            try:
-                                await websocket.send_json({
-                                    "type": "error",
-                                    "message": "Message content cannot be empty"
-                                })
-                            except:
-                                return
-                            continue
-
-                        if len(content) > MAX_MESSAGE_LENGTH:
-                            try:
-                                await websocket.send_json({
-                                    "type": "error",
-                                    "message": f"Message too long. Maximum {MAX_MESSAGE_LENGTH} characters"
-                                })
-                            except:
-                                return
-                            continue
-
+                    if not content:
                         try:
+                            await websocket.send_json({
+                                "type": "error",
+                                "message": "Message content cannot be empty"
+                            })
+                        except:
+                            return
+                        continue
+
+                    if len(content) > MAX_MESSAGE_LENGTH:
+                        try:
+                            await websocket.send_json({
+                                "type": "error",
+                                "message": f"Message too long. Maximum {MAX_MESSAGE_LENGTH} characters"
+                            })
+                        except:
+                            return
+                        continue
+
+                    try:
+                        async with db_config.Session() as session:
+                            support_message_repo = SupportMessageRepository(
+                                session)
+                            support_message_usecase = SupportMessageUseCase(
+                                session, support_message_repo)
+
                             new_message = await support_message_usecase.create_support_message(
                                 content=content,
                                 sender_id=user_id,
                                 chat_id=chat_id
                             )
+
+                            if isinstance(new_message, dict):
+                                try:
+                                    await websocket.send_json({
+                                        "type": "error",
+                                        "message": new_message.get("detail", "Failed to send message")
+                                    })
+                                except:
+                                    return
+                                continue
 
                             message_data = {
                                 "type": "message",
@@ -136,46 +148,46 @@ async def support_chat_websocket(websocket: WebSocket, chat_id: int):
                             except:
                                 return
 
-                        except SQLAlchemyError as e:
-                            try:
-                                await websocket.send_json({
-                                    "type": "error",
-                                    "message": "Failed to send message"
-                                })
-                            except:
-                                return
-
-                    elif data.get("type") == "ping":
-                        try:
-                            await websocket.send_json({"type": "pong"})
-                        except:
-                            return
-
-                    else:
+                    except SQLAlchemyError as e:
                         try:
                             await websocket.send_json({
                                 "type": "error",
-                                "message": f"Unknown message type: {data.get('type')}"
+                                "message": "Failed to send message"
                             })
                         except:
                             return
 
-                except json.JSONDecodeError:
+                elif data.get("type") == "ping":
+                    try:
+                        await websocket.send_json({"type": "pong"})
+                    except:
+                        return
+
+                else:
                     try:
                         await websocket.send_json({
                             "type": "error",
-                            "message": "Invalid JSON format"
+                            "message": f"Unknown message type: {data.get('type')}"
                         })
                     except:
                         return
-                except Exception as e:
-                    try:
-                        await websocket.send_json({
-                            "type": "error",
-                            "message": "Internal server error"
-                        })
-                    except:
-                        return
+
+            except json.JSONDecodeError:
+                try:
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": "Invalid JSON format"
+                    })
+                except:
+                    return
+            except Exception as e:
+                try:
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": "Internal server error"
+                    })
+                except:
+                    return
 
     except WebSocketDisconnect:
         if user:

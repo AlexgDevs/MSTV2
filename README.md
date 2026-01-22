@@ -321,8 +321,4 @@ AlexgDevs (asmetanin014@gmail.com)
 
 ---
 
-## Скриншоты
-
-
-
 **Версия:** 2.0.0

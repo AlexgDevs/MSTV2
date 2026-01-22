@@ -19,7 +19,7 @@ from .email_config import (
     email_verfification_obj
 )
 
-from .rate_limiter_config import RateLimitMiddleware
+from .rate_limiter_config import RateLimitMiddleware, lifespan
 
 from .turnstile import verify_turnstile
 

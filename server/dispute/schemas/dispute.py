@@ -25,7 +25,7 @@ class SimpleEnrollDisputResponse(BaseModel):
     id: int
     slot_time: str 
     status: Literal['pending', 'confirmed', 'ready', 'completed',
-                    'cancelled', 'expired']
+                    'cancelled', 'expired', 'waiting_payment']
     price: int
     created_at: datetime
     user_id: int

@@ -157,6 +157,25 @@
     margin-top: 2px;
 }
 
+.payment-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #FFFBEB;
+    border: 1px solid #FDE68A;
+    border-radius: 0.5rem;
+    color: #92400E;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+.payment-warning svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
 .payment-modal-footer {
     display: flex;
     gap: 0.75rem;

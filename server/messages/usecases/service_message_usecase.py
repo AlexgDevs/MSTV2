@@ -16,14 +16,15 @@ from ...common.db import (
 
 from ...common.utils import logger
 
+
 class ServiceMessageUseCase:
     def __init__(
-        self,
-        session: AsyncSession,
-        service_message_repository: ServiceMessageRepository) -> None:
+            self,
+            session: AsyncSession,
+            service_message_repository: ServiceMessageRepository) -> None:
 
         self._session = session
-        self._serivice_message_repository = service_message_repository
+        self._service_message_repository = service_message_repository
 
     async def create_service_message(
         self,
@@ -33,7 +34,7 @@ class ServiceMessageUseCase:
     ):
 
         try:
-            new_message = await self._serivice_message_repository.create_service_message(
+            new_message = await self._service_message_repository.create_service_message(
                 content,
                 sender_id,
                 chat_id
@@ -41,13 +42,15 @@ class ServiceMessageUseCase:
             await self._session.commit()
             return new_message
         except SQLAlchemyError as e:
+            await self._session.rollback()
             logger.error('error', f'failed creating message, detail: {str(e)}')
             return {'status': 'failed creating message', 'detail': str(e)}
 
 
 def get_service_message_use_case(
     session: AsyncSession = Depends(db_config.session),
-    service_message_repository: ServiceMessageRepository = Depends(get_service_message_repository)
+    service_message_repository: ServiceMessageRepository = Depends(
+        get_service_message_repository)
 ) -> ServiceMessageUseCase:
     return ServiceMessageUseCase(
         session,

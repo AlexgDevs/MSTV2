@@ -12,7 +12,7 @@ export interface EnrollResponse {
     service_date_id: number;
     slot_time: string;
     price: number;
-    status: 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled' | 'expired';
+    status: 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled' | 'expired' | 'waiting_payment';
     created_at: string;
     user?: {
         id: number;

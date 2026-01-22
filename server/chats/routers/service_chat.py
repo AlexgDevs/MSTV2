@@ -8,6 +8,8 @@ from ..repository import get_service_chat_repository, ServiceChatRepository
 from ...common.utils import Exceptions400, JWTManager
 from ...messages.usecases import get_service_message_use_case, ServiceMessageUseCase
 from ...websockets.connection_manager import service_chat_manager
+from ...common.utils import NotFoundException404
+
 
 service_chat_app = APIRouter(prefix='/service-chats', tags=['Service Chats'])
 
@@ -65,7 +67,6 @@ async def get_detail_service_chat(
         user_role
     )
     if not chat:
-        from ...common.utils import NotFoundException404
         await NotFoundException404.not_found('Chat not found or access denied')
     return chat
 
@@ -90,13 +91,8 @@ async def check_master_online_status(
     master_id: int,
     user: dict = Depends(JWTManager.auth_required)
 ) -> dict:
-    """
-    Проверяет, есть ли у мастера активные WebSocket соединения в каких-либо чатах.
-    """
-    # Check all active connections of the master
     is_online = False
 
-    # Iterate through all active chats and check if master is connected
     for chat_id, users in service_chat_manager.active_connections.items():
         if master_id in users:
             is_online = True

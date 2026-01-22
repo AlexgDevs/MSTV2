@@ -8,6 +8,7 @@ from ...common.db import (
     selectinload,
     DisputeChat,
     DisputeMessage,
+    ServiceEnroll
 )
 
 
@@ -33,7 +34,6 @@ class DisputeChatRepository:
         return chat
 
     async def get_detail_by_id(self, chat_id: int) -> Optional[DisputeChat]:
-        from ...common.db import DisputeMessage
         chat = await self._session.scalar(
             select(DisputeChat)
             .where(DisputeChat.id == chat_id)
@@ -49,7 +49,6 @@ class DisputeChatRepository:
 
     async def get_all_by_user_id(self, user_id: int) -> list[DisputeChat]:
         from sqlalchemy import or_
-        from ...common.db import ServiceEnroll, Service
         chats = await self._session.scalars(
             select(DisputeChat)
             .where(

@@ -19,9 +19,15 @@ const priceFormatter = new Intl.NumberFormat('ru-RU', {
 });
 
 const statusVariants: Record<string, { class: string; label: string }> = {
-    pending: { class: 'status-pending', label: 'Ожидание' },
-    confirmed: { class: 'status-confirmed', label: 'Подтверждено' },
-    ready: { class: 'status-ready', label: 'Готово к подтверждению' },
+    // бизнес-статусы:
+    // waiting_payment -> слот забронирован, ждём оплаты клиента
+    // pending         -> клиент оплатил, ждём принятия мастером
+    // confirmed       -> мастер принял заказ
+    // ready           -> мастер отметил "готово", ждём подтверждения клиента
+    waiting_payment: { class: 'status-pending', label: 'Ожидает оплаты' },
+    pending: { class: 'status-pending', label: 'Ожидает принятия мастером' },
+    confirmed: { class: 'status-confirmed', label: 'Принято мастером' },
+    ready: { class: 'status-ready', label: 'Ожидает подтверждения клиента' },
     completed: { class: 'status-completed', label: 'Завершено' },
     cancelled: { class: 'status-cancelled', label: 'Отменено' },
     expired: { class: 'status-expired', label: 'Истекло' }
@@ -29,7 +35,8 @@ const statusVariants: Record<string, { class: string; label: string }> = {
 
 const paymentStatusVariants: Record<string, { class: string; label: string }> = {
     pending: { class: 'status-pending', label: 'Ожидание оплаты' },
-    processing: { class: 'status-processing', label: 'Обработка' },
+    // processing = платеж создан/оплачен, но ещё не захвачен (waiting_for_capture) до бизнес-решений
+    processing: { class: 'status-processing', label: 'Ожидает подтверждения (средства зарезервированы)' },
     succeeded: { class: 'status-confirmed', label: 'Оплачено' },
     canceled: { class: 'status-cancelled', label: 'Отменено' },
     failed: { class: 'status-cancelled', label: 'Ошибка' }
@@ -415,6 +422,21 @@ export const ProfilePage: React.FC = () => {
                                                     <span className={`status-badge ${status.class}`}>
                                                         {status.label}
                                                     </span>
+                                                    {enroll.status === 'waiting_payment' && (
+                                                        <p className="booking-meta" style={{ marginTop: '6px' }}>
+                                                            Запись создана, ожидаем оплату. Если вы не оплатите вовремя — слот будет освобождён.
+                                                        </p>
+                                                    )}
+                                                    {enroll.status === 'pending' && (
+                                                        <p className="booking-meta" style={{ marginTop: '6px' }}>
+                                                            Мастер должен принять заказ. Если не примет — будет авто‑возврат.
+                                                        </p>
+                                                    )}
+                                                    {enroll.status === 'ready' && (
+                                                        <p className="booking-meta" style={{ marginTop: '6px' }}>
+                                                            Подтвердите получение. Если не подтвердите — будет авто‑подтверждение и списание средств.
+                                                        </p>
+                                                    )}
                                                     <p className="booking-price">
                                                         {priceFormatter.format(enroll.price)}
                                                     </p>
@@ -432,7 +454,7 @@ export const ProfilePage: React.FC = () => {
                                                             className="btn btn-primary"
                                                             style={{ marginTop: '8px', width: '100%' }}
                                                         >
-                                                            Подтвердить заказ
+                                                            Подтвердить получение
                                                         </button>
                                                     )}
                                                 </div>

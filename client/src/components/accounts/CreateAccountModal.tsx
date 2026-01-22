@@ -1,21 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { accountsApi } from '../../api/accounts/accounts.api';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
-import type { PayoutMethod, CreateAccountModel } from '../../api/accounts/types';
+import type {
+    PayoutMethod,
+    CreateAccountModel,
+    UpdateAccountModel,
+    AccountResponse
+} from '../../api/accounts/types';
 import './CreateAccountModal.css';
 
 interface CreateAccountModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    mode?: 'create' | 'edit';
+    account?: AccountResponse | null;
 }
 
 export const CreateAccountModal: React.FC<CreateAccountModalProps> = ({
     isOpen,
     onClose,
-    onSuccess
+    onSuccess,
+    mode = 'create',
+    account = null
 }) => {
-    const [payoutMethod, setPayoutMethod] = useState<PayoutMethod>('bank_card');
+    const [payoutMethod, setPayoutMethod] = useState<PayoutMethod>('yoo_money');
     const [fullName, setFullName] = useState('');
     const [cardNumber, setCardNumber] = useState('');
     const [bankAccount, setBankAccount] = useState('');
@@ -27,17 +36,23 @@ export const CreateAccountModal: React.FC<CreateAccountModalProps> = ({
 
     useEffect(() => {
         if (isOpen) {
-            // Сброс формы при открытии
-            setPayoutMethod('bank_card');
-            setFullName('');
+            if (mode === 'edit' && account) {
+                setPayoutMethod('yoo_money');
+                setFullName(account.full_name || '');
+                setYoomoneyWallet(account.yoomoney_wallet || '');
+            } else {
+                // Сброс формы при открытии на создание
+                setPayoutMethod('yoo_money');
+                setFullName('');
+                setYoomoneyWallet('');
+            }
             setCardNumber('');
             setBankAccount('');
-            setYoomoneyWallet('');
             setPhone('');
             setInn('');
             setError(null);
         }
-    }, [isOpen]);
+    }, [isOpen, mode, account]);
 
     if (!isOpen) return null;
 
@@ -51,74 +66,53 @@ export const CreateAccountModal: React.FC<CreateAccountModalProps> = ({
             return;
         }
 
-        const accountData: CreateAccountModel = {
-            payout_method: payoutMethod,
+        const baseData = {
+            payout_method: 'yoo_money' as PayoutMethod,
             full_name: fullName.trim(),
         };
 
-        // Добавляем поля в зависимости от метода выплаты
-        if (payoutMethod === 'bank_card') {
-            if (!cardNumber.trim()) {
-                setError('Номер карты обязателен для банковской карты');
-                return;
-            }
-            accountData.card_number = cardNumber.trim();
-        } else if (payoutMethod === 'yoo_money') {
-            if (!yoomoneyWallet.trim()) {
-                setError('Номер кошелька ЮMoney обязателен');
-                return;
-            }
-            accountData.yoomoney_wallet = yoomoneyWallet.trim();
-        } else if (payoutMethod === 'sbp') {
-            if (!phone.trim()) {
-                setError('Номер телефона обязателен для СБП');
-                return;
-            }
-            accountData.phone = phone.trim();
-        } else if (payoutMethod === 'bank_account') {
-            if (!bankAccount.trim()) {
-                setError('Банковский счет обязателен');
-                return;
-            }
-            accountData.bank_account = bankAccount.trim();
-        } else if (payoutMethod === 'self_employed') {
-            if (!inn.trim()) {
-                setError('ИНН обязателен для самозанятого');
-                return;
-            }
-            accountData.inn = inn.trim();
+        let payload: CreateAccountModel | UpdateAccountModel = { ...baseData };
+
+        if (!yoomoneyWallet.trim()) {
+            setError('Номер кошелька ЮMoney обязателен');
+            return;
         }
+        payload.yoomoney_wallet = yoomoneyWallet.trim();
 
         setIsLoading(true);
 
         try {
-            await accountsApi.create(accountData);
+            if (mode === 'edit') {
+                await accountsApi.update(payload as UpdateAccountModel);
+            } else {
+                await accountsApi.create(payload as CreateAccountModel);
+            }
             onSuccess();
             onClose();
         } catch (err: any) {
             setError(
                 err?.response?.data?.detail ||
-                'Не удалось создать счет. Попробуйте позже.'
+                (mode === 'edit'
+                    ? 'Не удалось обновить счет. Попробуйте позже.'
+                    : 'Не удалось создать счет. Попробуйте позже.')
             );
-            console.error('Error creating account:', err);
+            console.error('Error saving account:', err);
         } finally {
             setIsLoading(false);
         }
     };
 
     const payoutMethods: Array<{ value: PayoutMethod; label: string; icon: string }> = [
-        { value: 'bank_card', label: 'Банковская карта', icon: '💳' },
         { value: 'yoo_money', label: 'ЮMoney кошелек', icon: '💰' },
-        { value: 'sbp', label: 'СБП (Система быстрых платежей)', icon: '📱' },
-        { value: 'bank_account', label: 'Банковский счет', icon: '🏦' },
-        { value: 'self_employed', label: 'Самозанятый', icon: '📄' },
     ];
 
     return (
         <div className="account-modal-overlay" onClick={onClose}>
             <div className="account-modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="account-modal-header">
-                    <h3 className="account-modal-title">Создание счета для выплат</h3>
+                    <h3 className="account-modal-title">
+                        {mode === 'edit' ? 'Редактирование счета' : 'Создание счета для выплат'}
+                    </h3>
                     <button
                         className="account-modal-close"
                         onClick={onClose}
@@ -133,14 +127,12 @@ export const CreateAccountModal: React.FC<CreateAccountModalProps> = ({
                 <form onSubmit={handleSubmit} className="account-modal-body">
                     <div className="account-form-group">
                         <label className="account-form-label">
-                            Способ выплаты <span className="required">*</span>
+                            Способ выплаты (только ЮMoney) <span className="required">*</span>
                         </label>
                         <select
                             className="account-form-select"
                             value={payoutMethod}
-                            onChange={(e) => setPayoutMethod(e.target.value as PayoutMethod)}
-                            disabled={isLoading}
-                            required
+                            disabled
                         >
                             {payoutMethods.map((method) => (
                                 <option key={method.value} value={method.value}>
@@ -165,92 +157,20 @@ export const CreateAccountModal: React.FC<CreateAccountModalProps> = ({
                         />
                     </div>
 
-                    {payoutMethod === 'bank_card' && (
-                        <div className="account-form-group">
-                            <label className="account-form-label">
-                                Номер карты <span className="required">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                className="account-form-input"
-                                value={cardNumber}
-                                onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, ''))}
-                                placeholder="1234 5678 9012 3456"
-                                maxLength={19}
-                                disabled={isLoading}
-                                required
-                            />
-                        </div>
-                    )}
-
-                    {payoutMethod === 'yoo_money' && (
-                        <div className="account-form-group">
-                            <label className="account-form-label">
-                                Номер кошелька ЮMoney <span className="required">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                className="account-form-input"
-                                value={yoomoneyWallet}
-                                onChange={(e) => setYoomoneyWallet(e.target.value)}
-                                placeholder="410011234567890"
-                                disabled={isLoading}
-                                required
-                            />
-                        </div>
-                    )}
-
-                    {payoutMethod === 'sbp' && (
-                        <div className="account-form-group">
-                            <label className="account-form-label">
-                                Номер телефона <span className="required">*</span>
-                            </label>
-                            <input
-                                type="tel"
-                                className="account-form-input"
-                                value={phone}
-                                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                                placeholder="+7 (999) 123-45-67"
-                                disabled={isLoading}
-                                required
-                            />
-                        </div>
-                    )}
-
-                    {payoutMethod === 'bank_account' && (
-                        <div className="account-form-group">
-                            <label className="account-form-label">
-                                Банковский счет <span className="required">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                className="account-form-input"
-                                value={bankAccount}
-                                onChange={(e) => setBankAccount(e.target.value.replace(/\D/g, ''))}
-                                placeholder="40817810099910004312"
-                                disabled={isLoading}
-                                required
-                            />
-                        </div>
-                    )}
-
-                    {payoutMethod === 'self_employed' && (
-                        <div className="account-form-group">
-                            <label className="account-form-label">
-                                ИНН <span className="required">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                className="account-form-input"
-                                value={inn}
-                                onChange={(e) => setInn(e.target.value.replace(/\D/g, ''))}
-                                placeholder="123456789012"
-                                maxLength={12}
-                                disabled={isLoading}
-                                required
-                            />
-                        </div>
-                    )}
+                    <div className="account-form-group">
+                        <label className="account-form-label">
+                            Номер кошелька ЮMoney <span className="required">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            className="account-form-input"
+                            value={yoomoneyWallet}
+                            onChange={(e) => setYoomoneyWallet(e.target.value)}
+                            placeholder="410011234567890"
+                            disabled={isLoading}
+                            required
+                        />
+                    </div>
 
                     {error && (
                         <div className="account-error">
@@ -285,14 +205,14 @@ export const CreateAccountModal: React.FC<CreateAccountModalProps> = ({
                             {isLoading ? (
                                 <>
                                     <LoadingSpinner size="sm" />
-                                    <span>Создание...</span>
+                                    <span>{mode === 'edit' ? 'Сохранение...' : 'Создание...'}</span>
                                 </>
                             ) : (
                                 <>
                                     <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                     </svg>
-                                    <span>Создать счет</span>
+                                    <span>{mode === 'edit' ? 'Сохранить' : 'Создать счет'}</span>
                                 </>
                             )}
                         </button>
