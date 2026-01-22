@@ -46,7 +46,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global exception handlers
+# global exception handlers
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(

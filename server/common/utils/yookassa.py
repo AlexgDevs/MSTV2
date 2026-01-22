@@ -30,21 +30,21 @@ Configuration.secret_key = YUKASSA_SECRET_KEY
 
 
 def check_yukass_credentials():
-    """Check if YooKassa credentials are configured"""
+    '''Check if YooKassa credentials are configured'''
     if not YUKASSA_SHOP_ID or not YUKASSA_SECRET_KEY:
         raise ValueError("YUKASSA credentials not configured")
 
 
 def format_for_yookassa(decimal_amount: Decimal) -> str:
-    """Format amount for YooKassa API"""
+    '''Format amount for YooKassa API'''
     return str(decimal_amount.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
 
 
 async def aggregate_amount(amount: float) -> Dict[str, str]:
-    """
+    '''
     Split amount between platform and seller
     Returns string values formatted for YooKassa API
-    """
+    '''
     total = Decimal(str(amount))
     platform_amount = total * PLATFORM_FEE_PERCENT
     seller_amount = total - platform_amount
@@ -58,7 +58,7 @@ async def aggregate_amount(amount: float) -> Dict[str, str]:
 
 
 def _run_sync(func, *args, **kwargs):
-    """Run synchronous function in a separate thread"""
+    '''Run synchronous function in a separate thread'''
     loop = asyncio.get_event_loop()
     return loop.run_in_executor(None, partial(func, *args, **kwargs))
 
@@ -68,7 +68,7 @@ async def create_deal(
     description: str,
     fee_moment: str = "deal_closed"
 ) -> Dict[str, Any]:
-    """
+    '''
     Create a deal in YooKassa for safe deal (self deal)
 
     Args:
@@ -81,7 +81,7 @@ async def create_deal(
 
     Raises:
         ValueError: If safe deal is not enabled in the store
-    """
+    '''
     check_yukass_credentials()
 
     try:
@@ -130,7 +130,7 @@ async def create_payment(
     metadata: Optional[Dict[str, Any]] = None,
     capture: bool = False,
 ) -> Dict[str, Any]:
-    """
+    '''
     Create payment with deal binding (self deal)
 
     Args:
@@ -144,7 +144,7 @@ async def create_payment(
 
     Returns:
         Dictionary with created payment data
-    """
+    '''
     check_yukass_credentials()
 
     try:
@@ -216,9 +216,9 @@ async def create_payment(
 
 
 async def get_payment(payment_id: str) -> Dict[str, Any]:
-    """
+    '''
     Get payment information
-    """
+    '''
     check_yukass_credentials()
 
     try:
@@ -258,9 +258,9 @@ async def get_payment(payment_id: str) -> Dict[str, Any]:
 
 
 async def capture_payment(payment_id: str, amount: Optional[int] = None) -> Dict[str, Any]:
-    """
+    '''
     Confirm payment (transfer funds to store)
-    """
+    '''
     check_yukass_credentials()
 
     try:
@@ -295,9 +295,9 @@ async def capture_payment(payment_id: str, amount: Optional[int] = None) -> Dict
 
 
 async def cancel_payment(payment_id: str) -> Dict[str, Any]:
-    """
+    '''
     Cancel payment
-    """
+    '''
     check_yukass_credentials()
 
     try:
@@ -318,9 +318,9 @@ async def cancel_payment(payment_id: str) -> Dict[str, Any]:
 
 
 async def get_deal(deal_id: str) -> Dict[str, Any]:
-    """
+    '''
     Get deal information
-    """
+    '''
     check_yukass_credentials()
 
     try:
@@ -349,13 +349,13 @@ async def get_deal(deal_id: str) -> Dict[str, Any]:
 
 
 async def close_deal(deal_id: str) -> Dict[str, Any]:
-    """
+    '''
     Close deal - automatically distributes funds:
     - Seller receives their share (specified in settlements)
     - Platform automatically receives commission (10%)
 
     Called after client confirms order
-    """
+    '''
     check_yukass_credentials()
 
     try:
@@ -387,9 +387,9 @@ async def create_refund(
     amount: Optional[int] = None,
     description: Optional[str] = None
 ) -> Dict[str, Any]:
-    """
+    '''
     Create refund to client
-    """
+    '''
     check_yukass_credentials()
 
     try:
@@ -435,9 +435,9 @@ def verify_webhook_signature(
     signature: str,
     webhook_secret: Optional[str] = None
 ) -> bool:
-    """
+    '''
     Verify YooKassa webhook signature using HMAC-SHA256
-    """
+    '''
     if not data or not signature:
         return False
 
@@ -486,9 +486,9 @@ def verify_webhook_signature(
 
 
 def parse_webhook(data: Dict[str, Any]) -> Any:
-    """
+    '''
     Parse YooKassa webhook using library
-    """
+    '''
     try:
         notification = WebhookNotificationFactory().create(data)
         return notification
@@ -505,7 +505,7 @@ async def process_payment_with_deal(
     metadata: Optional[Dict[str, Any]] = None,
     capture: bool = False,
 ) -> Dict[str, Any]:
-    """
+    '''
     Create payment and deal in one call (convenience function)
 
     Args:
@@ -518,7 +518,7 @@ async def process_payment_with_deal(
 
     Returns:
         Dictionary with payment and deal data
-    """
+    '''
     check_yukass_credentials()
 
     try:
@@ -552,23 +552,9 @@ async def process_payment_with_deal(
 
 
 async def process_deal_closure(payment_id: str) -> Dict[str, Any]:
-    """
+    '''
     Process deal closure after client confirms order
-
-    Process:
-    1. Get payment information
-    2. Extract deal ID
-    3. Close deal
-    4. On closure, funds are automatically distributed:
-       - Seller receives their share
-       - Platform receives commission (10%)
-
-    Args:
-        payment_id: Payment ID in YooKassa
-
-    Returns:
-        Deal closure result
-    """
+    '''
     check_yukass_credentials()
 
     try:
@@ -610,10 +596,10 @@ async def process_deal_closure(payment_id: str) -> Dict[str, Any]:
 
 
 async def process_payout_to_seller(payment_id: str):
-    """
+    '''
     DEPRECATED: Use process_deal_closure instead.
     With self deal, payouts happen automatically when deal is closed.
-    """
+    '''
     logger.warning(
         "process_payout_to_seller is deprecated. Use process_deal_closure instead.")
     return await process_deal_closure(payment_id)
@@ -632,17 +618,17 @@ async def process_payout_to_developer(payment_id: str):
 
 
 async def trafic_orchestrator(payment_id: str):
-    """
+    '''
     DEPRECATED: Use process_deal_closure instead.
     With self deal, all payouts happen automatically when deal is closed.
-    """
+    '''
     logger.warning(
         "trafic_orchestrator is deprecated. Use process_deal_closure instead.")
     return await process_deal_closure(payment_id)
 
 
 async def dispute_orchestrator(payment_id: str, winner_type: str):
-    """
+    '''
     Distribute funds based on arbitration decision
 
     winner_type: 'client' - full refund to client
@@ -651,7 +637,7 @@ async def dispute_orchestrator(payment_id: str, winner_type: str):
 
     Note: With self deal, need to close or cancel deal first,
     then perform refund or payout.
-    """
+    '''
     check_yukass_credentials()
 
     try:
