@@ -30,6 +30,7 @@ class CreateServiceModel(BaseModel):
     description: str
     price: int
     photo: str
+    certificate: str
 
 
 class PatchServiceModel(BaseModel):
@@ -37,6 +38,7 @@ class PatchServiceModel(BaseModel):
     description: str | None = None
     price: int | None = None
     photo: str | None = None
+    certificate: str | None = None
 
 
 class ServiceResponse(BaseModel):
@@ -46,6 +48,7 @@ class ServiceResponse(BaseModel):
     user_id: int
     price: int
     photo: str
+    certificate: str
     tags: List[SimpleServiceTagResponse]
 
     class Config:
@@ -96,6 +99,7 @@ class DetailServiceResponse(BaseModel):
     user_id: int
     price: int
     photo: str
+    certificate: str
 
     templates: List[SimpleServiceTemplateResponse]
     tags: List[SimpleServiceTagResponse]

@@ -5,6 +5,7 @@ export interface ServiceResponse {
     user_id: number;
     price: number;
     photo: string;
+    certificate: string;
     tags: SimpleServiceTagResponse[];
 }
 

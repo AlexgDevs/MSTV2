@@ -77,6 +77,7 @@ class Service(Base):
     title: Mapped[str] = mapped_column(String(128))
     description: Mapped[str] = mapped_column(String(896))
     photo: Mapped[str] = mapped_column(nullable=True)
+    certificate: Mapped[str] = mapped_column(nullable=True)
     created_at: Mapped[DateTime] = mapped_column(
         DateTime, default=datetime.now(timezone.utc))
     price: Mapped[int]

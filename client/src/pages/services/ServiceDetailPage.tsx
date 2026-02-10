@@ -455,6 +455,34 @@ export const ServiceDetailPage: React.FC = () => {
                             </div>
                         </div>
 
+                        {service.certificate && (
+                            <div className="service-certificate-card">
+                                <h2 className="service-section-title">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                    </svg>
+                                    Сертификат специалиста
+                                </h2>
+                                <div className="service-certificate-preview">
+                                    {(() => {
+                                        const getCertUrl = (path: string) => {
+                                            if (path.startsWith('http') || path.startsWith('data:') || path.startsWith('blob:')) return path;
+                                            const baseStatic = import.meta.env.VITE_STATIC_URL || import.meta.env.VITE_API_URL?.replace('/api/v1', '') || '';
+                                            return `${baseStatic}${path}`;
+                                        };
+                                        return (
+                                            <img 
+                                                src={getCertUrl(service.certificate)} 
+                                                alt="Сертификат" 
+                                                className="service-certificate-img"
+                                                onClick={() => window.open(getCertUrl(service.certificate), '_blank')} // Открытие в полном размере
+                                            />
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Автор услуги */}
                         <div className="service-author-card">
                             <h2 className="service-section-title">

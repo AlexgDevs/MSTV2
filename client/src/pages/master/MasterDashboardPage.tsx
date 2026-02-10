@@ -100,6 +100,8 @@ export const MasterDashboardPage: React.FC = () => {
         );
     }
 
+    const [serviceCertificateFile, setServiceCertificateFile] = useState<File | null>(null);
+    const [serviceCertificatePreview, setServiceCertificatePreview] = useState<string>('');
     const [activeTab, setActiveTab] = useState<TabId>('services');
     const [scheduleServiceFilter, setScheduleServiceFilter] = useState<number | 'all'>('all');
     const [bookingsServiceFilter, setBookingsServiceFilter] = useState<number | null>(
@@ -112,7 +114,8 @@ export const MasterDashboardPage: React.FC = () => {
         title: '',
         description: '',
         price: '',
-        photo: ''
+        photo: '',
+        certificate: ''
     });
     const [selectedTags, setSelectedTags] = useState<string[]>([]); // Выбранные основные категории
     const [customTags, setCustomTags] = useState<string>(''); // Новые тэги через запятую
@@ -442,49 +445,51 @@ export const MasterDashboardPage: React.FC = () => {
     const handleCreateService = async (event: React.FormEvent) => {
         event.preventDefault();
         setServiceFormError(null);
-
+    
         if (!serviceForm.title.trim() || !serviceForm.description.trim()) {
             setServiceFormError('Название и описание обязательны');
             return;
         }
-
+    
         const price = Number(serviceForm.price);
         if (!Number.isFinite(price) || price <= 0) {
             setServiceFormError('Цена должна быть положительным числом');
             return;
         }
-
-        // Check if user has an account (only for creating new service, not editing)
+    
+        // Проверка наличия счета (только при создании новой услуги)
         if (!editingService) {
             try {
                 await accountsApi.get();
             } catch (error: any) {
-                // If account doesn't exist (404) or other error
                 if (error?.response?.status === 404 || !error?.response) {
                     setServiceFormError('Для создания услуги необходимо сначала создать счет для получения денег');
                     setShowAccountRequiredModal(true);
                     return;
                 }
-                // If it's another error, show it
                 const message = error?.response?.data?.detail || 'Ошибка при проверке счета';
                 setServiceFormError(message);
                 return;
             }
         }
-
+    
         setIsServiceSubmitting(true);
         try {
             if (editingService) {
                 // Редактирование существующей услуги
                 await servicesApi.update(
-                    editingService,
+                    editingService.id, // Убедись, что передаешь именно ID, а не объект
                     {
                         title: serviceForm.title.trim(),
                         description: serviceForm.description.trim(),
                         price,
-                        photo: serviceForm.photo.trim() || null // если пользователь удалил фото, отправляем null
+                        photo: serviceForm.photo.trim() || null,
+                        certificate: serviceForm.certificate.trim() || null, // Передаем текущий URL сертификата
+                        existing_tags: JSON.stringify(selectedTags),
+                        custom_tags: customTags.trim() ? JSON.stringify(customTags.split(',').map(t => t.trim()).filter(t => t.length > 0)) : undefined
                     },
-                    servicePhotoFile || undefined
+                    servicePhotoFile || undefined,
+                    serviceCertificateFile || undefined // ПЕРЕДАЧА ФАЙЛА СЕРТИФИКАТА
                 );
             } else {
                 // Создание новой услуги
@@ -494,27 +499,33 @@ export const MasterDashboardPage: React.FC = () => {
                         description: serviceForm.description.trim(),
                         price,
                         photo: serviceForm.photo.trim() || '',
+                        certificate: serviceForm.certificate.trim() || '',
                         existing_tags: selectedTags.length > 0 ? JSON.stringify(selectedTags) : undefined,
                         custom_tags: customTags.trim() ? JSON.stringify(customTags.split(',').map(t => t.trim()).filter(t => t.length > 0)) : undefined
                     },
-                    servicePhotoFile || undefined
+                    servicePhotoFile || undefined,
+                    serviceCertificateFile || undefined // ПЕРЕДАЧА ФАЙЛА СЕРТИФИКАТА
                 );
             }
+    
+            // Очистка и обновление
             await refreshUser();
             setServiceForm({
                 title: '',
                 description: '',
                 price: '',
-                photo: ''
+                photo: '',
+                certificate: ''
             });
             setServicePhotoFile(null);
+            setServiceCertificateFile(null); // Очищаем файл сертификата
+            setServiceCertificatePreview(''); // Очищаем превью
             setSelectedTags([]);
             setCustomTags('');
             setIsCreatingService(false);
             setEditingService(null);
         } catch (error) {
-            const message =
-                error instanceof Error ? error.message : (editingService ? 'Не удалось обновить услугу' : 'Не удалось создать услугу');
+            const message = error instanceof Error ? error.message : (editingService ? 'Не удалось обновить услугу' : 'Не удалось создать услугу');
             setServiceFormError(message);
         } finally {
             setIsServiceSubmitting(false);
@@ -527,7 +538,8 @@ export const MasterDashboardPage: React.FC = () => {
             title: service.title,
             description: service.description,
             price: service.price.toString(),
-            photo: service.photo || ''
+            photo: service.photo || '',
+            certificate: ''
         });
         setIsCreatingService(true);
         setServiceFormError(null);
@@ -541,7 +553,8 @@ export const MasterDashboardPage: React.FC = () => {
             title: '',
             description: '',
             price: '',
-            photo: ''
+            photo: '',
+            certificate: ''
         });
         setServicePhotoFile(null);
         setSelectedTags([]);
@@ -927,6 +940,54 @@ export const MasterDashboardPage: React.FC = () => {
                                         </div>
                                     )}
                                 </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label>Сертификат специалиста (необязательно)</label>
+                                <div className="file-upload-section">
+                                    <label className="file-upload-dropzone">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    if (file.size > 4 * 1024 * 1024) {
+                                                        setServiceFormError('Размер сертификата не должен превышать 4 МБ');
+                                                        return;
+                                                    }
+                                                    setServiceCertificateFile(file);
+                                                    setServiceForm(prev => ({ ...prev, certificate: '' }));
+                                                }
+                                            }}
+                                            className="file-input-hidden"
+                                        />
+                                        <div className="file-upload-content">
+                                            <span className="file-upload-title">Загрузить сертификат</span>
+                                            <span className="file-upload-hint">PNG, JPG до 4 МБ</span>
+                                        </div>
+                                    </label>
+
+                                    {serviceCertificatePreview && (
+                                        <div className="file-preview">
+                                            <img src={serviceCertificatePreview} alt="Превью сертификата" />
+                                        </div>
+                                    )}
+
+                                    {(serviceCertificateFile || serviceForm.certificate) && (
+                                        <div className="file-actions">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setServiceCertificateFile(null);
+                                                    setServiceForm(prev => ({ ...prev, certificate: '' }));
+                                                }}
+                                                className="file-remove-btn"
+                                            >
+                                                Удалить сертификат
+                                            </button>
+                                        </div>
+                                    )}</div>
                             </div>
 
                             <div className="form-group">

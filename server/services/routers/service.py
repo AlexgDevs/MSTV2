@@ -74,6 +74,7 @@ async def create_service(
     description: str = Form(...),
     price: int = Form(...),
     photo: Optional[UploadFile] = File(None),
+    certificate: Optional[UploadFile] = File(None),
     photo_url: Optional[str] = Form(None),
     existing_tags: Optional[str] = Form(None),
     custom_tags: Optional[str] = Form(None),
@@ -100,14 +101,21 @@ async def create_service(
         photo_data = await process_to_base64(photo, max_size_mb=4)
         if not photo_data:
             await Exceptions400.creating_error('inavalid format or size photo')
+
     elif photo_url:
         photo_data = photo_url
+
+    if certificate and certificate.filename:
+        certificate_data = await process_to_base64(certificate, max_size_mb=4)
+        if not certificate_data:
+            await Exceptions400.creating_error('inavalid format or size certificate')
 
     service_data = CreateServiceModel(
         title=title,
         description=description,
         price=price,
-        photo=photo_data or ''
+        photo=photo_data or '',
+        certificate=certificate_data or ''
     )
 
     # Parse tags
