@@ -51,7 +51,7 @@ async def get_account(
     )
 
     if result.get('status') == 'error':
-        await NotFoundException404.not_found('Account not found')
+        await NotFoundException404.tag_not_found()
 
     return result.get('account')
 

@@ -5,7 +5,6 @@ import type { PaymentResponse } from '../../api/payments/types';
 import { chatsApi } from '../../api/chats/chats.api';
 import { ChatList } from '../../components/chats/ChatList';
 import type { UnifiedChatItem } from '../chats/ChatsPage';
-import { enrollsApi } from '../../api/enrolls/enrolls.api';
 import { disputesApi } from '../../api/disputes/disputes.api';
 import type { DisputeResponse } from '../../api/disputes/types';
 import { ComplainModal } from '../../components/enrolls/ComplainModal';
@@ -444,8 +443,10 @@ export const ProfilePage: React.FC = () => {
                                                         <button
                                                             onClick={async () => {
                                                                 try {
-                                                                    await enrollsApi.confirm(enroll.id);
-                                                                    // Обновляем данные пользователя для обновления списка записей
+                                                                    // Подтверждаем безопасную сделку:
+                                                                    // переводим деньги из холда мастеру
+                                                                    // и отмечаем запись как завершённую
+                                                                    await paymentsApi.confirmCompletion(enroll.id);
                                                                     await refreshUser();
                                                                 } catch (error: any) {
                                                                     alert(error?.response?.data?.detail || 'Не удалось подтвердить заказ');

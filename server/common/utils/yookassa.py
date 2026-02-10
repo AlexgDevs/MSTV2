@@ -724,3 +724,106 @@ async def dispute_orchestrator(payment_id: str, winner_type: str):
     except Exception as e:
         logger.error(f"Error in dispute_orchestrator: {str(e)}")
         return {"success": False, "error": str(e)}
+
+
+# TEST SAFE DEAL FOR DEMO MANK
+async def create_deal(
+    amount: float,
+    description: str,
+    fee_moment: str = "deal_closed"
+) -> Dict[str, Any]:
+    check_yukass_credentials()
+
+    try:
+        deal_data = {
+            "type": "safe_deal",
+            "fee_moment": fee_moment,
+            "description": description
+        }
+        # Пробуем создать реальную сделку
+        deal = await _run_sync(Deal.create, deal_data)
+        
+        return {
+            'id': deal.id,
+            'status': deal.status,
+            'is_emulated': False,
+            'description': deal.description
+        }
+    except Exception as e:
+        # Эмуляция для конкурса, если БС не подключена
+        logger.warning(f"Safe Deal API error: {e}. Switching to emulation mode.")
+        return {
+            'id': f"dl-emul-{uuid.uuid4().hex[:8]}",
+            'status': 'opened',
+            'is_emulated': True,
+            'description': f"[DEMO] {description}"
+        }
+
+async def create_payment(
+    amount: float,
+    description: str,
+    return_url: str,
+    deal_id: str,
+    seller_amount: float,
+    metadata: Optional[Dict[str, Any]] = None,
+    capture: bool = True, # Для теста лучше сразу True
+) -> Dict[str, Any]:
+    check_yukass_credentials()
+
+    try:
+        amount_str = format_for_yookassa(Decimal(str(amount)))
+        
+        # Базовая структура платежа
+        payment_data = {
+            "amount": {"value": amount_str, "currency": "RUB"},
+            "confirmation": {"type": "redirect", "return_url": return_url},
+            "capture": capture,
+            "description": description,
+            "metadata": metadata or {}
+        }
+
+        # Если deal_id реальный (не эмулированный), добавляем привязку к БС
+        if not deal_id.startswith("dl-emul-"):
+            seller_amount_str = format_for_yookassa(Decimal(str(seller_amount)))
+            payment_data["deal"] = {
+                "id": deal_id,
+                "settlements": [{
+                    "type": "payout",
+                    "amount": {"value": seller_amount_str, "currency": "RUB"}
+                }]
+            }
+        else:
+            # Помечаем в метаданных, что это эмуляция БС для вебхуков
+            payment_data["metadata"]["emulated_deal_id"] = deal_id
+            payment_data["metadata"]["seller_amount"] = str(seller_amount)
+
+        idempotence_key = str(uuid.uuid4())
+        payment = await _run_sync(Payment.create, payment_data, idempotence_key)
+
+        return {
+            'id': payment.id,
+            'status': payment.status,
+            'confirmation_url': payment.confirmation.confirmation_url if hasattr(payment, 'confirmation') else None,
+            'is_emulated': deal_id.startswith("dl-emul-")
+        }
+    except Exception as e:
+        logger.error(f"Error creating payment: {e}")
+        raise
+
+### ЛОГИКА ДЛЯ ТВОЕГО ВЕБХУКА ИЛИ ОБРАБОТЧИКА ЗАВЕРШЕНИЯ ###
+
+async def complete_order_and_payout(order_id: str, master_id: str, amount: float):
+    '''
+    Эту функцию ты вызываешь, когда клиент подтверждает выполнение работы.
+    В реальной БС тут был бы вызов Payout API, а для конкурса мы просто обновляем БД.
+    '''
+    try:
+        # Здесь будет твой вызов к репозиторию/базе данных
+        # await payment_repository.add_to_balance(master_id, amount)
+        # await payment_repository.update_order_status(order_id, 'completed')
+        
+        logger.info(f"Successfully credited {amount} to master {master_id} (Emulation)")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to update balance: {e}")
+        return False

@@ -1,3 +1,4 @@
+from decimal import Decimal
 from enum import Enum
 from datetime import datetime
 from typing import TYPE_CHECKING, List, Literal, Optional
@@ -12,6 +13,7 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
+    Numeric,
     String,
     func,
 )
@@ -74,6 +76,9 @@ class Account(Base):
         'User',
         back_populates='account',
         uselist=False)
+
+    balance: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0.00)
+    frozen_balance: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0.00)
 
     def get_yookassa_payout_data(self) -> dict:
         if self.payout_method == 'yoo_money' and self.yoomoney_wallet:

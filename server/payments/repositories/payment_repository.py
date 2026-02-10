@@ -58,7 +58,7 @@ class PaymentRepository:
                     ServiceEnroll.service_date)
             )
         )
-        return list(payments.all())
+        return payments.all()
 
     async def get_seller_id(
             self,

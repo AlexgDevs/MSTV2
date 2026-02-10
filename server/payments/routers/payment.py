@@ -152,3 +152,31 @@ async def payment_success():
         'status': 'success',
         'message': 'Payment completed successfully'
     }
+
+@payment_app.post(
+    '/{enroll_id}/confirm',
+    status_code=status.HTTP_200_OK,
+    summary='Confirm service completion',
+    description='Release frozen funds to the master. Called by the client.'
+)
+async def confirm_service_completion(
+    enroll_id: int,
+    payment_usecase: PaymentUseCase = Depends(get_payment_usecase),
+    user=Depends(JWTManager.auth_required)
+):
+    # Вызываем метод, который мы интегрировали в UseCase
+    result = await payment_usecase.confirm_completion(
+        enroll_id=enroll_id,
+        user_id=int(user.get('id'))
+    )
+
+    if result.get('status') == 'error':
+        # Если, например, это не тот юзер или денег нет в холде
+        await Exceptions400.creating_error(
+            result.get('detail', 'Completion confirmation error')
+        )
+
+    return {
+        'status': 'success',
+        'message': 'Funds released to the master balance'
+    }

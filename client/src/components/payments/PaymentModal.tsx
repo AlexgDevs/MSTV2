@@ -50,10 +50,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 return_url: returnUrl
             });
 
-            if (response.data.confirmation_url) {
-                onSuccess(response.data.confirmation_url);
+            const { confirmation_url, payment_id } = response.data;
+
+            if (confirmation_url) {
+                // Боевой / тестовый сценарий с редиректом на страницу оплаты ЮKassa
+                onSuccess(confirmation_url);
+            } else if (payment_id) {
+                // ДЕМО-СЦЕНАРИЙ: ссылки нет, но есть локальный payment_id
+                window.location.href = `/payment/success?payment_id=${payment_id}`;
             } else {
-                setError('Не удалось получить ссылку для оплаты');
+                setError('Не удалось инициализировать платеж');
             }
         } catch (err: any) {
             setError(
