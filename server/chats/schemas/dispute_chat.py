@@ -76,3 +76,5 @@ class DetailDisputeChatResponse(BaseModel):
 
 class CreateDisputeChatRequest(BaseModel):
     dispute_id: int
+
+#demo hold mvp confirm

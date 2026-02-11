@@ -149,7 +149,7 @@ async def dispute_chat_websocket(websocket: WebSocket, chat_id: int):
                             return
                         continue
 
-                    # Открываем новую сессию для каждой операции с БД
+                    #open new session for every operation
                     try:
                         from ..messages.repositories import DisputeMessageRepository
                         async with db_config.Session() as session:
@@ -163,7 +163,7 @@ async def dispute_chat_websocket(websocket: WebSocket, chat_id: int):
                                 chat_id=chat_id
                             )
 
-                            # Проверяем, что сообщение было успешно создано
+                            #checked sucess msg
                             if isinstance(new_message, dict):
                                 try:
                                     await websocket.send_json({
@@ -262,3 +262,5 @@ async def dispute_chat_websocket(websocket: WebSocket, chat_id: int):
                 dispute_chat_manager.disconnect(chat_id, int(user.get('id')))
             except:
                 pass
+
+#demo hold mvp confirm

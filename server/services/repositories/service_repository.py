@@ -151,7 +151,7 @@ class ServiceRepository:
         service_data: CreateServiceModel
     ) -> Service:
 
-        # soon photo func for code in bytes 64
+        # soon photo func for code in bytes 64 | rev true
         new_service = Service(
             user_id=user_id,
             **service_data.model_dump()
@@ -167,7 +167,7 @@ class ServiceRepository:
         service_update_data: PatchServiceModel
     ) -> Service:
 
-        # soon photo func for code in bytes 64
+        # soon photo func for code in bytes 64 | rev true
         updating_service = Service(
             id=service_id,
             **service_update_data.model_dump(exclude_none=True, exclude_unset=True)
@@ -202,3 +202,5 @@ def get_service_repository(
     session: AsyncSession = Depends(db_config.session)
 ) -> ServiceRepository:
     return ServiceRepository(session)
+
+#demo hold mvp confirm

@@ -68,3 +68,5 @@ class ScheduleTemplateDetailResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+#demo hold mvp confirm

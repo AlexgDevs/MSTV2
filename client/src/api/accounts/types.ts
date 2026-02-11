@@ -36,5 +36,7 @@ export interface AccountResponse {
     created_at: string;
     updated_at: string;
     user_id: number;
+    balance: number;
+    frozen_balance: number;
 }
 

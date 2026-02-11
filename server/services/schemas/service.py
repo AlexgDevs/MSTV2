@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, List, Literal, Dict
+from typing import Any, List, Literal, Dict, Optional
 
 from pydantic import BaseModel
 
@@ -34,11 +34,11 @@ class CreateServiceModel(BaseModel):
 
 
 class PatchServiceModel(BaseModel):
-    title: str | None = None
-    description: str | None = None
-    price: int | None = None
-    photo: str | None = None
-    certificate: str | None = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[int] = None
+    photo: Optional[str] = None
+    certificate: Optional[str] = None
 
 
 class ServiceResponse(BaseModel):
@@ -109,3 +109,5 @@ class DetailServiceResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+#demo hold mvp confirm

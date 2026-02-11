@@ -13,7 +13,7 @@ from .dispute import dispute_app
 from .arbitrage import arbitrage_app
 from .common import lifespan, RateLimitMiddleware, db_config
 from .websockets import (
-    websocket_router, 
+    websocket_router,
     notification_routes,
     dispute_chat_websocket,
     service_chat_websocket,

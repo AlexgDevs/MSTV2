@@ -62,3 +62,5 @@ async def notifications_websocket(websocket: WebSocket):
                 notification_manager.disconnect(int(user.get('id')))
             except:
                 pass
+
+#demo hold mvp confirm

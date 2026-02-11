@@ -173,3 +173,5 @@ class ServiceChatRepository:
 def get_service_chat_repository(
         session: AsyncSession = Depends(db_config.session)) -> ServiceChatRepository:
     return ServiceChatRepository(session)
+
+#demo hold mvp confirm

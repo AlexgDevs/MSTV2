@@ -101,3 +101,5 @@ class Service(Base):
 
     chats: Mapped[List['ServiceChat']] = relationship(
         'ServiceChat', back_populates='service', cascade="all, delete-orphan")
+
+#demo hold mvp confirm

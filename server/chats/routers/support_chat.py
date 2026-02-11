@@ -62,3 +62,5 @@ async def delete_support_chat(
 ) -> dict:
     await support_chat_usecase.delete_support_chat(int(user.get('id')), chat_id)
     return {'status': 'deleted'}
+
+#demo hold mvp confirm

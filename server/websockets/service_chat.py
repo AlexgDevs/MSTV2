@@ -11,7 +11,6 @@ from starlette.websockets import WebSocketState
 MAX_MESSAGE_LENGTH = 1024  # Matches DB limit
 MAX_WEBSOCKET_MESSAGE_SIZE = 10000  # 10KB limit for JSON size
 
-
 async def service_chat_websocket(websocket: WebSocket, chat_id: int):
     user = None
 
@@ -39,7 +38,7 @@ async def service_chat_websocket(websocket: WebSocket, chat_id: int):
                 return
 
             user_role = user.get('role')
-            # Check access: client, master, or arbitrator/admin with dispute
+            #checked access: client master or arbitrator/admin with dispute
             has_access = False
 
             if chat.client_id == user_id or chat.master_id == user_id:
@@ -56,7 +55,7 @@ async def service_chat_websocket(websocket: WebSocket, chat_id: int):
                     )
                 )
                 if dispute:
-                    # If user is arbitrator, check that they are assigned to this dispute
+                    # if user is arbitrator check that they are assigned to this dispute
                     if user_role == 'arbitr' and dispute.arbitr_id != user_id:
                         has_access = False
                     else:
@@ -264,3 +263,5 @@ async def service_chat_websocket(websocket: WebSocket, chat_id: int):
                 service_chat_manager.disconnect(chat_id, int(user.get('id')))
             except:
                 pass
+
+#demo hold mvp confirm

@@ -37,3 +37,5 @@ async def verify_turnstile(token: str, remote_ip: str = None) -> bool:
         from .logger import logger
         logger.error(f'Ошибка при проверке Turnstile: {str(e)}')
         return True
+
+#demo hold mvp confirm

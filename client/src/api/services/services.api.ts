@@ -46,17 +46,23 @@ export const servicesApi = {
     ) => {
         const formData = new FormData();
         
-        if (data.title !== undefined) formData.append('title', data.title);
-        if (data.description !== undefined) formData.append('description', data.description);
-        if (data.price !== undefined) formData.append('price', data.price.toString());
+        if (data.title !== undefined && data.title !== null) formData.append('title', data.title);
+        if (data.description !== undefined && data.description !== null) formData.append('description', data.description);
+        if (data.price !== undefined && data.price !== null) formData.append('price', data.price.toString());
         
         // В обновлении также кидаем файлы только если юзер выбрал новые
         if (photoFile) {
             formData.append('photo', photoFile);
+        } else if (data.photo) {
+            // Если файл не выбран, но есть URL фото, передаем его
+            formData.append('photo_url', data.photo);
         }
 
         if (certificateFile) {
             formData.append('certificate', certificateFile);
+        } else if (data.certificate) {
+            // Если файл не выбран, но есть URL сертификата, передаем его
+            formData.append('certificate_url', data.certificate);
         }
 
         if (data.existing_tags) formData.append('existing_tags', data.existing_tags);

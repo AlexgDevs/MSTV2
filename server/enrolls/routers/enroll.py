@@ -155,3 +155,5 @@ async def confirm_enroll_by_client(
         await Exceptions400.creating_error(str(result.get('detail')))
 
     return {'status': 'success', 'enroll_status': result.status}
+
+#demo hold mvp confirm

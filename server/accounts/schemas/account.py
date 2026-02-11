@@ -43,6 +43,8 @@ class AccountResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     user_id: int
+    balance: float
+    frozen_balance: float
 
     class Config:
         from_attributes = True

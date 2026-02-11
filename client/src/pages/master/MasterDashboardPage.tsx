@@ -269,6 +269,30 @@ export const MasterDashboardPage: React.FC = () => {
         setServicePhotoPreview(serviceForm.photo || null);
     }, [servicePhotoFile, serviceForm.photo]);
 
+    useEffect(() => {
+        if (serviceCertificateFile) {
+            const objectUrl = URL.createObjectURL(serviceCertificateFile);
+            setServiceCertificatePreview(objectUrl);
+            return () => URL.revokeObjectURL(objectUrl);
+        }
+        // Если есть URL сертификата в форме, используем его для превью
+        if (serviceForm.certificate) {
+            // Проверяем, это URL или base64
+            if (serviceForm.certificate.startsWith('http') || serviceForm.certificate.startsWith('data:') || serviceForm.certificate.startsWith('blob:')) {
+                setServiceCertificatePreview(serviceForm.certificate);
+            } else {
+                // Если это относительный путь, формируем полный URL
+                const baseStatic =
+                    import.meta.env.VITE_STATIC_URL ||
+                    import.meta.env.VITE_API_URL?.replace('/api/v1', '') ||
+                    '';
+                setServiceCertificatePreview(`${baseStatic}${serviceForm.certificate}`);
+            }
+        } else {
+            setServiceCertificatePreview('');
+        }
+    }, [serviceCertificateFile, serviceForm.certificate]);
+
     const {
         schedule,
         isLoading: isScheduleLoading,
@@ -478,7 +502,7 @@ export const MasterDashboardPage: React.FC = () => {
             if (editingService) {
                 // Редактирование существующей услуги
                 await servicesApi.update(
-                    editingService.id, // Убедись, что передаешь именно ID, а не объект
+                    editingService, // editingService уже является ID (number)
                     {
                         title: serviceForm.title.trim(),
                         description: serviceForm.description.trim(),
@@ -539,11 +563,20 @@ export const MasterDashboardPage: React.FC = () => {
             description: service.description,
             price: service.price.toString(),
             photo: service.photo || '',
-            certificate: ''
+            certificate: service.certificate || '' // Сохраняем текущий URL, чтобы не затереть пустым значением
         });
+        
+        // Сбрасываем выбранные ФАЙЛЫ, так как новые еще не выбраны
+        setServicePhotoFile(null);
+        setServiceCertificateFile(null); 
+        
+        // Подтягиваем теги, если они есть
+        if (service.tags) {
+            setSelectedTags(service.tags.map((t: any) => t.title));
+        }
+        
         setIsCreatingService(true);
         setServiceFormError(null);
-        setServicePhotoFile(null);
     };
 
     const handleCancelServiceForm = () => {
@@ -557,6 +590,8 @@ export const MasterDashboardPage: React.FC = () => {
             certificate: ''
         });
         setServicePhotoFile(null);
+        setServiceCertificateFile(null);
+        setServiceCertificatePreview('');
         setSelectedTags([]);
         setCustomTags('');
         setServiceFormError(null);
@@ -976,11 +1011,17 @@ export const MasterDashboardPage: React.FC = () => {
 
                                     {(serviceCertificateFile || serviceForm.certificate) && (
                                         <div className="file-actions">
+                                            {serviceCertificateFile && (
+                                                <span className="file-info">
+                                                    Выбран файл: {serviceCertificateFile.name}
+                                                </span>
+                                            )}
                                             <button
                                                 type="button"
                                                 onClick={() => {
                                                     setServiceCertificateFile(null);
                                                     setServiceForm(prev => ({ ...prev, certificate: '' }));
+                                                    setServiceCertificatePreview('');
                                                 }}
                                                 className="file-remove-btn"
                                             >

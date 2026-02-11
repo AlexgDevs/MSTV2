@@ -25,3 +25,5 @@ class ScheduleTemplate(Base):
     service_id: Mapped[int] = mapped_column(ForeignKey('services.id'))
     service: Mapped['Service'] = relationship(
         'Service', back_populates='templates', uselist=False)
+
+#demo hold mvp confirm

@@ -213,3 +213,5 @@ async def support_chat_websocket(websocket: WebSocket, chat_id: int):
                 support_chat_manager.disconnect(chat_id, int(user.get('id')))
             except:
                 pass
+
+#demo hold mvp confirm

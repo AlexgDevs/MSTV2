@@ -146,3 +146,5 @@ async def delete_template(
         await Exceptions400.creating_error(str(result.get('detail')))
 
     return {'status': 'deleted'}
+
+#demo hold mvp confirm

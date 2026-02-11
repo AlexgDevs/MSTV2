@@ -54,3 +54,5 @@ class Payment(Base):
     paid_at: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
 
     confirmation_url: Mapped[str] = mapped_column(Text, nullable=True)
+
+#demo hold mvp confirm

@@ -207,5 +207,4 @@ class JWTManager:
     async def admin_required(request: Request):
         return await JWTManager.current_user(request, is_admin=True)
 
-
-
+#demo hold mvp confirm

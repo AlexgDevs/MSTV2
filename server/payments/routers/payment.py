@@ -164,14 +164,12 @@ async def confirm_service_completion(
     payment_usecase: PaymentUseCase = Depends(get_payment_usecase),
     user=Depends(JWTManager.auth_required)
 ):
-    # Вызываем метод, который мы интегрировали в UseCase
     result = await payment_usecase.confirm_completion(
         enroll_id=enroll_id,
         user_id=int(user.get('id'))
     )
 
     if result.get('status') == 'error':
-        # Если, например, это не тот юзер или денег нет в холде
         await Exceptions400.creating_error(
             result.get('detail', 'Completion confirmation error')
         )
@@ -180,3 +178,5 @@ async def confirm_service_completion(
         'status': 'success',
         'message': 'Funds released to the master balance'
     }
+
+#demo hold mvp confirm

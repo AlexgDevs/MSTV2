@@ -8,7 +8,6 @@ load_dotenv()
 JWT_SECRET = getenv('JWT_SECRET')
 ALGORITHM = getenv('ALGORITHM')
 
-
 async def get_user_from_websocket(websocket: WebSocket) -> dict:
     token = websocket.query_params.get('token')
 
@@ -61,3 +60,5 @@ async def get_user_from_websocket(websocket: WebSocket) -> dict:
             code=status.WS_1008_POLICY_VIOLATION,
             reason=f"Invalid token: {str(e)}"
         )
+
+#demo hold mvp confirm

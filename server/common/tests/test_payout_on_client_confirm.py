@@ -20,8 +20,7 @@ class FakePayment:
 @pytest.mark.asyncio
 async def test_process_payout_for_completed_enroll_captures_then_runs_orchestrator(monkeypatch):
     """
-    Сценарий: клиент подтвердил выполнение -> enroll.completed -> запускается payout.
-    Если платеж в YooKassa waiting_for_capture, сначала делаем capture, потом запускаем оркестратор.
+    check safe deal protect
     """
     from server.payments.usecases.payment_usecase import PaymentUseCase
     import server.payments.usecases.payment_usecase as payment_usecase_mod
@@ -75,7 +74,7 @@ async def test_process_payout_for_completed_enroll_captures_then_runs_orchestrat
 @pytest.mark.asyncio
 async def test_confirm_enroll_by_client_triggers_payment_usecase(monkeypatch):
     """
-    Сценарий: клиент подтверждает (enroll.ready -> enroll.completed) и вызывается PaymentUseCase.process_payout_for_completed_enroll.
+    sucess client, change status PaymentUseCase.process_payout_for_completed_enroll.
     """
     from server.enrolls.usecases.booking_usecase import BookingUseCase
 
@@ -85,7 +84,7 @@ async def test_confirm_enroll_by_client_triggers_payment_usecase(monkeypatch):
         get_by_id=AsyncMock(return_value=enroll),
     )
 
-    # В confirm_enroll_by_client не проверяется service ownership, но updated_enroll читается снова
+    #confirm_enroll_by_client не проверяется service ownership но updated_enroll читается снова
     enroll_repo.get_by_id.side_effect = [enroll, SimpleNamespace(
         id=10, user_id=77, status="completed", service_id=5)]
 
@@ -114,3 +113,5 @@ async def test_confirm_enroll_by_client_triggers_payment_usecase(monkeypatch):
     assert updated.status == "completed"
     payment_usecase.process_payout_for_completed_enroll.assert_awaited_once_with(
         10)
+
+#demo hold mvp confirm

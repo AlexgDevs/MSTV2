@@ -25,3 +25,5 @@ def check_all_dates_schedule_on_expire():
 # celery -A server.common.tasks worker --pool=solo --loglevel=info
 #Beat
 # celery -A server.common.tasks beat --loglevel=info
+
+#demo hold mvp confirm

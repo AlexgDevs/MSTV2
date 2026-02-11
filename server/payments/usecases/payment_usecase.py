@@ -158,6 +158,8 @@ class PaymentUseCase:
                 "deal_status": yookassa_deal.get("status"),
                 "seller_amount": seller_amount,
                 "platform_fee": aggregated.get("platform_amount"),
+                # важно для confirm_completion / холда
+                "seller_id": service.user_id,
             }
 
             payment = await self._payment_repository.create_payment(
@@ -223,22 +225,31 @@ class PaymentUseCase:
             # 3. Достаем цифры из метаданных и переносим деньги из frozen в основной баланс,
             #    но не ломаем флоу, если аккаунта мастера или замороженных средств нет.
             meta = ast.literal_eval(payment.payment_metadata or "{}")
-            seller_id = int(meta.get("seller_id", 0)) if meta.get("seller_id") else None
+
+            # seller_id может быть как в верхнем уровне, так и внутри yookassa_metadata
+            raw_seller_id = meta.get("seller_id")
+            if not raw_seller_id:
+                yk_meta = meta.get("yookassa_metadata") or {}
+                raw_seller_id = yk_meta.get("seller_id")
+
+            seller_id = int(raw_seller_id) if raw_seller_id else None
             seller_amount = Decimal(str(meta.get("seller_amount", 0)))
 
             seller = None
             if seller_id:
                 seller = await self._payment_repository.get_seller_id(seller_id)
 
-            if seller and seller.account:
-                amount_to_release = min(seller.account.frozen_balance, seller_amount)
-                if amount_to_release > 0:
-                    seller.account.frozen_balance -= amount_to_release
-                    seller.account.balance += amount_to_release
-            else:
-                logger.warning("Seller account not found during confirm_completion")
+            # В ДЕМО-РЕЖИМЕ не трогаем реальные балансы в базе,
+            # только эмулируем успешное завершение сделки через статусы.
+            if DEMO_PAYMENTS_ENABLED:
+                if seller and seller.account:
+                    amount_to_release = min(seller.account.frozen_balance, seller_amount)
+                    if amount_to_release > 0:
+                        seller.account.frozen_balance -= amount_to_release
+                        seller.account.balance += amount_to_release
+                else:
+                    logger.warning("Seller account not found during confirm_completion")
 
-            # Финальный статус платежа и записи в системе
             payment.status = "closed"
             payment.enroll.status = "completed"
 
@@ -316,18 +327,28 @@ class PaymentUseCase:
         if enroll:
             enroll.status = "paid"  # Работа оплачена, деньги в холде
 
-        # 2. Замораживаем деньги на аккаунте мастера
+        # 2. Замораживаем деньги на аккаунте мастера (кроме демо-режима)
         try:
-            meta = ast.literal_eval(payment.payment_metadata or "{}")
-            seller_id = int(meta.get("seller_id"))
-            seller_amount = Decimal(str(meta.get("seller_amount", 0)))
+            if DEMO_PAYMENTS_ENABLED:
+                meta = ast.literal_eval(payment.payment_metadata or "{}")
 
-            seller = await self._payment_repository.get_seller_id(seller_id)
-            if seller and seller.account:
-                seller.account.frozen_balance += seller_amount
-                logger.info(f"Frozen {seller_amount} for master {seller_id}")
+                raw_seller_id = meta.get("seller_id")
+                if not raw_seller_id:
+                    yk_meta = meta.get("yookassa_metadata") or {}
+                    raw_seller_id = yk_meta.get("seller_id")
+
+                seller_id = int(raw_seller_id) if raw_seller_id else None
+                seller_amount = Decimal(str(meta.get("seller_amount", 0)))
+
+                if seller_id:
+                    seller = await self._payment_repository.get_seller_id(seller_id)
+                    if seller and seller.account:
+                        seller.account.frozen_balance += seller_amount
+                        logger.info(f"Frozen {seller_amount} for master {seller_id}")
         except Exception as e:
             logger.error(f"Error during balance freezing: {e}")
+
+    # REAL SAFE DEAL CODE ON COMMENT
     # async def handle_webhook(self, webhook_data: Dict[str, Any]) -> Dict[str, Any]:
     #     try:
     #         event = webhook_data.get('event')
@@ -435,12 +456,13 @@ class PaymentUseCase:
     #             'detail': f'Webhook processing error: {str(e)}'
     #         }
 
+    # REAL CODE SAFE DEAL
     async def _background_process_deal_closure(self, yookassa_payment_id):
         """
-        Закрытие сделки в фоновом режиме после подтверждения клиентом
+        закрытие сделки в фоновом режиме после подтверждения клиентом
         При закрытии сделки автоматически распределяются средства:
         - Продавцу переводится его доля
-        - Платформе начисляется комиссия (10%)
+        - Платформе начисляется комиссия (10%) ну или как будет прописано в договоре с агрегатором
         """
         try:
             result = await yookassa_process_deal_closure(yookassa_payment_id)
@@ -631,3 +653,5 @@ def get_payment_usecase(
     payment_repository: PaymentRepository = Depends(get_payment_repository)
 ) -> PaymentUseCase:
     return PaymentUseCase(session, payment_repository)
+
+#demo hold mvp confirm

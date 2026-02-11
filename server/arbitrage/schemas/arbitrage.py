@@ -11,3 +11,5 @@ class TakeDisputeModel(BaseModel):
 class ResolveDisputeModel(BaseModel):
     dispute_id: int
     winner_type: WinnerTypes
+
+#demo hold mvp confirm

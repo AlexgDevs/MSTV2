@@ -52,6 +52,7 @@ export interface CreateServiceModel {
     description: string;
     price: number;
     photo: string;
+    certificate: string;
 }
 
 export interface PatchServiceModel {
@@ -59,4 +60,5 @@ export interface PatchServiceModel {
     description?: string | null;
     price?: number | null;
     photo?: string | null;
+    certificate?: string | null;
 }

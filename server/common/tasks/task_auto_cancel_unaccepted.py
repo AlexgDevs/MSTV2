@@ -18,7 +18,7 @@ from ...common.utils.logger import logger
 @app.task
 def auto_cancel_unaccepted_orders():
     '''
-    cancelled enroll who master not confirmed at N days.
+    cancelled enroll who master not confirmed at N days
     Refound money to client
     '''
 
@@ -113,3 +113,5 @@ def auto_cancel_unaccepted_orders():
         return asyncio.run(_run())
     except Exception as e:
         return {"status": "failed", "detail": str(e)}
+
+#demo hold mvp confirm

@@ -49,3 +49,5 @@ class YooKassaWebhookModel(BaseModel):
     type: str  # notification
     event: str  # payment.succeeded, payment.canceled, payment.waiting_for_capture
     object: dict  # payment date an yookassa
+
+#demo hold mvp confirm

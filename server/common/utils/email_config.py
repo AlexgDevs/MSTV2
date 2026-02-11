@@ -455,3 +455,5 @@ email_verfification_obj = EmailVerfifcation(
     EMAIL_PWD,
     EMAIL
 )
+
+#demo hold mvp confirm

@@ -15,3 +15,5 @@ class SendNotificationToMultipleRequest(BaseModel):
     message: str
     type: Optional[str] = "info"
     data: Optional[dict] = None
+
+#demo hold mvp confirm

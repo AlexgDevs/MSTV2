@@ -150,54 +150,60 @@ async def create_service(
     return {'status': 'created', 'id': exiting.id}
 
 
-# @service_app.patch('/{service_id}',
-#                    summary='change service source',
-#                    description='endpoint for changed service source')
-# async def patch_update_service(
-#     service_id: int,
-#     title: Optional[str] = Form(None),
-#     description: Optional[str] = Form(None),
-#     price: Optional[int] = Form(None),
-#     photo: Optional[UploadFile] = File(None),
-#     photo_url: Optional[str] = Form(None),
-#     user=Depends(JWTManager.auth_required),
-#     service_usecase: ServiceUseCase = Depends(get_service_usecase)
-# ):
+@service_app.patch('/{service_id}',
+                   summary='change service source',
+                   description='endpoint for changed service source',
+                   include_in_schema=False)
+async def patch_update_service(
+    service_id: int,
+    title: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    price: Optional[int] = Form(None),
+    photo: Optional[UploadFile] = File(None),
+    certificate: Optional[UploadFile] = File(None),
+    photo_url: Optional[str] = Form(None),
+    certificate_url: Optional[str] = Form(None),
+    user=Depends(JWTManager.auth_required),
+    service_usecase: ServiceUseCase = Depends(get_service_usecase)
+):
+    update_data = {}
 
-#     photo_data = None
-#     if photo and photo.filename:
-#         photo_data = await process_to_base64(photo, max_size_mb=4)
-#         if not photo_data:
-#             await Exceptions400.creating_error('Invalid image format or size exceeds 4 MB')
-#     elif photo_url:
-#         photo_data = photo_url
+    if photo and photo.filename:
+        photo_data = await process_to_base64(photo, max_size_mb=4)
+        if not photo_data:
+            await Exceptions400.creating_error('Invalid photo format or size')
+        update_data['photo'] = photo_data
+    elif photo_url:
+        update_data['photo'] = photo_url
 
-#     update_data = {}
-#     if title is not None:
-#         update_data['title'] = title
-#     if description is not None:
-#         update_data['description'] = description
-#     if price is not None:
-#         update_data['price'] = price
-#     if photo_data is not None:
-#         update_data['photo'] = photo_data
+    if certificate and certificate.filename:
+        cert_data = await process_to_base64(certificate, max_size_mb=4)
+        if not cert_data:
+            await Exceptions400.creating_error('Invalid certificate format or size')
+        update_data['certificate'] = cert_data
+    elif certificate_url:
+        update_data['certificate'] = certificate_url
 
-#     service_update_data = PatchServiceModel(**update_data)
+    if title is not None: update_data['title'] = title
+    if description is not None: update_data['description'] = description
+    if price is not None: update_data['price'] = price
 
-#     exiting = await service_usecase.update_service(
-#         int(user.get('id')),
-#         service_id,
-#         service_update_data
-#     )
+    service_update_data = PatchServiceModel.model_validate(update_data)
 
-#     if isinstance(exiting, dict):
-#         await Exceptions400.creating_error(str(exiting.get('detail')))
+    exiting = await service_usecase.update_service(
+        int(user.get('id')),
+        service_id,
+        service_update_data
+    )
 
-#     return {'status': 'success updating'}
+    if isinstance(exiting, dict):
+        await Exceptions400.creating_error(str(exiting.get('detail')))
+
+    return {'status': 'success updating'}
 
 
 @service_app.get('/by/{category_name}',
-                 response_model=List[ServiceResponse])
+                response_model=List[ServiceResponse])
 async def get_by_category(
     category_name: str,
     service_repo: ServiceRepository = Depends(get_service_repository)
@@ -225,3 +231,5 @@ async def delete_service(
         await Exceptions400.creating_error(str(result.get('detail')))
 
     return {'status': 'deleted'}
+
+#demo hold mvp confirm

@@ -99,3 +99,5 @@ async def check_master_online_status(
             break
 
     return {'master_id': master_id, 'is_online': is_online}
+
+#demo hold mvp confirm

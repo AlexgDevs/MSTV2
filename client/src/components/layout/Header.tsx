@@ -1,8 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/auth.store';
+import { accountsApi } from '../../api/accounts/accounts.api';
+import type { AccountResponse } from '../../api/accounts/types';
 import { cn } from '../../utils/cn';
 import '../../assets/styles/Header.css';
+
+const priceFormatter = new Intl.NumberFormat('ru-RU', {
+    style: 'currency',
+    currency: 'RUB',
+    maximumFractionDigits: 0
+});
 
 export const Header: React.FC = () => {
     const { user, isAuthenticated, logout } = useAuthStore();
@@ -12,6 +20,8 @@ export const Header: React.FC = () => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLButtonElement>(null);
+    const [account, setAccount] = useState<AccountResponse | null>(null);
+    const [isLoadingAccount, setIsLoadingAccount] = useState(false);
 
     const handleLogout = async () => {
         await logout();
@@ -58,6 +68,34 @@ export const Header: React.FC = () => {
     useEffect(() => {
         setIsDropdownOpen(false);
     }, [location.pathname]);
+
+    // Загрузка баланса счета мастера
+    useEffect(() => {
+        const loadAccount = async () => {
+            if (!isAuthenticated || !user) {
+                setAccount(null);
+                return;
+            }
+
+            // Загружаем счет только если пользователь может быть мастером
+            // (не админ и не арбитр, или если у него есть услуги)
+            setIsLoadingAccount(true);
+            try {
+                const response = await accountsApi.get();
+                setAccount(response.data);
+            } catch (error: any) {
+                // Если счет не создан (404), это нормально - просто не показываем баланс
+                if (error?.response?.status !== 404) {
+                    console.error('Error loading account:', error);
+                }
+                setAccount(null);
+            } finally {
+                setIsLoadingAccount(false);
+            }
+        };
+
+        loadAccount();
+    }, [isAuthenticated, user]);
 
     return (
         <header className="header">
@@ -141,6 +179,19 @@ export const Header: React.FC = () => {
 
                     {/* Правая часть */}
                     <div className="header-right">
+                        {isAuthenticated && account && (
+                            <div className="header-balance">
+                                <div className="balance-label">Баланс:</div>
+                                <div className="balance-amount">
+                                    {priceFormatter.format(account.balance)}
+                                </div>
+                                {account.frozen_balance > 0 && (
+                                    <div className="balance-frozen">
+                                        Заморожено: {priceFormatter.format(account.frozen_balance)}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         {isAuthenticated ? (
                             <div className="user-menu">
                                 <button

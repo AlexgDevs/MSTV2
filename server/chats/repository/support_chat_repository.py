@@ -102,3 +102,5 @@ class SupportChatRepository:
 def get_support_chat_repository(
     session: AsyncSession = Depends(db_config.session)) -> SupportChatRepository:
     return SupportChatRepository(session)
+
+#demo hold mvp confirm

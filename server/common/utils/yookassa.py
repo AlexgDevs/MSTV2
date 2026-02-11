@@ -766,14 +766,13 @@ async def create_payment(
     deal_id: str,
     seller_amount: float,
     metadata: Optional[Dict[str, Any]] = None,
-    capture: bool = True, # Для теста лучше сразу True
+    capture: bool = True,
 ) -> Dict[str, Any]:
     check_yukass_credentials()
 
     try:
         amount_str = format_for_yookassa(Decimal(str(amount)))
         
-        # Базовая структура платежа
         payment_data = {
             "amount": {"value": amount_str, "currency": "RUB"},
             "confirmation": {"type": "redirect", "return_url": return_url},
@@ -782,7 +781,7 @@ async def create_payment(
             "metadata": metadata or {}
         }
 
-        # Если deal_id реальный (не эмулированный), добавляем привязку к БС
+        # real dl
         if not deal_id.startswith("dl-emul-"):
             seller_amount_str = format_for_yookassa(Decimal(str(seller_amount)))
             payment_data["deal"] = {
@@ -793,7 +792,7 @@ async def create_payment(
                 }]
             }
         else:
-            # Помечаем в метаданных, что это эмуляция БС для вебхуков
+            #emul bs
             payment_data["metadata"]["emulated_deal_id"] = deal_id
             payment_data["metadata"]["seller_amount"] = str(seller_amount)
 
@@ -810,20 +809,18 @@ async def create_payment(
         logger.error(f"Error creating payment: {e}")
         raise
 
-### ЛОГИКА ДЛЯ ТВОЕГО ВЕБХУКА ИЛИ ОБРАБОТЧИКА ЗАВЕРШЕНИЯ ###
+# WEBHOOK LOGIC
 
 async def complete_order_and_payout(order_id: str, master_id: str, amount: float):
     '''
-    Эту функцию ты вызываешь, когда клиент подтверждает выполнение работы.
-    В реальной БС тут был бы вызов Payout API, а для конкурса мы просто обновляем БД.
+    call when user confirm order
     '''
     try:
-        # Здесь будет твой вызов к репозиторию/базе данных
-        # await payment_repository.add_to_balance(master_id, amount)
-        # await payment_repository.update_order_status(order_id, 'completed')
-        
+        #  calling to repository
         logger.info(f"Successfully credited {amount} to master {master_id} (Emulation)")
         return True
     except Exception as e:
         logger.error(f"Failed to update balance: {e}")
         return False
+
+#demo hold mvp confirm

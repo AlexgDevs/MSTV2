@@ -160,10 +160,6 @@ async def check_auth_status(user=Depends(JWTManager.auth_required)):
               summary='get token for websocket',
               description='endpoint for getting access token for WebSocket connection')
 async def get_ws_token(user=Depends(JWTManager.auth_required)):
-    """
-    Возвращает access token для использования в WebSocket соединениях.
-    Токен можно передать через query параметр ?token=...
-    """
     # Create new token for WebSocket (can use existing one from cookies)
     user_token_data = {
         'id': user.get('id'),
@@ -200,3 +196,5 @@ async def verified_email(
         await Exceptions400.creating_error(str(exiting.get('detail')))
 
     return {'status': 'verifed success'}
+
+#demo hold mvp confirm

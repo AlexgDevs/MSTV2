@@ -82,6 +82,39 @@
     gap: var(--spacing-md, 1rem);
 }
 
+/* Блок баланса */
+.header-balance {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    padding: 0.5rem 1rem;
+    background: var(--color-gray-50, #FAFAFA);
+    border-radius: var(--radius-md, 0.5rem);
+    border: 1px solid var(--color-gray-200, #E5E5E5);
+    min-width: 140px;
+}
+
+.balance-label {
+    font-size: 0.75rem;
+    color: var(--color-gray-600, #525252);
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+}
+
+.balance-amount {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-black, #0A0A0A);
+    line-height: 1.2;
+}
+
+.balance-frozen {
+    font-size: 0.6875rem;
+    color: var(--color-gray-500, #737373);
+    margin-top: 0.25rem;
+    line-height: 1.2;
+}
+
 /* Кнопки входа/регистрации */
 .auth-buttons {
     display: flex;
