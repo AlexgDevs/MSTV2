@@ -22,6 +22,7 @@ FROM python:3.13-slim
 # Install supervisor and build dependencies
 RUN apt-get update && apt-get install -y \
     supervisor \
+    redis-server \
     gcc \
     g++ \
     libffi-dev \
