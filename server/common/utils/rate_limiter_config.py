@@ -12,6 +12,8 @@ from redis.asyncio import Redis
 
 load_dotenv()
 
+from ..db import db_config
+
 
 REDIS_URL = getenv('REDIS_BACKEND', 'redis://localhost:6379/0')
 DEFAULT_RATE_LIMIT = getenv('DEFAULT_RATE_LIMITER', '1/hour')
@@ -103,8 +105,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
 @asynccontextmanager
 async def lifespan(app) -> AsyncGenerator:
+    # Initialize database
+    await db_config.up()
+    # Initialize rate limiter
     await init_rate_limiter()
     yield
+    # Cleanup
     await close_rate_limiter()
 
 #demo hold mvp confirm

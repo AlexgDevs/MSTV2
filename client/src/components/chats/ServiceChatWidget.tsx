@@ -7,6 +7,14 @@ import './ServiceChatWidget.css';
 
 const getWebSocketUrl = (chatId: number, token?: string): string => {
     try {
+        // In production, use relative WebSocket URL (same host/port as frontend)
+        if (import.meta.env.PROD && !import.meta.env.VITE_API_URL) {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const url = `${wsProtocol}//${window.location.host}/ws/service-chats/${chatId}`;
+            return token ? `${url}?token=${encodeURIComponent(token)}` : url;
+        }
+        
+        // Development or when VITE_API_URL is set
         const apiUrl = import.meta.env.VITE_API_URL || 
             `${window.location.protocol}//${window.location.hostname}:8000/api/v1`;
         

@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from server import (
@@ -33,14 +34,10 @@ app = FastAPI(
 
 app.add_middleware(RateLimitMiddleware)
 
-# CORS configuration
-ALLOWED_ORIGINS = getenv('ALLOWED_ORIGINS', 'http://localhost:5173').split(',')
-if ENVIRONMENT == 'production':
-    ALLOWED_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS]
-
+# CORS configuration - allow all origins for production deployment
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -101,12 +98,15 @@ async def health_check():
         )
 
 
-async def start_db():
-    await db_config.up()
+# Serve React static files - must be after all routes
+try:
+    app.mount("/", StaticFiles(directory="client/dist", html=True), name="static")
+except RuntimeError:
+    # Directory might not exist during development
+    pass
 
 
 if __name__ == '__main__':
-    run(start_db())
     uvicorn.run('run_server:app', reload=True)
 
 

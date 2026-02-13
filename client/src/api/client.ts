@@ -1,9 +1,11 @@
 import axios, { AxiosError } from 'axios';
 import type { InternalAxiosRequestConfig } from 'axios';
 
+// Use relative path for API requests when deployed (same port as frontend)
+// Fallback to environment variable or default for development
 const API_BASE_URL =
     import.meta.env.VITE_API_URL ||
-    `${window.location.protocol}//${window.location.hostname}:8000/api/v1`;
+    (import.meta.env.PROD ? '/api/v1' : `${window.location.protocol}//${window.location.hostname}:8000/api/v1`);
 
 export const API = axios.create({
     baseURL: API_BASE_URL,
