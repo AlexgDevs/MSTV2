@@ -1,9 +1,11 @@
-version: 1
+meta:
+  environment: docker
+  toolchain:
+    name: docker
+    version: latest
 
 build:
   dockerfile: Dockerfile
-  context: .
-  branch: main
 
 deploy:
   restart: always
