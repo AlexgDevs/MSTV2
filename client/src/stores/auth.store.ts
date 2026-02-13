@@ -103,7 +103,8 @@ export const useAuthStore = create<AuthStore>((set) => ({
             });
         } catch (error) {
             // Если не удалось получить данные, проверяем авторизацию
-            await checkAuth();
+            // eslint-disable-next-line @typescript-eslint/no-use-before-define
+            await useAuthStore.getState().checkAuth();
         }
     }
 }));

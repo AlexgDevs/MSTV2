@@ -1,8 +1,6 @@
 import { API } from '../client';
 import type { CreateEnrollModel, EnrollResponse } from './types';
 
-import type { EnrollResponse } from './types';
-
 export const enrollsApi = {
     create: (data: CreateEnrollModel) =>
         API.post<{ status: string; enroll_id: number }>('/enrolls', data),
