@@ -8,7 +8,7 @@ COPY client/package.json ./
 COPY client/package-lock.json* ./
 
 # Install dependencies
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+RUN if [ -f package-lock.json ]; then npm ci --legacy-peer-deps; else npm install --legacy-peer-deps; fi
 
 # Copy source code
 COPY client/ ./
@@ -17,7 +17,7 @@ COPY client/ ./
 RUN npm run build
 
 # Stage 2: Python backend with supervisor
-FROM python:3.10-slim
+FROM python:3.13-slim
 
 # Install supervisor and build dependencies
 RUN apt-get update && apt-get install -y \
@@ -36,6 +36,7 @@ RUN pip install --no-cache-dir poetry
 # Copy pyproject.toml and install Python dependencies
 COPY pyproject.toml ./
 RUN poetry config virtualenvs.create false && \
+    poetry config installer.max-workers 10 && \
     poetry install --no-dev --no-interaction --no-ansi
 
 # Copy supervisord config
