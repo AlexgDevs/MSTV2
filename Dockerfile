@@ -40,7 +40,7 @@ COPY pyproject.toml poetry.lock* ./
 # Установка зависимостей через новый синтаксис Poetry 2.x
 RUN poetry config virtualenvs.create false && \
     poetry config installer.max-workers 10 && \
-    poetry install --only main --no-interaction --no-ansi
+    poetry install --only main --no-interaction --no-ansi --no-root
 
 # Копируем конфигурацию supervisor
 COPY supervisord.conf /app/supervisord.conf
