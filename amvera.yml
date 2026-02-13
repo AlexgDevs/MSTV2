@@ -3,7 +3,7 @@ version: 1
 build:
   dockerfile: Dockerfile
   context: .
-  branch: dev
+  branch: main
 
 deploy:
   restart: always
