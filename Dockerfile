@@ -30,33 +30,36 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Install poetry
-RUN pip install --no-cache-dir poetry
+# Install poetry (фиксируем версию для стабильности)
+RUN pip install --no-cache-dir "poetry>=2.0.0"
 
-# Copy pyproject.toml and install Python dependencies
-COPY pyproject.toml ./
+# Копируем ОБА файла конфигурации зависимостей
+# Это важно для идентичности сборок
+COPY pyproject.toml poetry.lock* ./
+
+# Установка зависимостей через новый синтаксис Poetry 2.x
 RUN poetry config virtualenvs.create false && \
     poetry config installer.max-workers 10 && \
-    poetry install --no-dev --no-interaction --no-ansi
+    poetry install --only main --no-interaction --no-ansi
 
-# Copy supervisord config
+# Копируем конфигурацию supervisor
 COPY supervisord.conf /app/supervisord.conf
 
-# Copy backend code
+# Копируем код сервера и миграции
 COPY server/ ./server/
 COPY run_server.py ./
 COPY migrations/ ./migrations/
 COPY alembic.ini ./
 
-# Copy built frontend from Stage 1
+# Копируем билд фронтенда из первого этапа
 COPY --from=frontend-builder /app/client/dist ./client/dist
 
-# Set environment variables
+# Настройки окружения
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
-# Expose port 80
+# Открываем порт
 EXPOSE 80
 
-# Start supervisor
+# Запуск через supervisor
 CMD ["/usr/bin/supervisord", "-c", "/app/supervisord.conf"]
