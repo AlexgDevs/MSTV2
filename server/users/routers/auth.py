@@ -50,11 +50,11 @@ async def registered_user(
     guest=Depends(JWTManager.not_auth_required),
     user_use_case: UserUseCase = Depends(get_user_use_case)
 ) -> dict:
-    if user_data.recaptcha_token:
-        client_ip = request.client.host if request.client else None
-        is_valid = await verify_turnstile(user_data.recaptcha_token, client_ip)
-        if not is_valid:
-            await Exceptions400.creating_error('Invalid auth security')
+    # if user_data.recaptcha_token:
+    #     client_ip = request.client.host if request.client else None
+    #     is_valid = await verify_turnstile(user_data.recaptcha_token, client_ip)
+    #     if not is_valid:
+    #         await Exceptions400.creating_error('Invalid auth security')
 
     user_exit = user_data.model_dump(exclude={'recaptcha_token'})
     user_exit['password'] = pwd_context.hash(user_data.password)
