@@ -1,14 +1,15 @@
 import uvicorn
 from asyncio import run
-from os import getenv
+from os import getenv, path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
+
 
 from server import (
     db_config,
@@ -70,11 +71,6 @@ app.websocket("/ws/dispute-chats/{chat_id}")(dispute_chat_websocket)
 app.websocket("/ws/notifications")(notifications_websocket)
 
 
-@app.get('/')
-async def root():
-    return {'status': 'welcome', 'api': 'MSTV2 API', 'version': '1.0.0'}
-
-
 @app.get('/health')
 async def health_check():
     '''Health check endpoint for monitoring'''
@@ -99,12 +95,20 @@ async def health_check():
 
 
 # Serve React static files - must be after all routes
-try:
-    app.mount("/", StaticFiles(directory="client/dist", html=True), name="static")
-except RuntimeError:
-    # Directory might not exist during development
-    pass
+frontend_path = "/app/client/dist"
 
+if path.exists(frontend_path):
+    # Монтируем папку assets отдельно (для JS/CSS)
+    app.mount("/assets", StaticFiles(directory=f"{frontend_path}/assets"), name="static")
+
+    # Для всех остальных путей отдаем index.html (поддержка React Router)
+    @app.get("/{full_path:path}")
+    async def serve_react_app(full_path: str):
+        # Если запрос идет к API, FastAPI сам обработает его выше.
+        # Если мы дошли сюда, значит это путь для фронта.
+        return FileResponse(path.join(frontend_path, "index.html"))
+else:
+    print(f"Warning: Frontend directory {frontend_path} not found!")
 
 if __name__ == '__main__':
     uvicorn.run('run_server:app', reload=True)
