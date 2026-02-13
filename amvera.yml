@@ -3,6 +3,8 @@ version: 1
 build:
   dockerfile: Dockerfile
   context: .
+  branch: dev
 
 deploy:
   restart: always
+  port: 80
