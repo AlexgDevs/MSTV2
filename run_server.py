@@ -1,5 +1,4 @@
 import uvicorn
-from asyncio import run as async_run
 from os import getenv, path
 
 from dotenv import load_dotenv
@@ -116,11 +115,7 @@ if path.exists(frontend_path):
 else:
     print(f"Warning: Frontend directory {frontend_path} not found!")
 
-async def main():
-    await db_config.migrate()
-
 if __name__ == '__main__':
-    async_run(main())
     uvicorn.run('run_server:app', reload=True)
 
 
