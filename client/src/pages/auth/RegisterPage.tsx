@@ -72,7 +72,7 @@ export const RegisterPage: React.FC = () => {
         try {
             // Получаем токен Turnstile (в dev режиме вернется mock токен)
             const turnstileToken = await executeTurnstile('register');
-            
+
             if (!turnstileToken) {
                 setError('Не удалось пройти проверку безопасности. Пожалуйста, обновите страницу.');
                 setIsLoading(false);

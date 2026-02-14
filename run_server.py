@@ -1,5 +1,5 @@
 import uvicorn
-from asyncio import run
+from asyncio import run as async_run
 from os import getenv, path
 
 from dotenv import load_dotenv
@@ -35,10 +35,16 @@ app = FastAPI(
 
 app.add_middleware(RateLimitMiddleware)
 
-# CORS configuration - allow all origins for production deployment
+# CORS: с credentials нельзя использовать "*" — указываем конкретные origins
+ALLOWED_ORIGINS = [
+    o.strip() for o in getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000").split(",")
+    if o.strip()
+]
+if not ALLOWED_ORIGINS:
+    ALLOWED_ORIGINS = ["http://localhost:5173"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -110,7 +116,11 @@ if path.exists(frontend_path):
 else:
     print(f"Warning: Frontend directory {frontend_path} not found!")
 
+async def main():
+    await db_config.migrate()
+
 if __name__ == '__main__':
+    async_run(main())
     uvicorn.run('run_server:app', reload=True)
 
 

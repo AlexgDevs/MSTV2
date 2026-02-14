@@ -82,22 +82,30 @@ class UserUseCase:
         user_id: int,
         verified_code: str
     ) -> User | dict:
+        code = (verified_code or '').strip()
+        if not code:
+            return {'status': 'failed verified emaild', 'detail': 'Введите код подтверждения'}
 
         user = await self._user_repository.get_by_id(user_id)
         if not user:
             return {'status': 'failed verified emaild', 'detail': 'user not found'}
 
-        if user.verified_code != verified_code:
-            return {'status': 'failed verified emaild', 'detail': 'invalid code action'}
+        if not user.verified_code:
+            return {'status': 'failed verified emaild', 'detail': 'Код не был отправлен. Зарегистрируйтесь заново или запросите повторную отправку.'}
+
+        if (user.verified_code or '').strip() != code:
+            return {'status': 'failed verified emaild', 'detail': 'Неверный код подтверждения'}
 
         try:
-            new_user = User(id=user_id, verified_code=None, verified_email=True)
-            await self._session.merge(new_user)
+            user.verified_code = None
+            user.verified_email = True
             await self._session.commit()
-            return new_user
+            await self._session.refresh(user)
+            return user
         except SQLAlchemyError as e:
+            await self._session.rollback()
             logger.error('error', f'invalid verifed email, detail: {str(e)}')
-            return {'status': 'failed verified emaild', 'detail': 'invalid code action'}
+            return {'status': 'failed verified emaild', 'detail': 'Ошибка подтверждения. Попробуйте ещё раз.'}
 
 
 def get_user_use_case(

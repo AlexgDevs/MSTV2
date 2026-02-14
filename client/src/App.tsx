@@ -35,7 +35,7 @@ const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) 
         setIsInitialized(true);
       }
     };
-    
+
     initializeAuth();
   }, []); // Убираем checkAuth из зависимостей, чтобы не вызывать повторно
 
@@ -87,7 +87,7 @@ function App() {
               <LoginPage />
             </PublicRoute>
           } />
-          
+
 
           <Route path="/services/:serviceId" element={<ServiceDetailPage />} />
 
@@ -110,7 +110,7 @@ function App() {
               <VerifyEmailPage />
             </ProtectedRoute>
           } />
-          
+
           {/* Protected routes */}
           <Route path="/" element={
             <ProtectedRoute>
@@ -119,7 +119,7 @@ function App() {
               </Layout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/services" element={
             <ProtectedRoute>
               <Layout>
@@ -127,7 +127,7 @@ function App() {
               </Layout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/profile" element={
             <ProtectedRoute>
               <Layout>
@@ -135,7 +135,7 @@ function App() {
               </Layout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/master" element={
             <ProtectedRoute>
               <Layout>
@@ -143,7 +143,7 @@ function App() {
               </Layout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/chats" element={
             <ProtectedRoute>
               <Layout>
@@ -151,7 +151,7 @@ function App() {
               </Layout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/chats/:chatId" element={
             <ProtectedRoute>
               <Layout>
@@ -159,7 +159,7 @@ function App() {
               </Layout>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/arbitrage" element={
             <AdminRoute>
               <Layout>
@@ -167,7 +167,7 @@ function App() {
               </Layout>
             </AdminRoute>
           } />
-          
+
           <Route path="/dispute-chats/:chatId" element={
             <ProtectedRoute>
               <Layout>
@@ -175,7 +175,7 @@ function App() {
               </Layout>
             </ProtectedRoute>
           } />
-          
+
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
